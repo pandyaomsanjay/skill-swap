@@ -1,0 +1,47 @@
+<resources>
+    <!-- Signup Activity Strings -->
+    <string name="app_name">SkillSwap</string>
+    <string name="create_account_subtitle">Share skills, learn new ones</string>
+    <string name="full_name">Full Name</string>
+    <string name="email_address">Email Address</string>
+    <string name="phone_number">Phone Number</string>
+    <string name="location_city">Location (City)</string>
+    <string name="skills_section_title">Your Skills</string>
+    <string name="skills_teach_hint">Skills you can teach/share</string>
+    <string name="skills_teach_example">e.g., Guitar, Cooking, Spanish, Web Development</string>
+    <string name="skills_learn_hint">Skills you want to learn</string>
+    <string name="skills_learn_example">e.g., Photography, Yoga, French, Graphic Design</string>
+    <string name="password">Password</string>
+    <string name="confirm_password">Confirm Password</string>
+    <string name="terms_agreement">I agree to the Terms of Service and Privacy Policy</string>
+    <string name="create_account_button">Create Account</string>
+    <string name="already_have_account">Already have an account?</string>
+    <string name="login_link">Log In</string>
+
+
+    <!-- For accessibility -->
+    <string name="app_logo">SkillSwap App Logo</string>
+    <string name="navigation_drawer_open">Open navigation drawer</string>
+    <string name="navigation_drawer_close">Close navigation drawer</string>
+    <string name="my_profile" />
+    <string name="change_photo" />
+    <string name="contact_information" />
+    <string name="edit_profile" />
+    <string name="settings" />
+    <string name="logout" />
+    <string name="cd_change_photo" />
+
+    <string-array name="skill_categories">
+        <item>Technology</item>
+        <item>Arts</item>
+        <item>Sports</item>
+        <item>Home</item>
+        <item>Education</item>
+        <item>Lifestyle</item>
+    </string-array>
+
+    <!-- API Keys (Replace with actual keys) -->
+    <string name="default_web_client_id">YOUR_DEFAULT_WEB_CLIENT_ID</string>
+    <string name="places_api_key">YOUR_PLACES_API_KEY</string>
+
+</resources>

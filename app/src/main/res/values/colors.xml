@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- ================= BASIC COLORS ================= -->
+    <color name="white">#FFFFFF</color>
+    <color name="black">#000000</color>
+    <color name="transparent">#00000000</color>
+
+    <!-- ================= MODERN THEME (Primary Indigo) ================= -->
+    <color name="primary">#4F46E5</color>
+    <color name="primary_dark">#4338CA</color>
+    <color name="primary_light">#E0E7FF</color>
+    <color name="primary_container">#E0E7FF</color>
+    <color name="on_primary">#FFFFFF</color>
+
+    <color name="secondary">#8B5CF6</color>
+    <color name="secondary_dark">#1976D2</color>
+    <color name="secondary_light">#EDE9FE</color>
+
+    <color name="accent">#06B6D4</color>
+
+    <!-- ================= SURFACES & BACKGROUNDS ================= -->
+    <color name="background">#F8FAFC</color>
+    <color name="surface">#FFFFFF</color>
+    <color name="surface_variant">#F1F5F9</color>
+    <color name="on_surface">#0F172A</color>
+    <color name="on_surface_variant">#475569</color>
+    <color name="card_bg">#FFFFFF</color>
+    <color name="dialog_bg">#FFFFFF</color>
+
+    <!-- ================= TEXT COLORS ================= -->
+    <color name="text_primary">#0F172A</color>
+    <color name="text_secondary">#475569</color>
+    <color name="text_hint">#94A3B8</color>
+    <color name="text_disabled">#BDBDBD</color>
+    <color name="text_inverse">#FFFFFF</color>
+    <color name="text_link">#1E88E5</color>
+    <color name="text_white">#FFFFFF</color>
+
+    <!-- ================= BUTTONS ================= -->
+    <color name="btn_primary">#4CAF50</color>
+    <color name="btn_primary_text">#FFFFFF</color>
+    <color name="btn_secondary">#2196F3</color>
+    <color name="btn_secondary_text">#FFFFFF</color>
+    <color name="btn_disabled">#BDBDBD</color>
+
+    <!-- ================= FEEDBACK COLORS ================= -->
+    <color name="success">#10B981</color>
+    <color name="error">#EF4444</color>
+    <color name="warning">#F59E0B</color>
+    <color name="info">#2196F3</color>
+
+    <color name="success_soft">#E8F5E9</color>
+    <color name="warning_soft">#FFF3E0</color>
+    <color name="error_soft">#FFEBEE</color>
+    <color name="info_soft">#E3F2FD</color>
+
+    <!-- ================= GREY SCALE ================= -->
+    <color name="grey_50">#FAFAFA</color>
+    <color name="grey_100">#F5F5F5</color>
+    <color name="grey_200">#EEEEEE</color>
+    <color name="grey_300">#E0E0E0</color>
+    <color name="grey_400">#BDBDBD</color>
+    <color name="grey_500">#9E9E9E</color>
+    <color name="grey_600">#757575</color>
+    <color name="grey_700">#616161</color>
+    <color name="grey_800">#424242</color>
+    <color name="grey_900">#212121</color>
+    <color name="grey">#9E9E9E</color>
+
+    <!-- ================= MATERIAL COLORS ================= -->
+    <color name="red">#F44336</color>
+    <color name="pink">#E91E63</color>
+    <color name="purple">#9C27B0</color>
+    <color name="deep_purple">#673AB7</color>
+    <color name="indigo">#3F51B5</color>
+    <color name="blue">#2196F3</color>
+    <color name="light_blue">#03A9F4</color>
+    <color name="cyan">#00BCD4</color>
+    <color name="teal">#009688</color>
+    <color name="green">#4CAF50</color>
+    <color name="light_green">#8BC34A</color>
+    <color name="lime">#CDDC39</color>
+    <color name="yellow">#FFEB3B</color>
+    <color name="amber">#FFC107</color>
+    <color name="orange">#FF9800</color>
+    <color name="deep_orange">#FF5722</color>
+    <color name="brown">#795548</color>
+    <color name="blue_grey">#607D8B</color>
+
+    <!-- ================= DIVIDERS & SHADOWS ================= -->
+    <color name="divider">#E0E0E0</color>
+    <color name="shadow">#55000000</color>
+    <color name="overlay_light">#33FFFFFF</color>
+    <color name="overlay_dark">#33000000</color>
+    <color name="border">#E0E0E0</color>
+    <color name="border_light">#EEEEEE</color>
+
+    <!-- ================= SYSTEM UI ================= -->
+    <color name="status_bar">#388E3C</color>
+    <color name="navigation_bar">#FFFFFF</color>
+    <color name="toolbar">#4CAF50</color>
+    <color name="toolbar_text">#FFFFFF</color>
+
+    <!-- ================= APP-SPECIFIC ================= -->
+    <color name="skill_teach">#2196F3</color>
+    <color name="skill_learn">#FF9800</color>
+    <color name="primary_soft">#E8F5E9</color>
+    <color name="primary_alpha_20">#332E7D32</color>
+    <color name="secondary_soft">#FFF1ED</color>
+    <color name="accent_blue">#2196F3</color>
+    <color name="accent_purple">#9C27B0</color>
+    <color name="accent_teal">#009688</color>
+
+    <!-- ================= GRADIENTS ================= -->
+    <color name="gradient_start">#4CAF50</color>
+    <color name="gradient_end">#2E7D32</color>
+    <color name="gradient_orange_start">#FF8A6F</color>
+    <color name="gradient_orange_end">#FF6B4A</color>
+
+    <!-- ================= LEGACY COMPATIBILITY ================= -->
+    <color name="colorPrimary">@color/primary</color>
+    <color name="colorOnPrimary">@color/on_primary</color>
+    <color name="colorPrimaryVariant">@color/primary_dark</color>
+    <color name="primary_green">#10B981</color>
+    <color name="primary_green_container">#D1FAE5</color>
+
+</resources>

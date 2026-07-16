@@ -1,0 +1,32 @@
+<resources>
+    <!-- Signup Activity Strings -->
+    <string name="app_name">स्किलस्वैप</string>
+    <string name="create_account_subtitle">कौशल साझा करें, नए सीखें</string>
+    <string name="full_name">पूरा नाम</string>
+    <string name="email_address">ईमेल पता</string>
+    <string name="phone_number">फ़ोन नंबर</string>
+    <string name="location_city">स्थान (शहर)</string>
+    <string name="skills_section_title">आपके कौशल</string>
+    <string name="skills_teach_hint">कौशल जो आप सिखा/साझा कर सकते हैं</string>
+    <string name="skills_teach_example">जैसे, गिटार, खाना बनाना, स्पेनिश, वेब डेवलपमेंट</string>
+    <string name="skills_learn_hint">कौशल जो आप सीखना चाहते हैं</string>
+    <string name="skills_learn_example">जैसे, फोटोग्राफी, योग, फ्रेंच, ग्राफिक डिजाइन</string>
+    <string name="password">पासवर्ड</string>
+    <string name="confirm_password">पासवर्ड की पुष्टि करें</string>
+    <string name="terms_agreement">मैं सेवा की शर्तों और गोपनीयता नीति से सहमत हूँ</string>
+    <string name="create_account_button">खाता बनाएँ</string>
+    <string name="already_have_account">पहले से ही एक खाता है?</string>
+    <string name="login_link">लॉग इन करें</string>
+
+    <!-- For accessibility -->
+    <string name="app_logo">स्किलस्वैप ऐप लोगो</string>
+    <string name="navigation_drawer_open">नेविगेशन ड्रॉवर खोलें</string>
+    <string name="navigation_drawer_close">नेविगेशन ड्रॉवर बंद करें</string>
+    <string name="my_profile" />
+    <string name="change_photo" />
+    <string name="contact_information" />
+    <string name="edit_profile" />
+    <string name="settings" />
+    <string name="logout" />
+    <string name="cd_change_photo" />
+</resources>

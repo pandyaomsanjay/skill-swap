@@ -1,0 +1,32 @@
+<resources>
+    <!-- Signup Activity Strings -->
+    <string name="app_name">SkillSwap</string>
+    <string name="create_account_subtitle">Comparte habilidades, aprende nuevas</string>
+    <string name="full_name">Nombre completo</string>
+    <string name="email_address">Correo electrónico</string>
+    <string name="phone_number">Número de teléfono</string>
+    <string name="location_city">Ubicación (Ciudad)</string>
+    <string name="skills_section_title">Tus habilidades</string>
+    <string name="skills_teach_hint">Habilidades que puedes enseñar/compartir</string>
+    <string name="skills_teach_example">p.ej., Guitarra, Cocina, Español, Desarrollo web</string>
+    <string name="skills_learn_hint">Habilidades que quieres aprender</string>
+    <string name="skills_learn_example">p.ej., Fotografía, Yoga, Francés, Diseño gráfico</string>
+    <string name="password">Contraseña</string>
+    <string name="confirm_password">Confirmar contraseña</string>
+    <string name="terms_agreement">Acepto los Términos de Servicio y la Política de Privacidad</string>
+    <string name="create_account_button">Crear cuenta</string>
+    <string name="already_have_account">¿Ya tienes una cuenta?</string>
+    <string name="login_link">Iniciar sesión</string>
+
+    <!-- For accessibility -->
+    <string name="app_logo">Logotipo de SkillSwap</string>
+    <string name="navigation_drawer_open">Abrir cajón de navegación</string>
+    <string name="navigation_drawer_close">Cerrar cajón de navegación</string>
+    <string name="my_profile" />
+    <string name="change_photo" />
+    <string name="contact_information" />
+    <string name="edit_profile" />
+    <string name="settings" />
+    <string name="logout" />
+    <string name="cd_change_photo" />
+</resources>

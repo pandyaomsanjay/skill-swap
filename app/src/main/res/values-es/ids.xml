@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <item name="titleLayout" type="id" />
+    <item name="etTitle" type="id" />
+    <item name="categoryLayout" type="id" />
+    <item name="actvCategory" type="id" />
+    <item name="descriptionLayout" type="id" />
+    <item name="etDescription" type="id" />
+    <item name="durationLayout" type="id" />
+    <item name="etDuration" type="id" />
+    <item name="btnDecrement" type="id" />
+    <item name="tvCredits" type="id" />
+    <item name="btnIncrement" type="id" />
+    <item name="btnPublishSkill" type="id" />
+</resources>

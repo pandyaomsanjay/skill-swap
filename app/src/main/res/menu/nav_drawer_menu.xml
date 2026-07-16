@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <group android:checkableBehavior="single">
+        <item
+            android:id="@+id/nav_home"
+            android:icon="@drawable/baseline_home_24"
+            android:title="Home" />
+
+        <item
+            android:id="@+id/nav_my_skills"
+            android:icon="@drawable/outline_psychology_24"
+            android:title="My Skills" />
+
+        <item
+            android:id="@+id/nav_my_trades"
+            android:icon="@drawable/outline_handshake_24"
+            android:title="My Trades" />
+
+        <item
+            android:id="@+id/nav_messages"
+            android:icon="@drawable/baseline_message_24"
+            android:title="Messages" />
+
+        <item
+            android:id="@+id/nav_notifications"
+            android:icon="@drawable/outline_notifications_24"
+            android:title="Notifications" />
+    </group>
+
+    <group android:checkableBehavior="none">
+        <item
+            android:id="@+id/nav_favorites"
+            android:icon="@drawable/baseline_favorite_24"
+            android:title="Favorites" />
+
+        <item
+            android:id="@+id/nav_history"
+            android:icon="@drawable/outline_history_24"
+            android:title="History" />
+    </group>
+
+    <group android:checkableBehavior="none">
+        <item
+            android:id="@+id/nav_settings"
+            android:icon="@drawable/outline_settings_24"
+            android:title="Settings" />
+
+        <!-- Fixed: Changed "Help Support" to "Help & Support" -->
+        <item
+            android:id="@+id/nav_help"
+            android:icon="@drawable/outline_help_24"
+            android:title="Help &amp; Support" />
+
+        <item
+            android:id="@+id/nav_about"
+            android:icon="@drawable/outline_info_24"
+            android:title="About" />
+
+        <item
+            android:id="@+id/nav_logout"
+            android:icon="@drawable/outline_logout_24"
+            android:title="Logout" />
+    </group>
+
+</menu>

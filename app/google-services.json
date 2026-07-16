@@ -1,0 +1,106 @@
+{
+  "project_info": {
+    "project_number": "428033403264",
+    "firebase_url": "https://databaselac-default-rtdb.firebaseio.com",
+    "project_id": "databaselac",
+    "storage_bucket": "databaselac.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:428033403264:android:d44c90f93c5be4cdfdf965",
+        "android_client_info": {
+          "package_name": "com.example.a16database"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "428033403264-3clu1nmth5vconvconsjbdpmc0i1phak.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.a16database",
+            "certificate_hash": "092197a6d8f5e0a7b7131e0793377315b748e6c3"
+          }
+        },
+        {
+          "client_id": "428033403264-s0lq17dk126njb7cn7mlce4417a8bjlo.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAAXyQM4o-PF0RTKQhJdvA000caHKcfAbc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "428033403264-95noji7oo5aj8ubs8jcc6li8njg575m9.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:428033403264:android:03f85ad696c0f837fdf965",
+        "android_client_info": {
+          "package_name": "com.example.sgp"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "428033403264-s0lq17dk126njb7cn7mlce4417a8bjlo.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAAXyQM4o-PF0RTKQhJdvA000caHKcfAbc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "428033403264-95noji7oo5aj8ubs8jcc6li8njg575m9.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:428033403264:android:e5d2a46d7dc4520afdf965",
+        "android_client_info": {
+          "package_name": "com.example.skillswap"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "428033403264-s0lq17dk126njb7cn7mlce4417a8bjlo.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAAXyQM4o-PF0RTKQhJdvA000caHKcfAbc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "428033403264-95noji7oo5aj8ubs8jcc6li8njg575m9.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

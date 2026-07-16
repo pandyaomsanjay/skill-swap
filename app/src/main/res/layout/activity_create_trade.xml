@@ -1,0 +1,154 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:fitsSystemWindows="true"
+    android:background="@color/background">
+
+    <com.google.android.material.appbar.MaterialToolbar
+        android:id="@+id/toolbar"
+        android:layout_width="match_parent"
+        android:layout_height="?attr/actionBarSize"
+        android:background="@color/primary"
+        app:title="Propose Trade"
+        app:titleTextColor="@color/text_white"
+        app:navigationIcon="@drawable/outline_arrow_back_24" />
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:padding="@dimen/spacing_lg"
+        android:fillViewport="true">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <!-- Info Card -->
+            <androidx.cardview.widget.CardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="@dimen/spacing_xl"
+                app:cardCornerRadius="@dimen/radius_lg"
+                app:cardBackgroundColor="@color/primary_soft"
+                app:cardElevation="0dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:padding="@dimen/spacing_lg"
+                    android:gravity="center_vertical">
+
+                    <ImageView
+                        android:layout_width="@dimen/icon_size_md"
+                        android:layout_height="@dimen/icon_size_md"
+                        android:src="@drawable/outline_handshake_24"
+                        android:hint="@color/primary" />
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:layout_marginStart="@dimen/spacing_md"
+                        android:text="Find a trading partner and propose a skill exchange"
+                        android:textColor="@color/primary_dark"
+                        android:textSize="@dimen/text_body_medium" />
+                </LinearLayout>
+            </androidx.cardview.widget.CardView>
+
+            <!-- Your Skill -->
+            <com.google.android.material.textfield.TextInputLayout
+                android:id="@+id/yourSkillLayout"
+                style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="@dimen/spacing_lg"
+                android:hint="Your Skill (what you offer)"
+                app:startIconDrawable="@drawable/outline_school_24"
+                app:startIconTint="@color/primary">
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/etYourSkill"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:textSize="@dimen/text_body_large" />
+            </com.google.android.material.textfield.TextInputLayout>
+
+            <!-- Partner's Email -->
+            <com.google.android.material.textfield.TextInputLayout
+                android:id="@+id/partnerEmailLayout"
+                style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="@dimen/spacing_lg"
+                android:hint="Partner's Email"
+                app:startIconDrawable="@drawable/outline_mail_24"
+                app:startIconTint="@color/primary"
+                app:endIconMode="clear_text">
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/etPartnerEmail"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:inputType="textEmailAddress"
+                    android:textSize="@dimen/text_body_large" />
+            </com.google.android.material.textfield.TextInputLayout>
+
+            <!-- Partner's Skill -->
+            <com.google.android.material.textfield.TextInputLayout
+                android:id="@+id/partnerSkillLayout"
+                style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="@dimen/spacing_xl"
+                android:hint="Partner's Skill (what you want)"
+                app:startIconDrawable="@drawable/outline_psychology_24"
+                app:startIconTint="@color/primary">
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/etPartnerSkill"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:textSize="@dimen/text_body_large" />
+            </com.google.android.material.textfield.TextInputLayout>
+
+            <!-- Message (Optional) -->
+            <com.google.android.material.textfield.TextInputLayout
+                android:id="@+id/messageLayout"
+                style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="@dimen/spacing_xl"
+                android:hint="Add a message (optional)"
+                app:startIconDrawable="@drawable/baseline_message_24"
+                app:startIconTint="@color/primary">
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/etMessage"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:minLines="3"
+                    android:inputType="textMultiLine"
+                    android:textSize="@dimen/text_body_large" />
+            </com.google.android.material.textfield.TextInputLayout>
+
+            <!-- Propose Button -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnPropose"
+                android:layout_width="match_parent"
+                android:layout_height="@dimen/button_height"
+                android:text="Propose Trade"
+                android:textAllCaps="false"
+                android:textColor="@color/text_white"
+                android:textSize="@dimen/text_body_large"
+                android:textStyle="bold"
+                app:cornerRadius="@dimen/radius_lg"
+                app:backgroundTint="@color/primary"
+                android:layout_marginBottom="@dimen/spacing_xl" />
+        </LinearLayout>
+    </ScrollView>
+</LinearLayout>
