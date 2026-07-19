@@ -172,6 +172,7 @@
                     app:cornerRadius="28dp"
                     android:backgroundTint="#F1F3F4"
                     app:icon="@drawable/ic_google_logo"
+                    app:iconTint="@null"
                     app:iconGravity="textStart"
                     app:iconPadding="8dp"
                     android:layout_marginBottom="8dp" />

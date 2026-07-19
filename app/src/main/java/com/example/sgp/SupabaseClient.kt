@@ -7,7 +7,7 @@ import io.github.jan.supabase.auth.Auth
 
 object SupabaseClient {
     val client = createSupabaseClient(
-        supabaseUrl = "https://ghrxltlstncjcizyqyfo.supabase.co",
+        supabaseUrl = "https://ghrxltlstncjcizyyqfo.supabase.co",
         supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdocnhsdGxzdG5jamNpenl5cWZvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM0OTE5OTMsImV4cCI6MjA4OTA2Nzk5M30.FkIIFgdOzRUCYAtBPokKL91caDpL0G0tsdeot_JeOEQ"
     ) {
         install(Storage)

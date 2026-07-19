@@ -22,7 +22,6 @@ import com.google.android.material.card.MaterialCardView
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import io.github.jan.supabase.auth.OtpType
-import kotlinx.coroutines.tasks.await
 import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.auth.providers.builtin.OTP
 import io.github.jan.supabase.postgrest.Postgrest
@@ -33,7 +32,6 @@ class OtpActivity : BaseActivity() {
     private var email = ""
     private var password = ""
     private var isGoogle = false
-    private var useFirebase = false
 
     private lateinit var auth: FirebaseAuth
     private lateinit var db: FirebaseFirestore
@@ -47,7 +45,6 @@ class OtpActivity : BaseActivity() {
     private lateinit var otpBoxes: List<EditText>
     private lateinit var otpCards: List<MaterialCardView>
     private lateinit var countDownTimer: CountDownTimer
-    private var checkJob: Job? = null
 
     // ── Palette (unchanged) ──────────────────────────────────────
     private val C_CARD               = Color.parseColor("#1E293B")
@@ -85,7 +82,6 @@ class OtpActivity : BaseActivity() {
         email    = intent.getStringExtra("email") ?: ""
         password = intent.getStringExtra("password") ?: ""
         isGoogle = intent.getBooleanExtra("isGoogle", false)
-        useFirebase = intent.getBooleanExtra("useFirebase", false)
 
         auth = FirebaseAuth.getInstance()
         db = FirebaseFirestore.getInstance()
@@ -116,11 +112,7 @@ class OtpActivity : BaseActivity() {
         cardMain.strokeColor = C_CARD_BORDER
         cardMain.strokeWidth = dp(1f).toInt()
 
-        val emailText = if (useFirebase) {
-            "Verification link sent to $email"
-        } else {
-            if (isGoogle) "OTP sent to $email (Google sign‑in)" else "OTP sent to $email"
-        }
+        val emailText = if (isGoogle) "OTP sent to $email (Google sign‑in)" else "OTP sent to $email"
         findViewById<TextView>(R.id.tvEmailInfo).apply {
             val spannable = android.text.SpannableString(emailText)
             val start = emailText.indexOf(email)
@@ -141,43 +133,29 @@ class OtpActivity : BaseActivity() {
 
         applyTimerPillColor(TIMER_GREEN)
 
-        if (useFirebase) {
-            findViewById<View>(R.id.otpBoxesContainer).visibility = View.GONE
-            findViewById<TextView>(R.id.tvTimerLabel).text = "Check your email"
-            tvTimer.text = "Click the link to verify"
-            findViewById<MaterialButton>(R.id.btnVerify).text = "I've verified"
-            findViewById<TextView>(R.id.tvResend).text = "Resend Link"
-            startTimer(60_000L)
-            startFirebaseCheck()
-        } else {
-            findViewById<View>(R.id.otpBoxesContainer).visibility = View.VISIBLE
-            findViewById<MaterialButton>(R.id.btnVerify).text = "Verify OTP"
-            findViewById<TextView>(R.id.tvResend).text = "Resend OTP"
-            otpBoxes.forEachIndexed { i, box ->
-                setBoxStyle(i, active = false, filled = false)
-            }
-            setBoxStyle(0, active = true, filled = false)
-            setupOtpBoxes()
-            startTimer()
+        findViewById<View>(R.id.otpBoxesContainer).visibility = View.VISIBLE
+        findViewById<MaterialButton>(R.id.btnVerify).text = "Verify OTP"
+        findViewById<TextView>(R.id.tvResend).text = "Resend OTP"
+        otpBoxes.forEachIndexed { i, box ->
+            setBoxStyle(i, active = false, filled = false)
         }
+        setBoxStyle(0, active = true, filled = false)
+        setupOtpBoxes()
+        startTimer()
 
         findViewById<MaterialButton>(R.id.btnVerify).setOnClickListener {
-            if (useFirebase) {
-                checkFirebaseVerification()
-            } else {
-                val otp = otpBoxes.joinToString("") { it.text.toString().trim() }
-                if (otp.length != 6) {
-                    showError("Please enter the complete 6-digit code")
-                    shakeBoxes()
-                    return@setOnClickListener
-                }
-                hideError()
-                verifyOtp(otp)
+            val otp = otpBoxes.joinToString("") { it.text.toString().trim() }
+            if (otp.length != 6) {
+                showError("Please enter the complete 6-digit code")
+                shakeBoxes()
+                return@setOnClickListener
             }
+            hideError()
+            verifyOtp(otp)
         }
 
         findViewById<TextView>(R.id.tvResend).setOnClickListener {
-            if (useFirebase) resendFirebaseLink() else resendOtp()
+            resendOtp()
         }
     }
 
@@ -188,10 +166,102 @@ class OtpActivity : BaseActivity() {
     private fun applyTimerPillColor(state: Int) { /* ... */ }
     private fun pulseTimer() { /* ... */ }
 
-    // ─── OTP Box Logic (unchanged) ─────────────────────────────────
-    private fun setupOtpBoxes() { /* ... */ }
-    private fun setBoxStyle(index: Int, active: Boolean, filled: Boolean) { /* ... */ }
-    private fun shakeBoxes() { /* ... */ }
+    // ─── OTP Box Logic ─────────────────────────────────
+    private fun setupOtpBoxes() {
+        otpBoxes.forEachIndexed { index, box ->
+            box.addTextChangedListener(object : TextWatcher {
+                override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+                override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
+
+                override fun afterTextChanged(s: Editable?) {
+                    val text = s?.toString() ?: ""
+
+                    // If user pastes/types more than one char, keep only the first
+                    if (text.length > 1) {
+                        box.removeTextChangedListener(this)
+                        box.setText(text[0].toString())
+                        box.setSelection(1)
+                        box.addTextChangedListener(this)
+                    }
+
+                    if (text.isNotEmpty()) {
+                        setBoxStyle(index, active = false, filled = true)
+                        if (index < otpBoxes.size - 1) {
+                            // Move to next box
+                            otpBoxes[index + 1].requestFocus()
+                            setBoxStyle(index + 1, active = true, filled = otpBoxes[index + 1].text.toString().isNotEmpty())
+                        } else {
+                            // Last box filled — drop focus / hide keyboard
+                            box.clearFocus()
+                            val imm = getSystemService(android.content.Context.INPUT_METHOD_SERVICE)
+                                    as android.view.inputmethod.InputMethodManager
+                            imm.hideSoftInputFromWindow(box.windowToken, 0)
+
+                            // Auto-verify once all 6 digits are entered
+                            val otp = otpBoxes.joinToString("") { it.text.toString().trim() }
+                            if (otp.length == 6) {
+                                hideError()
+                                verifyOtp(otp)
+                            }
+                        }
+                    } else {
+                        setBoxStyle(index, active = true, filled = false)
+                    }
+                }
+            })
+
+            box.setOnKeyListener { _, keyCode, event ->
+                if (keyCode == KeyEvent.KEYCODE_DEL && event.action == KeyEvent.ACTION_DOWN) {
+                    if (box.text.toString().isEmpty() && index > 0) {
+                        // Empty box + backspace → go back and clear previous box
+                        val prev = otpBoxes[index - 1]
+                        prev.requestFocus()
+                        prev.setText("")
+                        setBoxStyle(index - 1, active = true, filled = false)
+                        setBoxStyle(index, active = false, filled = false)
+                        return@setOnKeyListener true
+                    }
+                }
+                false
+            }
+
+            box.setOnFocusChangeListener { _, hasFocus ->
+                if (hasFocus) {
+                    setBoxStyle(index, active = true, filled = box.text.toString().isNotEmpty())
+                } else {
+                    setBoxStyle(index, active = false, filled = box.text.toString().isNotEmpty())
+                }
+            }
+        }
+    }
+
+    private fun setBoxStyle(index: Int, active: Boolean, filled: Boolean) {
+        val card = otpCards[index]
+        when {
+            active -> {
+                card.strokeColor = C_BOX_ACTIVE_BORDER
+                card.setCardBackgroundColor(C_BOX_FILL)
+            }
+            filled -> {
+                card.strokeColor = C_BOX_FILLED_BORDER
+                card.setCardBackgroundColor(C_BOX_FILL)
+            }
+            else -> {
+                card.strokeColor = C_BOX_EMPTY_BORDER
+                card.setCardBackgroundColor(C_BOX_FILL)
+            }
+        }
+    }
+
+    private fun shakeBoxes() {
+        otpCards.forEach { card ->
+            val anim = TranslateAnimation(0f, 12f, 0f, 0f).apply {
+                duration = 400
+                interpolator = CycleInterpolator(5f)
+            }
+            card.startAnimation(anim)
+        }
+    }
 
     // ─── Error Helpers ─────────────────────────────────────────────
     private fun showError(msg: String) { /* ... */ }
@@ -203,8 +273,11 @@ class OtpActivity : BaseActivity() {
         showLoading(true)
         lifecycleScope.launch {
             try {
+                // FIX: OTP was sent via signInWith(OTP) { createUser = true },
+                // which issues an EMAIL-type code, not SIGNUP. Verifying with
+                // the wrong type throws every time even for a correct code.
                 SupabaseClient.client.auth.verifyEmailOtp(
-                    type  = OtpType.Email.SIGNUP,
+                    type  = OtpType.Email.EMAIL,
                     email = email,
                     token = otp
                 )
@@ -254,90 +327,43 @@ class OtpActivity : BaseActivity() {
         }
     }
 
-    // ─── Firebase Email Verification ─────────────────────────────
-    private fun startFirebaseCheck() {
-        checkJob = CoroutineScope(Dispatchers.IO).launch {
-            while (isActive) {
-                delay(3000)
-                val user = auth.currentUser
-                user?.reload()?.await()
-                if (user?.isEmailVerified == true) {
-                    withContext(Dispatchers.Main) {
-                        onEmailVerified()
-                    }
-                    cancel()
-                }
-            }
-        }
-    }
-
-    private suspend fun FirebaseAuth.reload(): Boolean {
-        val user = currentUser ?: return false
-        return try {
-            user.reload().await()
-            true
-        } catch (e: Exception) {
-            false
-        }
-    }
-
-    private fun checkFirebaseVerification() {
-        val user = auth.currentUser
-        user?.reload()?.addOnCompleteListener { task ->
-            if (task.isSuccessful && user.isEmailVerified) {
-                onEmailVerified()
-            } else {
-                showError("Email not verified yet. Please check your inbox and click the link.")
-            }
-        }
-    }
-
-    private fun onEmailVerified() {
-        Toast.makeText(this, "Email verified! 🎉", Toast.LENGTH_SHORT).show()
-        proceedToProfile()
-    }
-
-    private fun resendFirebaseLink() {
-        val user = auth.currentUser
-        user?.sendEmailVerification()
-            ?.addOnCompleteListener { task ->
-                if (task.isSuccessful) {
-                    Toast.makeText(this, "Verification link resent", Toast.LENGTH_SHORT).show()
-                    startTimer(60_000L)
-                } else {
-                    Toast.makeText(this, "Failed to resend: ${task.exception?.message}", Toast.LENGTH_SHORT).show()
-                }
-            }
-    }
-
     // ─── Common Navigation + Dual Save ──────────────────────────
     private fun proceedToProfile() {
-        showLoading(false)
-        // Save to Firestore
-        saveToFirestore()
-        // Save to Supabase (profiles table)
-        saveToSupabase()
+        showLoading(true)
 
-        // Save session
-        val prefs = getSharedPreferences("SkillSwapPrefs", MODE_PRIVATE)
-        with(prefs.edit()) {
-            putString("user_email", email)
-            putInt("user_points", 1250)
-            apply()
-        }
+        // FIX: wait for the Firestore write to actually succeed before
+        // navigating, instead of firing it and moving on immediately.
+        val uid = auth.currentUser?.uid ?: email
+        db.collection("users").document(uid).set(buildUserMap(uid))
+            .addOnSuccessListener {
+                // Supabase insert can stay fire-and-forget; it's a secondary
+                // record and shouldn't block navigation if it's slow/fails.
+                saveToSupabase(uid)
 
-        startActivity(Intent(this, CompleteProfileActivity::class.java).apply {
-            putExtra("email", email)
-            putExtra("password", password)
-            putExtra("isGoogle", isGoogle)
-            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-        })
-        finish()
+                val prefs = getSharedPreferences("SkillSwapPrefs", MODE_PRIVATE)
+                with(prefs.edit()) {
+                    putString("user_email", email)
+                    putInt("user_points", 1250)
+                    apply()
+                }
+
+                showLoading(false)
+                startActivity(Intent(this, CompleteProfileActivity::class.java).apply {
+                    putExtra("email", email)
+                    putExtra("password", password)
+                    putExtra("isGoogle", isGoogle)
+                    flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                })
+                finish()
+            }
+            .addOnFailureListener { e ->
+                showLoading(false)
+                showError("Failed to create profile: ${e.message}")
+            }
     }
 
-    private fun saveToFirestore() {
-        val uid = auth.currentUser?.uid ?: email
-        val userMap = hashMapOf(
+    private fun buildUserMap(uid: String): HashMap<String, Any> {
+        return hashMapOf(
             "email" to email,
             "name" to "",
             "profileImage" to "",
@@ -352,17 +378,13 @@ class OtpActivity : BaseActivity() {
             "credits" to 1250,
             "userType" to "standard"
         )
-        db.collection("users").document(uid).set(userMap)
-            .addOnSuccessListener { /* success */ }
-            .addOnFailureListener { e -> e.printStackTrace() }
     }
 
-    private fun saveToSupabase() {
-        // Insert a row into the "profiles" table in Supabase
-        // You need to have a table named "profiles" with columns: id (uuid), email, name, etc.
+    private fun saveToSupabase(uid: String) {
+        // Insert a login/auth record into the "profiles" table in Supabase
+        // Table "profiles" needs columns: id (uuid/text), email, login_provider, created_at
         lifecycleScope.launch {
             try {
-                val uid = auth.currentUser?.uid ?: email
                 SupabaseClient.client.postgrest["profiles"].insert(
                     mapOf(
                         "id" to uid,
@@ -372,7 +394,7 @@ class OtpActivity : BaseActivity() {
                         "created_at" to System.currentTimeMillis()
                     )
                 )
-                // You can ignore the response or check for success
+                // Insert result ignored; navigation isn't blocked by Supabase failures
             } catch (e: Exception) {
                 e.printStackTrace()
                 // Don't block navigation if Supabase insert fails
@@ -388,6 +410,5 @@ class OtpActivity : BaseActivity() {
     override fun onDestroy() {
         super.onDestroy()
         if (::countDownTimer.isInitialized) countDownTimer.cancel()
-        checkJob?.cancel()
     }
 }

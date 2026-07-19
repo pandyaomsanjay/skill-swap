@@ -2,15 +2,22 @@ package com.example.sgp
 
 import android.content.Intent
 import android.os.Bundle
+import android.util.Log
 import android.util.Patterns
 import android.view.View
 import android.widget.Button
 import android.widget.ProgressBar
 import android.widget.TextView
 import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
+import com.google.android.gms.auth.api.signin.GoogleSignIn
+import com.google.android.gms.auth.api.signin.GoogleSignInClient
+import com.google.android.gms.auth.api.signin.GoogleSignInOptions
+import com.google.android.gms.common.api.ApiException
 import com.google.android.material.snackbar.Snackbar
 import com.google.android.material.textfield.TextInputLayout
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.GoogleAuthProvider
 import com.google.firebase.Firebase
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.firestore
@@ -20,6 +27,47 @@ class Login : BaseActivity() {
     private lateinit var auth: FirebaseAuth
     private lateinit var db: FirebaseFirestore
     private lateinit var progressBar: ProgressBar
+    private lateinit var googleSignInClient: GoogleSignInClient
+
+    private val googleLauncher =
+        registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+            if (result.resultCode == RESULT_OK) {
+                val data = result.data
+                val task = GoogleSignIn.getSignedInAccountFromIntent(data)
+                try {
+                    val account = task.getResult(ApiException::class.java)
+                    val idToken = account?.idToken
+
+                    if (idToken == null) {
+                        Log.e(
+                            "GoogleSignIn",
+                            "idToken is null — check default_web_client_id / SHA-1 config"
+                        )
+                        Toast.makeText(
+                            this,
+                            "Google sign-in failed: no ID token returned",
+                            Toast.LENGTH_LONG
+                        ).show()
+                        return@registerForActivityResult
+                    }
+
+                    firebaseAuthWithGoogle(idToken)
+                } catch (e: ApiException) {
+                    Log.e("GoogleSignIn", "ApiException code=${e.statusCode}", e)
+                    Toast.makeText(
+                        this,
+                        "Google sign‑in failed (code ${e.statusCode}): ${e.message}",
+                        Toast.LENGTH_LONG
+                    ).show()
+                } catch (e: Exception) {
+                    Log.e("GoogleSignIn", "Unexpected exception", e)
+                    Toast.makeText(this, "Google sign‑in failed: ${e.message}", Toast.LENGTH_LONG)
+                        .show()
+                }
+            } else {
+                Log.e("GoogleSignIn", "Result not OK, resultCode=${result.resultCode}")
+            }
+        }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -28,6 +76,12 @@ class Login : BaseActivity() {
         auth = FirebaseAuth.getInstance()
         db = Firebase.firestore
         progressBar = findViewById(R.id.progressBar)
+
+        val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+            .requestIdToken(getString(R.string.default_web_client_id))
+            .requestEmail()
+            .build()
+        googleSignInClient = GoogleSignIn.getClient(this, gso)
 
         // Auto-login check using Firebase Auth
         if (auth.currentUser != null) {
@@ -43,6 +97,7 @@ class Login : BaseActivity() {
         val btnLogin = findViewById<Button>(R.id.btnLogin)
         val tvCreateAccount = findViewById<Button>(R.id.tvCreateAccount)
         val tvForgotPassword = findViewById<TextView>(R.id.tvForgotPassword)
+        val btnGoogleSignIn = findViewById<Button>(R.id.btnGoogleLogin)
 
         val emailInput = findViewById<TextInputLayout>(R.id.email)
         val passwordInput = findViewById<TextInputLayout>(R.id.password)
@@ -62,6 +117,21 @@ class Login : BaseActivity() {
 
         tvForgotPassword.setOnClickListener {
             startActivity(Intent(this, ForgotPasswordActivity::class.java))
+        }
+
+        btnGoogleSignIn.setOnClickListener {
+            signInWithGoogle()
+        }
+    }
+
+    /**
+     * Signs out of the cached Google session first, so the account chooser
+     * is always shown — the user picks an account on every click instead of
+     * Play Services silently reusing the last one.
+     */
+    private fun signInWithGoogle() {
+        googleSignInClient.signOut().addOnCompleteListener {
+            googleLauncher.launch(googleSignInClient.signInIntent)
         }
     }
 
@@ -96,41 +166,85 @@ class Login : BaseActivity() {
                 if (task.isSuccessful) {
                     val user = auth.currentUser
                     if (user != null) {
-                        // Fetch user data from Firestore
-                        db.collection("users").document(user.uid).get()
-                            .addOnSuccessListener { doc ->
-                                val userData = doc.toObject(Users::class.java)
-                                if (userData != null) {
-                                    // Save session in SharedPreferences
-                                    val prefs = getSharedPreferences("SkillSwapPrefs", MODE_PRIVATE)
-                                    prefs.edit()
-                                        .putString("user_name", userData.name)
-                                        .putString("user_email", userData.email)
-                                        .putString("user_location", userData.location)
-                                        .putString("user_type", userData.userType)
-                                        .apply()
-
-                                    Toast.makeText(this@Login, "Login successful", Toast.LENGTH_SHORT).show()
-
-                                    val intent = if (userData.userType == "admin") {
-                                        Intent(this@Login, AdminDashboardActivity::class.java)
-                                    } else {
-                                        Intent(this@Login, Home::class.java)
-                                    }
-                                    intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-                                    startActivity(intent)
-                                    finish()
-                                } else {
-                                    showError("User data not found")
-                                }
-                            }
-                            .addOnFailureListener { e ->
-                                showError("Error fetching user data: ${e.message}")
-                            }
+                        loadUserAndNavigate(user.uid)
                     }
                 } else {
                     showError("Authentication failed: ${task.exception?.message}")
                 }
+            }
+    }
+
+    private fun firebaseAuthWithGoogle(idToken: String) {
+        showLoading(true)
+        val credential = GoogleAuthProvider.getCredential(idToken, null)
+        auth.signInWithCredential(credential)
+            .addOnCompleteListener { task ->
+                if (task.isSuccessful) {
+                    val user = auth.currentUser
+                    if (user != null) {
+                        loadUserAndNavigate(user.uid, isGoogle = true)
+                    } else {
+                        showLoading(false)
+                        showError("Google sign‑in succeeded but no user found")
+                    }
+                } else {
+                    showLoading(false)
+                    showError("Google sign‑in failed: ${task.exception?.message}")
+                }
+            }
+    }
+
+    /**
+     * Requires a Firestore user profile to already exist for the signed-in
+     * account. For Google sign-in, if no profile is found, the user is
+     * signed out (Firebase + Google) and sent to Create Account instead of
+     * being let into the app — this enforces "you must have an account
+     * before you can log in."
+     */
+    private fun loadUserAndNavigate(uid: String, isGoogle: Boolean = false) {
+        db.collection("users").document(uid).get()
+            .addOnSuccessListener { doc ->
+                showLoading(false)
+                val userData = doc.toObject(Users::class.java)
+                if (userData != null) {
+                    // Save session in SharedPreferences
+                    val prefs = getSharedPreferences("SkillSwapPrefs", MODE_PRIVATE)
+                    prefs.edit()
+                        .putString("user_name", userData.name)
+                        .putString("user_email", userData.email)
+                        .putString("user_location", userData.location)
+                        .putString("user_type", userData.userType)
+                        .apply()
+
+                    Toast.makeText(this@Login, "Login successful", Toast.LENGTH_SHORT).show()
+
+                    val intent = if (userData.userType == "admin") {
+                        Intent(this@Login, AdminDashboardActivity::class.java)
+                    } else {
+                        Intent(this@Login, Home::class.java)
+                    }
+                    intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                    startActivity(intent)
+                    finish()
+                } else if (isGoogle) {
+                    // First-time Google user with no profile yet — block
+                    // login and send to account creation flow instead.
+                    auth.signOut()
+                    googleSignInClient.signOut()
+                    Toast.makeText(
+                        this@Login,
+                        "No account found for this Google user. Please create an account.",
+                        Toast.LENGTH_LONG
+                    ).show()
+                    startActivity(Intent(this@Login, Createaccount::class.java))
+                    finish()
+                } else {
+                    showError("User data not found")
+                }
+            }
+            .addOnFailureListener { e ->
+                showLoading(false)
+                showError("Error fetching user data: ${e.message}")
             }
     }
 

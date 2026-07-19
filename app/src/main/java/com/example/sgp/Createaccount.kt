@@ -2,6 +2,7 @@ package com.example.sgp
 
 import android.content.Intent
 import android.os.Bundle
+import android.util.Log
 import android.widget.CheckBox
 import android.widget.TextView
 import android.widget.Toast
@@ -15,7 +16,6 @@ import com.google.android.material.textfield.TextInputEditText
 import com.google.android.material.textfield.TextInputLayout
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.GoogleAuthProvider
-import com.google.firebase.auth.FirebaseAuthUserCollisionException
 import com.google.firebase.firestore.FirebaseFirestore
 import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.auth.providers.builtin.OTP
@@ -39,18 +39,55 @@ class Createaccount : BaseActivity() {
 
     private val EMAIL_PATTERN = Regex("^[A-Za-z0-9+_.-]+@(.+)$")
 
-    private val googleLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
-        if (result.resultCode == RESULT_OK) {
-            val data = result.data
-            val task = GoogleSignIn.getSignedInAccountFromIntent(data)
-            try {
-                val account = task.getResult(ApiException::class.java)!!
-                firebaseAuthWithGoogle(account.idToken!!, account.email!!, account.displayName ?: "")
-            } catch (e: ApiException) {
-                Toast.makeText(this, "Google sign‑in failed: ${e.message}", Toast.LENGTH_SHORT).show()
+    private val googleLauncher =
+        registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+            if (result.resultCode == RESULT_OK) {
+                val data = result.data
+                val task = GoogleSignIn.getSignedInAccountFromIntent(data)
+                try {
+                    val account = task.getResult(ApiException::class.java)
+                    val idToken = account?.idToken
+                    val email = account?.email
+
+                    if (idToken == null) {
+                        Log.e(
+                            "GoogleSignIn",
+                            "idToken is null — check default_web_client_id / SHA-1 config"
+                        )
+                        Toast.makeText(
+                            this,
+                            "Google sign-in failed: no ID token returned",
+                            Toast.LENGTH_LONG
+                        ).show()
+                        return@registerForActivityResult
+                    }
+                    if (email == null) {
+                        Log.e("GoogleSignIn", "email is null from Google account")
+                        Toast.makeText(
+                            this,
+                            "Google sign-in failed: no email returned",
+                            Toast.LENGTH_LONG
+                        ).show()
+                        return@registerForActivityResult
+                    }
+
+                    firebaseAuthWithGoogle(idToken, email, account.displayName ?: "")
+                } catch (e: ApiException) {
+                    Log.e("GoogleSignIn", "ApiException code=${e.statusCode}", e)
+                    Toast.makeText(
+                        this,
+                        "Google sign-in failed (code ${e.statusCode}): ${e.message}",
+                        Toast.LENGTH_LONG
+                    ).show()
+                } catch (e: Exception) {
+                    Log.e("GoogleSignIn", "Unexpected exception", e)
+                    Toast.makeText(this, "Google sign-in failed: ${e.message}", Toast.LENGTH_LONG)
+                        .show()
+                }
+            } else {
+                Log.e("GoogleSignIn", "Result not OK, resultCode=${result.resultCode}")
             }
         }
-    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -134,9 +171,10 @@ class Createaccount : BaseActivity() {
             .addOnSuccessListener { snapshot ->
                 if (!snapshot.isEmpty) {
                     emailLayout.error = "Email already registered"
-                    Toast.makeText(this, "Email already exists. Please sign in.", Toast.LENGTH_LONG).show()
+                    Toast.makeText(this, "Email already exists. Please sign in.", Toast.LENGTH_LONG)
+                        .show()
                 } else {
-                    trySupabaseOtp(email, password, isGoogle = false)
+                    sendSupabaseOtp(email, password, isGoogle = false)
                 }
             }
             .addOnFailureListener {
@@ -144,9 +182,15 @@ class Createaccount : BaseActivity() {
             }
     }
 
+    /**
+     * Signs out of the cached Google session first, so the account chooser
+     * is always shown — the user picks an account on every click instead of
+     * Play Services silently reusing the last one.
+     */
     private fun signInWithGoogle() {
-        val signInIntent = googleSignInClient.signInIntent
-        googleLauncher.launch(signInIntent)
+        googleSignInClient.signOut().addOnCompleteListener {
+            googleLauncher.launch(googleSignInClient.signInIntent)
+        }
     }
 
     private fun firebaseAuthWithGoogle(idToken: String, email: String, name: String) {
@@ -154,17 +198,67 @@ class Createaccount : BaseActivity() {
         auth.signInWithCredential(credential)
             .addOnCompleteListener { task ->
                 if (task.isSuccessful) {
-                    Toast.makeText(this, "Google sign‑in successful", Toast.LENGTH_SHORT).show()
-                    val prefs = getSharedPreferences("TempPrefs", MODE_PRIVATE)
-                    prefs.edit().putString("google_name", name).apply()
-                    trySupabaseOtp(email, "", isGoogle = true)
+                    // Account exists in Firebase Auth now — but check if a
+                    // Firestore profile already exists for this email before
+                    // letting them "create" a duplicate account.
+                    checkIfAccountExistsThenProceed(email, name)
                 } else {
-                    Toast.makeText(this, "Firebase auth with Google failed: ${task.exception?.message}", Toast.LENGTH_SHORT).show()
+                    Log.e("GoogleSignIn", "Firebase auth failed", task.exception)
+                    Toast.makeText(
+                        this,
+                        "Firebase auth with Google failed: ${task.exception?.message}",
+                        Toast.LENGTH_SHORT
+                    ).show()
                 }
             }
     }
 
-    private fun trySupabaseOtp(email: String, password: String, isGoogle: Boolean) {
+    /**
+     * Blocks account creation via Google if a Firestore user doc already
+     * exists for this email. Signs the user back out (both Firebase and
+     * Google) and redirects to Login instead of proceeding to OTP/profile
+     * creation.
+     */
+    private fun checkIfAccountExistsThenProceed(email: String, name: String) {
+        db.collection("users").whereEqualTo("email", email).get()
+            .addOnSuccessListener { snapshot ->
+                if (!snapshot.isEmpty) {
+                    // Already registered — don't create a new account.
+                    auth.signOut()
+                    googleSignInClient.signOut()
+                    Toast.makeText(
+                        this,
+                        "This account already exists. Please sign in instead.",
+                        Toast.LENGTH_LONG
+                    ).show()
+                    startActivity(Intent(this, Login::class.java))
+                    finish()
+                } else {
+                    // New user — safe to proceed with OTP + account creation.
+                    val prefs = getSharedPreferences("TempPrefs", MODE_PRIVATE)
+                    prefs.edit().putString("google_name", name).apply()
+                    Toast.makeText(this, "Google sign‑in successful", Toast.LENGTH_SHORT).show()
+                    sendSupabaseOtp(email, "", isGoogle = true)
+                }
+            }
+            .addOnFailureListener { e ->
+                Log.e("GoogleSignIn", "Firestore existence check failed", e)
+                Toast.makeText(
+                    this,
+                    "Database error: ${e.message}",
+                    Toast.LENGTH_SHORT
+                ).show()
+            }
+    }
+
+    /**
+     * Sole email-verification path. Sends an OTP via Supabase (using your
+     * configured SMTP) and moves to the OTP screen on success. Firebase's
+     * createUserWithEmailAndPassword + sendEmailVerification link flow has
+     * been removed — no fallback, so make sure Supabase SMTP is reliable.
+     */
+    private fun sendSupabaseOtp(email: String, password: String, isGoogle: Boolean) {
+        btnCreateAccount.isEnabled = false
         lifecycleScope.launch {
             try {
                 SupabaseClient.client.auth.signInWith(OTP) {
@@ -172,97 +266,25 @@ class Createaccount : BaseActivity() {
                     createUser = true
                 }
                 Toast.makeText(this@Createaccount, "OTP sent to $email", Toast.LENGTH_LONG).show()
-                navigateToOtp(email, password, isGoogle, useFirebase = false)
+                navigateToOtp(email, password, isGoogle)
             } catch (e: Exception) {
-                e.printStackTrace()
-                Toast.makeText(this@Createaccount, "Supabase OTP unavailable, using email link", Toast.LENGTH_LONG).show()
-                fallbackToFirebaseVerification(email, password, isGoogle)
+                Log.e("GoogleSignIn", "Supabase OTP send failed", e)
+                Toast.makeText(
+                    this@Createaccount,
+                    "Failed to send OTP: ${e.message ?: "Please try again"}",
+                    Toast.LENGTH_LONG
+                ).show()
+            } finally {
+                btnCreateAccount.isEnabled = true
             }
         }
     }
 
-    private fun fallbackToFirebaseVerification(email: String, password: String, isGoogle: Boolean) {
-        if (!isGoogle) {
-            auth.createUserWithEmailAndPassword(email, password)
-                .addOnCompleteListener { task ->
-                    if (task.isSuccessful) {
-                        sendVerificationAndNavigate(email, password, isGoogle)
-                    } else {
-                        if (task.exception is FirebaseAuthUserCollisionException) {
-                            Toast.makeText(this, "Account already exists. Attempting sign‑in...", Toast.LENGTH_SHORT).show()
-                            signInExistingUser(email, password, isGoogle)
-                        } else {
-                            Toast.makeText(this, "Firebase sign‑up failed: ${task.exception?.message}", Toast.LENGTH_SHORT).show()
-                        }
-                    }
-                }
-        } else {
-            sendVerificationAndNavigate(email, password, isGoogle)
-        }
-    }
-
-    private fun signInExistingUser(email: String, password: String, isGoogle: Boolean) {
-        auth.signInWithEmailAndPassword(email, password)
-            .addOnCompleteListener { task ->
-                if (task.isSuccessful) {
-                    sendVerificationAndNavigate(email, password, isGoogle)
-                } else {
-                    Toast.makeText(this, "Incorrect password. Please try again or reset your password.", Toast.LENGTH_LONG).show()
-                    passwordLayout.error = "Incorrect password"
-                }
-            }
-    }
-
-    private fun sendVerificationAndNavigate(email: String, password: String, isGoogle: Boolean) {
-        val user = auth.currentUser
-        if (user == null) {
-            Toast.makeText(this, "User not found. Please try again.", Toast.LENGTH_SHORT).show()
-            return
-        }
-        if (!user.isEmailVerified) {
-            user.sendEmailVerification()
-                .addOnCompleteListener { verifyTask ->
-                    if (verifyTask.isSuccessful) {
-                        Toast.makeText(this, "Verification email sent to $email", Toast.LENGTH_LONG).show()
-                        navigateToOtp(email, password, isGoogle, useFirebase = true)
-                    } else {
-                        Toast.makeText(this, "Failed to send verification: ${verifyTask.exception?.message}", Toast.LENGTH_SHORT).show()
-                    }
-                }
-        } else {
-            Toast.makeText(this, "Email already verified. Proceeding...", Toast.LENGTH_SHORT).show()
-            proceedToProfile(email, isGoogle)
-        }
-    }
-
-    private fun proceedToProfile(email: String, isGoogle: Boolean) {
-        val prefs = getSharedPreferences("SkillSwapPrefs", MODE_PRIVATE)
-        with(prefs.edit()) {
-            putString("user_email", email)
-            if (isGoogle) {
-                val tempPrefs = getSharedPreferences("TempPrefs", MODE_PRIVATE)
-                val googleName = tempPrefs.getString("google_name", "")
-                if (!googleName.isNullOrEmpty()) putString("user_name", googleName)
-                tempPrefs.edit().clear().apply()
-            }
-            putInt("user_points", 1250)
-            apply()
-        }
-        startActivity(Intent(this, CompleteProfileActivity::class.java).apply {
-            putExtra("email", email)
-            putExtra("password", "")
-            putExtra("isGoogle", isGoogle)
-            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-        })
-        finish()
-    }
-
-    private fun navigateToOtp(email: String, password: String, isGoogle: Boolean, useFirebase: Boolean) {
+    private fun navigateToOtp(email: String, password: String, isGoogle: Boolean) {
         val intent = Intent(this, OtpActivity::class.java).apply {
             putExtra("email", email)
             putExtra("password", password)
             putExtra("isGoogle", isGoogle)
-            putExtra("useFirebase", useFirebase)
         }
         startActivity(intent)
         finish()
