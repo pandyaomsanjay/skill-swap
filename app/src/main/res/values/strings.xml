@@ -17,8 +17,7 @@
     <string name="create_account_button">Create Account</string>
     <string name="already_have_account">Already have an account?</string>
     <string name="login_link">Log In</string>
-
-
+    <string name="placeholder_initial">•</string>
     <!-- For accessibility -->
     <string name="app_logo">SkillSwap App Logo</string>
     <string name="navigation_drawer_open">Open navigation drawer</string>

@@ -4,15 +4,16 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:background="#F5F5F5">
+    android:background="#E8F1FF">
 
     <com.google.android.material.appbar.MaterialToolbar
         android:id="@+id/toolbar"
         android:layout_width="match_parent"
         android:layout_height="?attr/actionBarSize"
-        android:background="#4CAF50"
+        android:background="#1B5EC8"
         app:title="Manage Reports"
         app:titleTextColor="@android:color/white"
+        app:navigationIconTint="@android:color/white"
         app:navigationIcon="@drawable/outline_arrow_back_24"/>
 
     <androidx.recyclerview.widget.RecyclerView

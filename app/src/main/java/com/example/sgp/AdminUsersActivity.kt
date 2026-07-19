@@ -156,6 +156,7 @@ class AdminUsersActivity : BaseActivity() {
     ) : RecyclerView.Adapter<UserAdapter.ViewHolder>() {
 
         class ViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
+            val tvInitial: TextView = itemView.findViewById(R.id.tvInitial)
             val tvName: TextView = itemView.findViewById(R.id.tvName)
             val tvEmail: TextView = itemView.findViewById(R.id.tvEmail)
             val tvType: TextView = itemView.findViewById(R.id.tvType)
@@ -169,9 +170,22 @@ class AdminUsersActivity : BaseActivity() {
 
         override fun onBindViewHolder(holder: ViewHolder, position: Int) {
             val user = users[position]
-            holder.tvName.text = user.name
+
+            val initial = user.name.trim().firstOrNull()?.uppercaseChar()?.toString() ?: "?"
+            holder.tvInitial.text = initial
+
+            holder.tvName.text = if (user.name.isBlank()) "No name set" else user.name
             holder.tvEmail.text = user.email
             holder.tvType.text = user.userType
+
+            if (user.userType == "admin") {
+                holder.tvType.setTextColor(android.graphics.Color.parseColor("#1B5EC8"))
+                holder.tvType.setBackgroundResource(R.drawable.bg_role_admin)
+            } else {
+                holder.tvType.setTextColor(android.graphics.Color.parseColor("#0D9488"))
+                holder.tvType.setBackgroundResource(R.drawable.bg_role_standard)
+            }
+
             holder.itemView.setOnClickListener { onItemClick(user) }
         }
 

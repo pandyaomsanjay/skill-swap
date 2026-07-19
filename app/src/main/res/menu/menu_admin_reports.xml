@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+    <item
+        android:id="@+id/action_export_csv"
+        android:title="Export as CSV"
+        android:icon="@drawable/outline_download_24"
+        android:iconTint="#1B5EC8"
+        app:showAsAction="never"/>
+    <item
+        android:id="@+id/action_export_pdf"
+        android:title="Export as PDF"
+        android:icon="@drawable/outline_download_24"
+        android:iconTint="#1B5EC8"
+        app:showAsAction="never"/>
+</menu>
