@@ -21,15 +21,23 @@ import com.google.android.material.button.MaterialButton
 import com.google.android.material.card.MaterialCardView
 import com.google.android.material.textfield.TextInputEditText
 import com.google.android.material.textfield.TextInputLayout
+import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.storage.FirebaseStorage
 import com.google.firebase.storage.StorageReference
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import androidx.lifecycle.lifecycleScope
 import java.io.IOException
 import java.util.*
 
 class CompleteProfileActivity : BaseActivity() {
 
     private lateinit var db: FirebaseFirestore
+    private lateinit var auth: FirebaseAuth
     private lateinit var storageRef: StorageReference
     private lateinit var fusedLocationClient: FusedLocationProviderClient
 
@@ -39,24 +47,28 @@ class CompleteProfileActivity : BaseActivity() {
     private lateinit var btnChangePhoto: ImageButton
     private lateinit var etName: TextInputEditText
     private lateinit var etLocation: TextInputEditText
-    private lateinit var btnAutoDetect: Button
+    private lateinit var etLanguage: AutoCompleteTextView
+    private lateinit var btnAutoDetect: ImageButton
     private lateinit var locationValidationIcon: ImageView
     private lateinit var btnSave: MaterialButton
 
     private var selectedImageUri: Uri? = null
     private var currentLocationLatLng: Pair<Double, Double>? = null
     private var isLocationValid = false
+    private var locationValidationJob: Job? = null
 
     // Intent extras
     private var email = ""
     private var nameFromIntent = ""
     private var password = ""
+    private var isGoogle = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_complete_profile)
 
         db = FirebaseFirestore.getInstance()
+        auth = FirebaseAuth.getInstance()
         storageRef = FirebaseStorage.getInstance().reference
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
 
@@ -64,6 +76,15 @@ class CompleteProfileActivity : BaseActivity() {
         email = intent.getStringExtra("email") ?: ""
         nameFromIntent = intent.getStringExtra("name") ?: ""
         password = intent.getStringExtra("password") ?: ""
+        isGoogle = intent.getBooleanExtra("isGoogle", false)
+
+        // The OTP -> CompleteProfile chain doesn't currently forward a "name" extra,
+        // so for Google sign-ins, recover the display name Createaccount.kt stashed in TempPrefs
+        if (nameFromIntent.isEmpty() && isGoogle) {
+            val tempPrefs = getSharedPreferences("TempPrefs", MODE_PRIVATE)
+            nameFromIntent = tempPrefs.getString("google_name", "") ?: ""
+            tempPrefs.edit().clear().apply()
+        }
 
         bindViews()
         setupListeners()
@@ -80,9 +101,15 @@ class CompleteProfileActivity : BaseActivity() {
         btnChangePhoto = findViewById(R.id.btnChangePhoto)
         etName = findViewById(R.id.etName)
         etLocation = findViewById(R.id.etLocation)
+        etLanguage = findViewById(R.id.etLanguage)
+
+        val languages = arrayOf("English", "Spanish", "French", "German", "Hindi")
+        val languageAdapter = ArrayAdapter(this, android.R.layout.simple_dropdown_item_1line, languages)
+        etLanguage.setAdapter(languageAdapter)
         btnAutoDetect = findViewById(R.id.btnAutoDetect)
         locationValidationIcon = findViewById(R.id.locationValidationIcon)
         btnSave = findViewById(R.id.btnSave)
+        btnSave.isEnabled = false // locked until location is verified valid
 
         // Set up step dots (3 steps, second active? We'll just show visual)
         // We'll just have a static indicator for step 3.
@@ -103,12 +130,27 @@ class CompleteProfileActivity : BaseActivity() {
             }
         }
 
-        // Validate location on text change (with debounce)
+        // Validate location on text change — debounced, off the main thread
         etLocation.addTextChangedListener(object : android.text.TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
             override fun afterTextChanged(s: android.text.Editable?) {
-                validateLocation(s.toString())
+                val text = s.toString()
+                locationValidationJob?.cancel()
+                if (text.isBlank()) {
+                    locationValidationIcon.visibility = View.GONE
+                    isLocationValid = false
+                    btnSave.isEnabled = false
+                    return
+                }
+                // Lock Save immediately while we (re)validate — don't let a stale valid state slip through
+                isLocationValid = false
+                btnSave.isEnabled = false
+                locationValidationIcon.visibility = View.GONE
+                locationValidationJob = lifecycleScope.launch {
+                    delay(600) // debounce: wait for typing to pause before hitting the network
+                    validateLocation(text)
+                }
             }
         })
     }
@@ -158,17 +200,19 @@ class CompleteProfileActivity : BaseActivity() {
         }
         fusedLocationClient.lastLocation.addOnSuccessListener { location: Location? ->
             location?.let {
-                val geocoder = Geocoder(this, Locale.getDefault())
-                try {
-                    val addresses = geocoder.getFromLocation(it.latitude, it.longitude, 1)
-                    if (!addresses.isNullOrEmpty()) {
-                        val address = addresses[0].getAddressLine(0)
-                        etLocation.setText(address)
-                        currentLocationLatLng = Pair(it.latitude, it.longitude)
-                        validateLocation(address)
+                lifecycleScope.launch {
+                    try {
+                        val addresses = withContext(Dispatchers.IO) {
+                            val geocoder = Geocoder(this@CompleteProfileActivity, Locale.getDefault())
+                            geocoder.getFromLocation(it.latitude, it.longitude, 1)
+                        }
+                        if (!addresses.isNullOrEmpty()) {
+                            val address = addresses[0].getAddressLine(0)
+                            etLocation.setText(address) // triggers the debounced TextWatcher validation
+                        }
+                    } catch (e: IOException) {
+                        Toast.makeText(this@CompleteProfileActivity, "Geocoder error: ${e.message}", Toast.LENGTH_SHORT).show()
                     }
-                } catch (e: IOException) {
-                    Toast.makeText(this, "Geocoder error: ${e.message}", Toast.LENGTH_SHORT).show()
                 }
             }
         }.addOnFailureListener {
@@ -176,31 +220,40 @@ class CompleteProfileActivity : BaseActivity() {
         }
     }
 
-    private fun validateLocation(locationText: String) {
+    private suspend fun validateLocation(locationText: String) {
         if (locationText.isBlank()) {
             locationValidationIcon.visibility = View.GONE
             isLocationValid = false
+            btnSave.isEnabled = false
             return
         }
         try {
-            val geocoder = Geocoder(this, Locale.getDefault())
-            val addresses = geocoder.getFromLocationName(locationText, 1)
+            val addresses = withContext(Dispatchers.IO) {
+                val geocoder = Geocoder(this@CompleteProfileActivity, Locale.getDefault())
+                geocoder.getFromLocationName(locationText, 1)
+            }
             if (!addresses.isNullOrEmpty()) {
                 val addr = addresses[0]
                 currentLocationLatLng = Pair(addr.latitude, addr.longitude)
                 locationValidationIcon.visibility = View.VISIBLE
                 locationValidationIcon.setImageResource(R.drawable.ic_check_circle_green)
                 isLocationValid = true
-                // Optionally update EditText with formatted address
+                btnSave.isEnabled = true
             } else {
                 locationValidationIcon.visibility = View.VISIBLE
                 locationValidationIcon.setImageResource(R.drawable.ic_error_red)
                 isLocationValid = false
+                btnSave.isEnabled = false
                 Toast.makeText(this, "Please enter a valid location", Toast.LENGTH_SHORT).show()
             }
         } catch (e: IOException) {
-            locationValidationIcon.visibility = View.GONE
+            // Network/geocoder unavailable — treat as unverified, keep Save locked rather than
+            // silently letting an unvalidated location through
+            locationValidationIcon.visibility = View.VISIBLE
+            locationValidationIcon.setImageResource(R.drawable.ic_error_red)
             isLocationValid = false
+            btnSave.isEnabled = false
+            Toast.makeText(this, "Couldn't verify location — check your connection", Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -223,6 +276,7 @@ class CompleteProfileActivity : BaseActivity() {
 
         val name = etName.text.toString().trim()
         val location = etLocation.text.toString().trim()
+        val language = etLanguage.text.toString().trim()
         val lat = currentLocationLatLng?.first ?: 0.0
         val lng = currentLocationLatLng?.second ?: 0.0
 
@@ -243,18 +297,18 @@ class CompleteProfileActivity : BaseActivity() {
 
         if (uploadTask != null) {
             uploadTask.addOnSuccessListener { downloadUri ->
-                saveUserToFirestore(name, location, lat, lng, downloadUri.toString())
+                saveUserToFirestore(name, location, language, lat, lng, downloadUri.toString())
             }.addOnFailureListener { e ->
                 Toast.makeText(this, "Image upload failed: ${e.message}", Toast.LENGTH_SHORT).show()
                 btnSave.isEnabled = true
                 btnSave.text = "Save"
             }
         } else {
-            saveUserToFirestore(name, location, lat, lng, null)
+            saveUserToFirestore(name, location, language, lat, lng, null)
         }
     }
 
-    private fun saveUserToFirestore(name: String, location: String, lat: Double, lng: Double, profileImageUrl: String?) {
+    private fun saveUserToFirestore(name: String, location: String, language: String, lat: Double, lng: Double, profileImageUrl: String?) {
         val user = Users(
             name = name,
             email = email,
@@ -263,7 +317,7 @@ class CompleteProfileActivity : BaseActivity() {
             longitude = lng,
             profileImage = profileImageUrl ?: "",
             isLocationVerified = true,
-            loginProvider = if (password.isEmpty()) "google" else "email",
+            loginProvider = if (isGoogle) "google" else "email",
             createdAt = System.currentTimeMillis(),
             // other fields default
             phone = "",
@@ -272,11 +326,15 @@ class CompleteProfileActivity : BaseActivity() {
             completedTrades = 0,
             credits = 1250,
             userType = "standard",
-            joinedDate = System.currentTimeMillis()
+            joinedDate = System.currentTimeMillis(),
+            language = language
         )
 
-        // Save using email as document ID or use UID? We'll use email as unique.
-        db.collection("users").document(email).set(user)
+        // Use the same document ID scheme as OtpActivity.saveToFirestore() and Login.kt's lookup:
+        // Firebase Auth UID. Using email here previously created a second, orphaned document
+        // that Login never read, silently discarding the profile data entered on this screen.
+        val docId = auth.currentUser?.uid ?: email
+        db.collection("users").document(docId).set(user)
             .addOnSuccessListener {
                 Toast.makeText(this, "Profile saved!", Toast.LENGTH_SHORT).show()
                 // Save session

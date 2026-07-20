@@ -18,5 +18,6 @@ data class Users(
     var credits: Int = 0,
     var isLocationVerified: Boolean = false,
     var loginProvider: String = "",
-    var createdAt: Long = System.currentTimeMillis()
+    var createdAt: Long = System.currentTimeMillis(),
+    var language: String = ""
 )
