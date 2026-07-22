@@ -24,34 +24,20 @@ class PrivacyPolicyActivity : BaseActivity() {
             Privacy Policy for SkillSwap
 
             1. Information We Collect
-            We collect personal information such as your name, email address, location, profile picture, and skills you offer or request. Usage data including trades, ratings, and credits is also stored to improve your experience.
+            Name, email, location, profile picture, and the skills you offer or request.
 
-            2. How We Use Your Information
-            - To facilitate skill exchanges and matching.
-            - To calculate credits, ratings, and trade history.
-            - To send notifications about your trades, messages, and updates.
-            - To improve app features and security.
+            2. How We Use It
+            To match skill trades, calculate credits and ratings, and send trade-related notifications.
 
-            3. Data Sharing
-            We do not sell your personal data. Limited data (e.g., your name, skills, rating) may be shown to other users for trade purposes.
+            3. Data Sharing & Security
+            We never sell your data. Only your name, skills, and rating are visible to other users. Data is stored securely with Firebase.
 
-            4. Data Security
-            Your data is stored securely with Firebase. We implement reasonable measures to protect your information from unauthorized access.
+            4. Your Rights
+            Edit or delete your profile anytime. Contact us to delete your account entirely.
 
-            5. Your Rights
-            You may edit or delete your profile information at any time. Contact us if you wish to delete your account.
-
-            6. Changes to This Policy
-            We may update this policy occasionally. Continued use of the app constitutes acceptance.
-
-            7. Contact Us
-            skillswap@example.com
+            5. Contact Us
+            skillswap23@gmail.com
         """.trimIndent()
-    }
-
-    private fun getCurrentDate(): String {
-        val dateFormat = java.text.SimpleDateFormat("MMMM dd, yyyy", java.util.Locale.getDefault())
-        return dateFormat.format(java.util.Date())
     }
 
     override fun onOptionsItemSelected(item: android.view.MenuItem): Boolean {

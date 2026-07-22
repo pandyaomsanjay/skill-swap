@@ -41,7 +41,6 @@ class CompleteProfileActivity : BaseActivity() {
     private lateinit var storageRef: StorageReference
     private lateinit var fusedLocationClient: FusedLocationProviderClient
 
-    // UI
     private lateinit var stepIndicator: LinearLayout // dots
     private lateinit var profileImage: ImageView
     private lateinit var btnChangePhoto: ImageButton

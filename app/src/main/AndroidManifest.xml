@@ -125,6 +125,21 @@
             android:name=".CompleteProfileActivity"
             android:exported="false"
             android:windowSoftInputMode="adjustResize" />
+
+        <activity
+            android:name=".PrivacyPolicyActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".TermsOfServiceActivity"
+            android:label="Terms of Service"
+            android:parentActivityName=".BaseActivity" />
+
+        <activity
+            android:name=".RateUsActivity"
+            android:label="Rate Us"
+            android:exported="false" />
+
     </application>
 
 </manifest>

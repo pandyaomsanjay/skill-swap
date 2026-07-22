@@ -97,7 +97,7 @@ class Profile : BaseActivity() {
         }
 
         findViewById<LinearLayout>(R.id.layoutReviews).setOnClickListener {
-            Toast.makeText(this, "Reviews & Ratings", Toast.LENGTH_SHORT).show()
+            startActivity(Intent(this, RateUsActivity::class.java))
         }
 
         findViewById<LinearLayout>(R.id.layoutSettings).setOnClickListener {
