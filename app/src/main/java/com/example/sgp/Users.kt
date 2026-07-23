@@ -19,5 +19,6 @@ data class Users(
     var isLocationVerified: Boolean = false,
     var loginProvider: String = "",
     var createdAt: Long = System.currentTimeMillis(),
-    var language: String = ""
+    var language: String = "",
+    val profileImagePath: String? = null
 )

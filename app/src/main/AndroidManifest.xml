@@ -140,6 +140,10 @@
             android:label="Rate Us"
             android:exported="false" />
 
+
+        <activity android:name=".HelpSupportActivity" android:exported="false" />
+        <activity android:name=".AboutActivity" android:exported="false" />
+
     </application>
 
 </manifest>

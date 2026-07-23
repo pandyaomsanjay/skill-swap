@@ -21,26 +21,24 @@ class TermsOfServiceActivity : BaseActivity() {
 
     private fun buildTermsText(): String {
         return """
-            1. Acceptance
-            By using SkillSwap, you agree to these terms.
+        1. Acceptance
+        • By using SkillSwap, you agree to these terms.
 
-            2. Conduct
-            Be 13+, keep content truthful and legal. Fraud or abuse leads to termination.
+        2. Conduct & Content
+        • Must be 13+
+        • Keep content truthful and legal
+        • Fraud or abuse may lead to suspension or termination
+        • You own your content but grant SkillSwap a license to display it in-app
 
-            3. Credits & Trades
-            Credits are used to request skills and hold no monetary value. Users are expected to communicate respectfully; SkillSwap doesn't arbitrate disputes.
+        3. Credits & Trades
+        • Credits are used to request skills and hold no monetary value
+        • SkillSwap doesn't arbitrate disputes between users
 
-            4. Content Ownership
-            You own your profile content but grant SkillSwap a license to display it in-app.
-
-            5. Liability
-            SkillSwap is provided "as is," with no liability for damages from use.
-
-            6. Changes & Termination
-            Accounts violating these terms may be suspended. Terms may be updated; continued use means acceptance.
-        """.trimIndent()
+        4. Liability & Changes
+        • SkillSwap is provided "as is," with no liability for damages from use
+        • Terms may be updated; continued use means acceptance
+    """.trimIndent()
     }
-
     private fun getCurrentDate(): String {
         val dateFormat = java.text.SimpleDateFormat("MMMM dd, yyyy", java.util.Locale.getDefault())
         return dateFormat.format(java.util.Date())

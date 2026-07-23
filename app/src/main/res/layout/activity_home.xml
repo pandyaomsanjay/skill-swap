@@ -41,6 +41,9 @@
                     android:layout_height="1dp"
                     android:layout_weight="1" />
 
+
+
+
             </LinearLayout>
         </com.google.android.material.appbar.MaterialToolbar>
 
@@ -87,12 +90,12 @@
                             app:strokeWidth="2dp">
 
                             <ImageView
-                                android:layout_width="match_parent"
-                                android:layout_height="match_parent"
-                                android:src="@drawable/outline_person_24"
+                                android:id="@+id/ivProfilePicture"
+                                android:layout_width="55dp"
+                                android:layout_height="55dp"
                                 android:scaleType="centerCrop"
-                                android:contentDescription="Avatar"
-                                android:hint="?attr/colorPrimary" />
+                                android:src="@drawable/ic_default_profile"
+                                android:contentDescription="Profile picture" />
                         </com.google.android.material.card.MaterialCardView>
 
                         <!-- User Info -->
@@ -708,7 +711,7 @@
         android:layout_height="match_parent"
         android:layout_gravity="start"
         android:fitsSystemWindows="true"
-        app:headerLayout="@drawable/nav_header"
+        app:headerLayout="@layout/nav_header"
         app:menu="@menu/nav_drawer_menu"
         app:itemIconTint="@drawable/drawer_icon_colors"
         app:itemTextColor="@drawable/drawer_text_colors"

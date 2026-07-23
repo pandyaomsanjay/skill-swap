@@ -1,6 +1,7 @@
 package com.example.sgp
 
 data class User(
+    var uid: String = "",
     var name: String = "",
     var email: String = "",
     var phone: String = "",
@@ -18,5 +19,12 @@ data class User(
     var credits: Int = 0,
     var isLocationVerified: Boolean = false,
     var loginProvider: String = "",
-    var createdAt: Long = System.currentTimeMillis()
+    var createdAt: Long = System.currentTimeMillis(),
+    var bio: String = "",
+    var fcmToken: String = "",
+    var isOnline: Boolean = false,
+    var lastActive: Long = System.currentTimeMillis(),
+    var isBlocked: Boolean = false,
+    var isEmailVerified: Boolean = false,
+    var supportQuestions: List<HashMap<String, Any>> = arrayListOf()
 )

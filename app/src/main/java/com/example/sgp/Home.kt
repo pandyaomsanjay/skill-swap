@@ -8,17 +8,20 @@ import android.view.Menu
 import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
+import android.widget.ImageView
 import android.widget.TextView
 import androidx.appcompat.app.ActionBarDrawerToggle
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.GravityCompat
 import androidx.drawerlayout.widget.DrawerLayout
+import com.bumptech.glide.Glide
 import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.google.android.material.card.MaterialCardView
 import com.google.android.material.navigation.NavigationView
 import com.google.android.material.snackbar.Snackbar
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
 import java.util.Calendar
 
 class Home : BaseActivity(), NavigationView.OnNavigationItemSelectedListener {
@@ -27,6 +30,8 @@ class Home : BaseActivity(), NavigationView.OnNavigationItemSelectedListener {
     private lateinit var navigationView: NavigationView
     private lateinit var bottomNavigationView: BottomNavigationView
     private lateinit var sharedPreferences: SharedPreferences
+    private lateinit var ivProfilePicture: ImageView
+    private val db: FirebaseFirestore by lazy { FirebaseFirestore.getInstance() }
 
     companion object {
         const val SHARED_PREFS_NAME = "SkillSwapPrefs"
@@ -37,6 +42,7 @@ class Home : BaseActivity(), NavigationView.OnNavigationItemSelectedListener {
         const val KEY_USER_TOTAL_TRADES = "user_total_trades"
         const val KEY_USER_RATING = "user_rating"
         const val KEY_USER_TOTAL_SKILLS = "user_total_skills"
+        const val KEY_USER_PROFILE_IMAGE = "user_profile_image"
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -48,6 +54,7 @@ class Home : BaseActivity(), NavigationView.OnNavigationItemSelectedListener {
         drawerLayout = findViewById(R.id.main)
         navigationView = findViewById(R.id.navigationView)
         bottomNavigationView = findViewById(R.id.bottomNavigation)
+        ivProfilePicture = findViewById(R.id.ivProfilePicture)
 
         val toolbar: androidx.appcompat.widget.Toolbar = findViewById(R.id.toolbar)
         setSupportActionBar(toolbar)
@@ -65,6 +72,10 @@ class Home : BaseActivity(), NavigationView.OnNavigationItemSelectedListener {
 
         navigationView.setNavigationItemSelectedListener(this)
         bottomNavigationView.setOnNavigationItemSelectedListener(bottomNavListener)
+
+        ivProfilePicture.setOnClickListener {
+            startActivity(Intent(this, Profile::class.java))
+        }
 
         setupQuickActions()
         setupPopularSkills()
@@ -146,6 +157,7 @@ class Home : BaseActivity(), NavigationView.OnNavigationItemSelectedListener {
         val userTotalTrades = sharedPreferences.getInt(KEY_USER_TOTAL_TRADES, 0)
         val userRating = sharedPreferences.getFloat(KEY_USER_RATING, 0.0f)
         val userTotalSkills = sharedPreferences.getInt(KEY_USER_TOTAL_SKILLS, 0)
+        val userProfileImage = sharedPreferences.getString(KEY_USER_PROFILE_IMAGE, "") ?: ""
 
         val intentName = intent.getStringExtra("userName")
         val intentEmail = intent.getStringExtra("userEmail")
@@ -165,9 +177,74 @@ class Home : BaseActivity(), NavigationView.OnNavigationItemSelectedListener {
 
             updateUI(intentName, intentLocation ?: "New York, USA", 1250)
             updateNavigationHeader(intentName, intentEmail, 1250, 0, 0.0f, 0)
+            loadProfileImage(userProfileImage)
         } else {
             updateUI(userName, userLocation, userPoints)
             updateNavigationHeader(userName, userEmail, userPoints, userTotalTrades, userRating, userTotalSkills)
+            loadProfileImage(userProfileImage)
+        }
+
+        // Refresh from Firestore so a profile picture (or stats) updated on
+        // another screen shows up here without waiting for a fresh login.
+        refreshFromFirestore(userEmail)
+    }
+
+    private fun refreshFromFirestore(email: String) {
+        if (email.isBlank() || email == "user@example.com") return
+
+        db.collection("users").whereEqualTo("email", email).get()
+            .addOnSuccessListener { snapshot ->
+                if (!snapshot.isEmpty) {
+                    val user = snapshot.documents[0].toObject(Users::class.java) ?: return@addOnSuccessListener
+
+                    with(sharedPreferences.edit()) {
+                        putString(KEY_USER_PROFILE_IMAGE, user.profileImage ?: "")
+                        putInt(KEY_USER_TOTAL_TRADES, user.completedTrades)
+                        putFloat(KEY_USER_RATING, user.rating.toFloat())
+                        putInt(KEY_USER_POINTS, user.credits ?: 0)
+                        apply()
+                    }
+
+                    loadProfileImage(user.profileImage ?: "")
+                    findViewById<TextView>(R.id.tvPoints).text = (user.credits ?: 0).toString()
+                    updateNavigationHeader(
+                        user.name,
+                        email,
+                        user.credits ?: 0,
+                        user.completedTrades,
+                        user.rating.toFloat(),
+                        sharedPreferences.getInt(KEY_USER_TOTAL_SKILLS, 0)
+                    )
+                }
+            }
+        // Silently ignore failures here — the cached SharedPreferences values
+        // (already applied above) are a fine fallback if this fetch fails.
+    }
+
+    private fun loadProfileImage(url: String) {
+        if (url.isNotEmpty()) {
+            Glide.with(this)
+                .load(url)
+                .placeholder(R.drawable.ic_default_profile)
+                .error(R.drawable.ic_default_profile)
+                .circleCrop()
+                .into(ivProfilePicture)
+        } else {
+            ivProfilePicture.setImageResource(R.drawable.ic_default_profile)
+        }
+
+        // Also update the nav drawer header image
+        navigationView.getHeaderView(0)?.findViewById<ImageView>(R.id.imgNavProfile)?.let { navImg ->
+            if (url.isNotEmpty()) {
+                Glide.with(this)
+                    .load(url)
+                    .placeholder(R.drawable.ic_default_profile)
+                    .error(R.drawable.ic_default_profile)
+                    .circleCrop()
+                    .into(navImg)
+            } else {
+                navImg.setImageResource(R.drawable.ic_default_profile)
+            }
         }
     }
 
@@ -215,8 +292,8 @@ class Home : BaseActivity(), NavigationView.OnNavigationItemSelectedListener {
             R.id.nav_favorites -> showMessage("Favorites")
             R.id.nav_history -> showMessage("History")
             R.id.nav_settings -> startActivity(Intent(this, SettingsActivity::class.java))
-            R.id.nav_help -> showMessage("Help & Support")
-            R.id.nav_about -> showMessage("About SkillSwap")
+            R.id.nav_help -> startActivity(Intent(this, HelpSupportActivity::class.java))   // was showMessage(...)
+            R.id.nav_about -> startActivity(Intent(this, AboutActivity::class.java))        // was showMessage(...)
             R.id.nav_logout -> performLogout()
         }
         drawerLayout.closeDrawer(GravityCompat.START)

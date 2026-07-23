@@ -15,7 +15,7 @@
         android:gravity="center_vertical"
         android:padding="16dp">
 
-        <!-- Avatar initial circle -->
+        <!-- Avatar circle: shows profile image if set, otherwise initial letter -->
         <com.google.android.material.card.MaterialCardView
             android:layout_width="46dp"
             android:layout_height="46dp"
@@ -23,15 +23,29 @@
             app:cardElevation="0dp"
             app:cardBackgroundColor="#E9F0FF">
 
-            <TextView
-                android:id="@+id/tvInitial"
+            <FrameLayout
                 android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:gravity="center"
-                android:text="@string/placeholder_initial"
-                android:textColor="#1B5EC8"
-                android:textSize="18sp"
-                android:textStyle="bold"/>
+                android:layout_height="match_parent">
+
+                <TextView
+                    android:id="@+id/tvInitial"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:gravity="center"
+                    android:text="@string/placeholder_initial"
+                    android:textColor="#1B5EC8"
+                    android:textSize="18sp"
+                    android:textStyle="bold"/>
+
+                <ImageView
+                    android:id="@+id/ivAvatar"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:scaleType="centerCrop"
+                    android:visibility="gone"
+                    android:contentDescription="@null"/>
+
+            </FrameLayout>
         </com.google.android.material.card.MaterialCardView>
 
         <LinearLayout

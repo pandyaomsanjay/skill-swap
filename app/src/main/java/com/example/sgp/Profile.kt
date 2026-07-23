@@ -13,15 +13,15 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
+import androidx.lifecycle.lifecycleScope
 import com.bumptech.glide.Glide
 import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.google.android.material.button.MaterialButton
 import com.google.firebase.Firebase
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.firestore
-import com.google.firebase.storage.FirebaseStorage
-import com.google.firebase.storage.StorageReference
 import com.google.firebase.auth.FirebaseAuth
+import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -29,9 +29,9 @@ import java.util.Locale
 class Profile : BaseActivity() {
 
     private lateinit var db: FirebaseFirestore
-    private lateinit var storageReference: StorageReference
     private lateinit var currentUserEmail: String
     private lateinit var currentUserId: String
+    private var currentProfileImagePath: String? = null
 
     private lateinit var profileImageView: ImageView
     private lateinit var tvName: TextView
@@ -48,7 +48,6 @@ class Profile : BaseActivity() {
         setContentView(R.layout.activity_profile)
 
         db = Firebase.firestore
-        storageReference = FirebaseStorage.getInstance().reference
 
         initViews()
         setupToolbar()
@@ -176,6 +175,7 @@ class Profile : BaseActivity() {
         tvExchanges.text = user.completedTrades.toString()
         tvRating.text = String.format("%.1f", user.rating)
         tvCredits.text = user.credits?.toString() ?: "0"
+        currentProfileImagePath = user.profileImagePath
 
         val date = Date(user.joinedDate)
         val format = SimpleDateFormat("yyyy", Locale.getDefault())
@@ -255,7 +255,7 @@ class Profile : BaseActivity() {
         registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
             uri?.let {
                 profileImageView.setImageURI(it)
-                uploadImageToFirebase(it)
+                uploadImageToSupabase(it)
             }
         }
 
@@ -270,32 +270,57 @@ class Profile : BaseActivity() {
                 )
                 val uri = Uri.parse(path)
                 profileImageView.setImageURI(uri)
-                uploadImageToFirebase(uri)
+                uploadImageToSupabase(uri)
             }
         }
 
-    private fun uploadImageToFirebase(uri: Uri) {
-        val fileRef = storageReference.child("profile_images/$currentUserId.jpg")
-        fileRef.putFile(uri)
-            .addOnSuccessListener {
-                fileRef.downloadUrl.addOnSuccessListener { downloadUri ->
-                    // Update Firestore user document
-                    db.collection("users").whereEqualTo("email", currentUserEmail).get()
-                        .addOnSuccessListener { snapshot ->
-                            if (!snapshot.isEmpty) {
-                                val docId = snapshot.documents[0].id
-                                db.collection("users").document(docId)
-                                    .update("profileImage", downloadUri.toString())
-                                    .addOnSuccessListener {
-                                        Toast.makeText(this, "Profile picture updated", Toast.LENGTH_SHORT).show()
-                                    }
-                            }
+    private fun uploadImageToSupabase(uri: Uri) {
+        lifecycleScope.launch {
+            try {
+                val (downloadUrl, newPath) = SupabaseImageUploader.uploadProfileImage(
+                    context = this@Profile,
+                    imageUri = uri,
+                    userId = currentUserId,
+                    oldImagePath = currentProfileImagePath
+                )
+
+                db.collection("users").whereEqualTo("email", currentUserEmail).get()
+                    .addOnSuccessListener { snapshot ->
+                        if (!snapshot.isEmpty) {
+                            val docId = snapshot.documents[0].id
+                            db.collection("users").document(docId)
+                                .update(
+                                    mapOf(
+                                        "profileImage" to downloadUrl,
+                                        "profileImagePath" to newPath
+                                    )
+                                )
+                                .addOnSuccessListener {
+                                    currentProfileImagePath = newPath
+
+                                    getSharedPreferences("SkillSwapPrefs", MODE_PRIVATE)
+                                        .edit()
+                                        .putString("user_profile_image", downloadUrl)
+                                        .apply()
+
+                                    Toast.makeText(
+                                        this@Profile,
+                                        "Profile picture updated",
+                                        Toast.LENGTH_SHORT
+                                    ).show()
+                                }
+                                .addOnFailureListener { e ->
+                                    Toast.makeText(this@Profile, "Failed to save image: ${e.message}", Toast.LENGTH_SHORT).show()
+                                }
                         }
-                }
+                    }
+                    .addOnFailureListener { e ->
+                        Toast.makeText(this@Profile, "User lookup failed: ${e.message}", Toast.LENGTH_SHORT).show()
+                    }
+            } catch (e: Exception) {
+                Toast.makeText(this@Profile, "Upload failed: ${e.message}", Toast.LENGTH_SHORT).show()
             }
-            .addOnFailureListener {
-                Toast.makeText(this, it.message, Toast.LENGTH_SHORT).show()
-            }
+        }
     }
 
     private fun showLogoutConfirmation() {

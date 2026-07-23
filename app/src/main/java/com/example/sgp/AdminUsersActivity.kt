@@ -6,12 +6,14 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.ImageView
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.bumptech.glide.Glide
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.firestore
@@ -106,8 +108,6 @@ class AdminUsersActivity : BaseActivity() {
     }
 
     private fun updateUserType(user: User, newType: String) {
-        // We use the document ID (which should be the user's UID or email)
-        // We'll assume the document ID is the email (or UID). For simplicity, we use email.
         db.collection("users").whereEqualTo("email", user.email).get()
             .addOnSuccessListener { snapshot ->
                 if (!snapshot.isEmpty) {
@@ -157,6 +157,7 @@ class AdminUsersActivity : BaseActivity() {
 
         class ViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
             val tvInitial: TextView = itemView.findViewById(R.id.tvInitial)
+            val ivAvatar: ImageView = itemView.findViewById(R.id.ivAvatar)
             val tvName: TextView = itemView.findViewById(R.id.tvName)
             val tvEmail: TextView = itemView.findViewById(R.id.tvEmail)
             val tvType: TextView = itemView.findViewById(R.id.tvType)
@@ -184,6 +185,19 @@ class AdminUsersActivity : BaseActivity() {
             } else {
                 holder.tvType.setTextColor(android.graphics.Color.parseColor("#0D9488"))
                 holder.tvType.setBackgroundResource(R.drawable.bg_role_standard)
+            }
+
+            // Show the uploaded profile picture if the user has set one;
+            // otherwise keep showing the initial-letter placeholder.
+            if (!user.profileImage.isNullOrEmpty()) {
+                holder.ivAvatar.visibility = View.VISIBLE
+                holder.tvInitial.visibility = View.GONE
+                Glide.with(holder.itemView.context)
+                    .load(user.profileImage)
+                    .into(holder.ivAvatar)
+            } else {
+                holder.ivAvatar.visibility = View.GONE
+                holder.tvInitial.visibility = View.VISIBLE
             }
 
             holder.itemView.setOnClickListener { onItemClick(user) }

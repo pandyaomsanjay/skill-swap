@@ -278,36 +278,42 @@ class CompleteProfileActivity : BaseActivity() {
         val language = etLanguage.text.toString().trim()
         val lat = currentLocationLatLng?.first ?: 0.0
         val lng = currentLocationLatLng?.second ?: 0.0
+        val userId = auth.currentUser?.uid ?: email
 
-        // Upload profile picture if selected
-        val uploadTask = if (selectedImageUri != null) {
-            val ref = storageRef.child("profile_images/${email}_${System.currentTimeMillis()}.jpg")
-            ref.putFile(selectedImageUri!!)
-                .continueWithTask { task ->
-                    if (!task.isSuccessful) {
-                        task.exception?.let { throw it }
-                    }
-                    ref.downloadUrl
+        lifecycleScope.launch {
+            try {
+                var imageUrl: String? = null
+                var imagePath: String? = null
+
+                if (selectedImageUri != null) {
+                    val (url, path) = SupabaseImageUploader.uploadProfileImage(
+                        context = this@CompleteProfileActivity,
+                        imageUri = selectedImageUri!!,
+                        userId = userId,
+                        oldImagePath = null // brand-new profile, nothing to delete yet
+                    )
+                    imageUrl = url
+                    imagePath = path
                 }
-        } else {
-            // No image, return null
-            null
-        }
 
-        if (uploadTask != null) {
-            uploadTask.addOnSuccessListener { downloadUri ->
-                saveUserToFirestore(name, location, language, lat, lng, downloadUri.toString())
-            }.addOnFailureListener { e ->
-                Toast.makeText(this, "Image upload failed: ${e.message}", Toast.LENGTH_SHORT).show()
+                saveUserToFirestore(name, location, language, lat, lng, imageUrl, imagePath)
+            } catch (e: Exception) {
+                Toast.makeText(this@CompleteProfileActivity, "Image upload failed: ${e.message}", Toast.LENGTH_SHORT).show()
                 btnSave.isEnabled = true
                 btnSave.text = "Save"
             }
-        } else {
-            saveUserToFirestore(name, location, language, lat, lng, null)
         }
     }
 
-    private fun saveUserToFirestore(name: String, location: String, language: String, lat: Double, lng: Double, profileImageUrl: String?) {
+    private fun saveUserToFirestore(
+        name: String,
+        location: String,
+        language: String,
+        lat: Double,
+        lng: Double,
+        profileImageUrl: String?,
+        profileImagePath: String?
+    ) {
         val user = Users(
             name = name,
             email = email,
@@ -315,10 +321,10 @@ class CompleteProfileActivity : BaseActivity() {
             latitude = lat,
             longitude = lng,
             profileImage = profileImageUrl ?: "",
+            profileImagePath = profileImagePath,
             isLocationVerified = true,
             loginProvider = if (isGoogle) "google" else "email",
             createdAt = System.currentTimeMillis(),
-            // other fields default
             phone = "",
             password = "",
             rating = 0.0,
@@ -329,14 +335,10 @@ class CompleteProfileActivity : BaseActivity() {
             language = language
         )
 
-        // Use the same document ID scheme as OtpActivity.saveToFirestore() and Login.kt's lookup:
-        // Firebase Auth UID. Using email here previously created a second, orphaned document
-        // that Login never read, silently discarding the profile data entered on this screen.
         val docId = auth.currentUser?.uid ?: email
         db.collection("users").document(docId).set(user)
             .addOnSuccessListener {
                 Toast.makeText(this, "Profile saved!", Toast.LENGTH_SHORT).show()
-                // Save session
                 val prefs = getSharedPreferences("SkillSwapPrefs", MODE_PRIVATE)
                 with(prefs.edit()) {
                     putString("user_name", name)
@@ -347,7 +349,6 @@ class CompleteProfileActivity : BaseActivity() {
                     putInt("user_total_skills", 0)
                     apply()
                 }
-                // Navigate to Home
                 startActivity(Intent(this, Home::class.java).apply {
                     flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
                 })
