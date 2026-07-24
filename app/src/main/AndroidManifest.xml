@@ -133,7 +133,7 @@
         <activity
             android:name=".TermsOfServiceActivity"
             android:label="Terms of Service"
-            android:parentActivityName=".BaseActivity" />
+            android:parentActivityName=".SettingsActivity" />
 
         <activity
             android:name=".RateUsActivity"
@@ -143,6 +143,12 @@
 
         <activity android:name=".HelpSupportActivity" android:exported="false" />
         <activity android:name=".AboutActivity" android:exported="false" />
+
+
+        <activity
+            android:name=".ChangePasswordActivity"
+            android:exported="false"
+            android:label="Change Password" />
 
     </application>
 

@@ -6,12 +6,12 @@ import android.os.Bundle
 import android.widget.Button
 import android.widget.TextView
 import android.widget.Toast
-import androidx.appcompat.app.AppCompatActivity
 import com.google.android.material.card.MaterialCardView
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.google.firebase.Firebase
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.firestore
-import com.google.firebase.Firebase
-
+import com.google.firebase.auth.FirebaseAuth
 class AdminDashboardActivity : BaseActivity() {
 
     private lateinit var db: FirebaseFirestore
@@ -57,7 +57,7 @@ class AdminDashboardActivity : BaseActivity() {
             startActivity(Intent(this, AdminReportsActivity::class.java))
         }
         findViewById<Button>(R.id.btnLogout).setOnClickListener {
-            performLogout()
+            showLogoutDialog()
         }
     }
 
@@ -90,12 +90,34 @@ class AdminDashboardActivity : BaseActivity() {
             }
     }
 
+    private fun showLogoutDialog() {
+        MaterialAlertDialogBuilder(this)
+            .setTitle("Sign Out")
+            .setMessage("Are you sure you want to sign out?")
+            .setPositiveButton("Sign Out") { _, _ ->
+                performLogout()
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
+    }
+
     private fun performLogout() {
+        // Sign out from Firebase Authentication
+        FirebaseAuth.getInstance().signOut()          // ← add this line
+
+        // Clear saved user data
         getSharedPreferences("SkillSwapPrefs", MODE_PRIVATE)
-            .edit().clear().apply()
-        val intent = Intent(this, Login::class.java)
-        intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+            .edit()
+            .clear()
+            .apply()
+
+        // Navigate to Login activity and clear back stack
+        val intent = Intent(this, Login::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+        }
         startActivity(intent)
+
+        // Close AdminDashboardActivity
         finish()
     }
 }

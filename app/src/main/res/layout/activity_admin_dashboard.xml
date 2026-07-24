@@ -20,17 +20,17 @@
             android:background="#1B5EC8"
             android:paddingStart="24dp"
             android:paddingEnd="24dp"
-            android:paddingTop="48dp"
-            android:paddingBottom="28dp">
+            android:paddingTop="20dp"
+            android:paddingBottom="18dp">
 
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:layout_marginBottom="4dp"
                 android:text="Admin Dashboard"
-                android:textSize="26sp"
-                android:textStyle="bold"
                 android:textColor="#FFFFFF"
-                android:layout_marginBottom="4dp"/>
+                android:textSize="26sp"
+                android:textStyle="bold" />
 
             <TextView
                 android:layout_width="match_parent"
