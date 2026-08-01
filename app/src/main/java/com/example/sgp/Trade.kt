@@ -16,6 +16,9 @@ data class Trade(
     val skillRequested: String = "",
     val rating: Float = 0f,
     val videoUrl: String = "",
-    val isActive: Boolean = true
+    val isActive: Boolean = true,
 
+    // Added for AdminTradesActivity support
+    val completionTimestamp: Long = 0,
+    val reportReason: String = ""
 )

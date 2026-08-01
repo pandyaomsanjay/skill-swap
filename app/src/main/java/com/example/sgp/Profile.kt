@@ -99,6 +99,10 @@ class Profile : BaseActivity() {
             startActivity(Intent(this, RateUsActivity::class.java))
         }
 
+        findViewById<LinearLayout>(R.id.layoutSendFeedback).setOnClickListener {
+            startActivity(Intent(this, SubmitFeedbackActivity::class.java))
+        }
+
         findViewById<LinearLayout>(R.id.layoutSettings).setOnClickListener {
             startActivity(Intent(this, SettingsActivity::class.java))
         }

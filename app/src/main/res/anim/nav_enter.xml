@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  nav_enter.xml
+  Plays on the INCOMING admin screen when switching between the 5 admin tabs
+  (Dashboard / Users / Swaps / Reports / Feedback).
+
+  Style: Material "shared axis" — a soft fade-in combined with a gentle
+  scale-up from 96% to 100%. Feels modern and consistent regardless of
+  which direction you're navigating (works for any tab -> any tab).
+-->
+<set xmlns:android="http://schemas.android.com/apk/res/android"
+    android:interpolator="@android:anim/decelerate_interpolator">
+
+    <alpha
+        android:fromAlpha="0.0"
+        android:toAlpha="1.0"
+        android:duration="220" />
+
+    <scale
+        android:fromXScale="0.96"
+        android:toXScale="1.0"
+        android:fromYScale="0.96"
+        android:toYScale="1.0"
+        android:pivotX="50%"
+        android:pivotY="50%"
+        android:duration="220" />
+
+</set>

@@ -23,25 +23,47 @@
             android:layout_height="wrap_content"
             android:orientation="horizontal"
             android:gravity="center_vertical"
-            android:layout_marginBottom="18dp">
+            android:layout_marginBottom="16dp">
 
             <ImageView
                 android:id="@+id/ivLogo"
                 android:layout_width="32dp"
                 android:layout_height="32dp"
-                android:src="@drawable/baseline_people_outline_24"
-                app:tint="#F9F3EF" />
+                android:src="@drawable/outline_chat_bubble_outline_24"
+                app:tint="#F9F3EF"
+                android:layout_marginEnd="14dp"/>
 
             <TextView
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:layout_marginStart="14dp"
-                android:text="Manage Users"
+                android:text="Feedback"
                 android:textColor="#F9F3EF"
                 android:textSize="19sp"
                 android:fontFamily="sans-serif-medium"
                 android:textStyle="bold"/>
+
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/btnExportPdf"
+                android:layout_width="44dp"
+                android:layout_height="44dp"
+                app:cardCornerRadius="14dp"
+                app:cardElevation="0dp"
+                app:strokeWidth="1dp"
+                app:strokeColor="#D2C1B6"
+                app:cardBackgroundColor="#456882"
+                android:clickable="true"
+                android:focusable="true"
+                android:foreground="?attr/selectableItemBackground">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:gravity="center"
+                    android:text="⬇"
+                    android:textColor="#F9F3EF"
+                    android:textSize="18sp"/>
+            </com.google.android.material.card.MaterialCardView>
         </LinearLayout>
 
         <!-- Search Bar -->
@@ -78,8 +100,8 @@
                     android:paddingTop="12dp"
                     android:paddingBottom="12dp"
                     android:background="@android:color/transparent"
-                    android:hint="Search by name or email"
-                    android:textColorHint="#FFFFFF"
+                    android:hint="Search by name, email, ID, or keyword"
+                    android:textColorHint="#FFFEFE"
                     android:textColor="#F9F3EF"
                     android:textSize="14sp"
                     android:inputType="text"
@@ -87,15 +109,15 @@
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
-        <!-- Status Tabs -->
+        <!-- Category Tabs -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
-            android:weightSum="4">
+            android:weightSum="5">
 
             <com.google.android.material.card.MaterialCardView
-                android:id="@+id/tabAll"
+                android:id="@+id/tabAllFeedback"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
@@ -108,22 +130,22 @@
                 android:foreground="?attr/selectableItemBackground">
 
                 <TextView
-                    android:id="@+id/tvTabAll"
+                    android:id="@+id/tvTabAllFeedback"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:gravity="center"
                     android:paddingTop="10dp"
                     android:paddingBottom="10dp"
                     android:text="All"
-                    android:textColor="#FFFFFF"
-                    android:textSize="11sp"
+                    android:textColor="#1B3C53"
+                    android:textSize="10sp"
                     android:textStyle="bold"
                     android:maxLines="1"
                     android:ellipsize="end"/>
             </com.google.android.material.card.MaterialCardView>
 
             <com.google.android.material.card.MaterialCardView
-                android:id="@+id/tabVerified"
+                android:id="@+id/tabSuggestions"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
@@ -139,22 +161,22 @@
                 android:foreground="?attr/selectableItemBackground">
 
                 <TextView
-                    android:id="@+id/tvTabVerified"
+                    android:id="@+id/tvTabSuggestions"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:gravity="center"
                     android:paddingTop="10dp"
                     android:paddingBottom="10dp"
-                    android:text="Verified"
-                    android:textColor="#FFFFFF"
-                    android:textSize="11sp"
+                    android:text="Suggestions"
+                    android:textColor="#D2C1B6"
+                    android:textSize="10sp"
                     android:textStyle="bold"
                     android:maxLines="1"
                     android:ellipsize="end"/>
             </com.google.android.material.card.MaterialCardView>
 
             <com.google.android.material.card.MaterialCardView
-                android:id="@+id/tabBlocked"
+                android:id="@+id/tabBugReports"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
@@ -170,22 +192,53 @@
                 android:foreground="?attr/selectableItemBackground">
 
                 <TextView
-                    android:id="@+id/tvTabBlocked"
+                    android:id="@+id/tvTabBugReports"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:gravity="center"
                     android:paddingTop="10dp"
                     android:paddingBottom="10dp"
-                    android:text="Blocked"
-                    android:textColor="#FFFFFF"
-                    android:textSize="11sp"
+                    android:text="Bugs"
+                    android:textColor="#D2C1B6"
+                    android:textSize="10sp"
                     android:textStyle="bold"
                     android:maxLines="1"
                     android:ellipsize="end"/>
             </com.google.android.material.card.MaterialCardView>
 
             <com.google.android.material.card.MaterialCardView
-                android:id="@+id/tabReported"
+                android:id="@+id/tabComplaints"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginStart="4dp"
+                android:layout_marginEnd="4dp"
+                app:cardCornerRadius="14dp"
+                app:cardElevation="0dp"
+                app:strokeWidth="1dp"
+                app:strokeColor="#D2C1B6"
+                app:cardBackgroundColor="#456882"
+                android:clickable="true"
+                android:focusable="true"
+                android:foreground="?attr/selectableItemBackground">
+
+                <TextView
+                    android:id="@+id/tvTabComplaints"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center"
+                    android:paddingTop="10dp"
+                    android:paddingBottom="10dp"
+                    android:text="Complaints"
+                    android:textColor="#D2C1B6"
+                    android:textSize="10sp"
+                    android:textStyle="bold"
+                    android:maxLines="1"
+                    android:ellipsize="end"/>
+            </com.google.android.material.card.MaterialCardView>
+
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/tabFeatureRequests"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
@@ -200,15 +253,15 @@
                 android:foreground="?attr/selectableItemBackground">
 
                 <TextView
-                    android:id="@+id/tvTabReported"
+                    android:id="@+id/tvTabFeatureRequests"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:gravity="center"
                     android:paddingTop="10dp"
                     android:paddingBottom="10dp"
-                    android:text="Reported"
-                    android:textColor="#FFFFFF"
-                    android:textSize="11sp"
+                    android:text="Features"
+                    android:textColor="#D2C1B6"
+                    android:textSize="10sp"
                     android:textStyle="bold"
                     android:maxLines="1"
                     android:ellipsize="end"/>
@@ -216,21 +269,21 @@
         </LinearLayout>
     </LinearLayout>
 
-    <!-- ===================== User List ===================== -->
+    <!-- ===================== Body ===================== -->
     <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1">
 
         <androidx.recyclerview.widget.RecyclerView
-            android:id="@+id/recyclerView"
+            android:id="@+id/recyclerViewFeedback"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:padding="16dp"
             android:clipToPadding="false"/>
 
         <LinearLayout
-            android:id="@+id/emptyState"
+            android:id="@+id/tvEmptyState"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="center"
@@ -241,21 +294,21 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="👥"
+                android:text="💬"
                 android:textSize="40sp"
                 android:layout_marginBottom="12dp"/>
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="No users found"
-                android:textColor="#FFFFFF"
+                android:text="No feedback yet"
+                android:textColor="#456882"
                 android:textSize="14sp"
                 android:fontFamily="sans-serif-medium"/>
         </LinearLayout>
-
     </FrameLayout>
 
+    <!-- ===================== Bottom Navigation ===================== -->
     <include layout="@layout/layout_bottom_nav" />
 
 </LinearLayout>

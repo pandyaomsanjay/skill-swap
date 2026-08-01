@@ -23,7 +23,6 @@
             android:gravity="center_vertical">
 
             <!-- Avatar -->
-            <!-- Avatar -->
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="48dp"
                 android:layout_height="48dp"
@@ -31,14 +30,12 @@
                 app:cardElevation="0dp"
                 app:cardBackgroundColor="#EAE1DA">
 
-                <TextView
-                    android:id="@+id/tvAvatarInitial"
+                <ImageView
+                    android:id="@+id/ivUserPhoto"
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
-                    android:gravity="center"
-                    android:textColor="#1B3C53"
-                    android:textSize="16sp"
-                    android:textStyle="bold"/>
+                    android:scaleType="centerCrop"
+                    android:contentDescription="User photo"/>
             </com.google.android.material.card.MaterialCardView>
 
             <LinearLayout
@@ -49,10 +46,10 @@
                 android:layout_marginStart="14dp">
 
                 <TextView
-                    android:id="@+id/tvRequester"
+                    android:id="@+id/tvUserName"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="User A ⇄ User B"
+                    android:text="User name"
                     android:textColor="#1B3C53"
                     android:textSize="15sp"
                     android:fontFamily="sans-serif-medium"
@@ -61,10 +58,10 @@
                     android:ellipsize="end"/>
 
                 <TextView
-                    android:id="@+id/tvSwapId"
+                    android:id="@+id/tvFeedbackTitle"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Swap ID: #0000"
+                    android:text="Feedback title"
                     android:textColor="#456882"
                     android:textSize="12sp"
                     android:layout_marginTop="2dp"
@@ -73,22 +70,22 @@
             </LinearLayout>
 
             <TextView
-                android:id="@+id/tvStatusBadge"
+                android:id="@+id/tvStatus"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Pending"
-                android:textColor="#B8860B"
+                android:text="New"
+                android:textColor="#FFFFFF"
                 android:textSize="10sp"
                 android:textStyle="bold"
                 android:paddingStart="10dp"
                 android:paddingEnd="10dp"
                 android:paddingTop="4dp"
                 android:paddingBottom="4dp"
-                android:background="@drawable/bg_status_trade_cancelled"
+                android:background="@drawable/bg_status_pill"
                 android:layout_marginEnd="6dp"/>
 
             <com.google.android.material.card.MaterialCardView
-                android:id="@+id/btnMoreOptions"
+                android:id="@+id/btnMenu"
                 android:layout_width="36dp"
                 android:layout_height="36dp"
                 app:cardCornerRadius="10dp"
@@ -108,17 +105,19 @@
             </com.google.android.material.card.MaterialCardView>
         </LinearLayout>
 
-        <!-- Skill offered / requested -->
+        <!-- Preview text -->
         <TextView
-            android:id="@+id/tvSkills"
-            android:layout_width="wrap_content"
+            android:id="@+id/tvPreview"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="12dp"
-            android:text="Skill offered for Skill requested"
+            android:maxLines="2"
+            android:ellipsize="end"
+            android:text="Short preview of the feedback message goes here…"
             android:textColor="#456882"
             android:textSize="12.5sp"/>
 
-        <!-- Meta row: requested date, completion date -->
+        <!-- Meta row: rating, date -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -126,46 +125,25 @@
             android:layout_marginTop="12dp"
             android:gravity="center_vertical">
 
-            <TextView
+            <RatingBar
+                android:id="@+id/ratingBar"
+                style="@style/Widget.AppCompat.RatingBar.Small"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="📅"
-                android:textSize="11sp"
-                android:layout_marginEnd="4dp"/>
+                android:isIndicator="true"
+                android:numStars="5"
+                android:stepSize="1"
+                android:progressTint="#F5A623"/>
 
             <TextView
-                android:id="@+id/tvRequestedDate"
+                android:id="@+id/tvDate"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="Requested --"
+                android:layout_marginStart="10dp"
+                android:text="01/01/2026 10:00"
                 android:textColor="#456882"
                 android:textSize="11sp"/>
-
-            <LinearLayout
-                android:id="@+id/llCompletionGroup"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:gravity="center_vertical"
-                android:visibility="gone">
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="⏳"
-                    android:textSize="11sp"
-                    android:layout_marginEnd="3dp"/>
-
-                <TextView
-                    android:id="@+id/tvCompletionDate"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Completed --"
-                    android:textColor="#2D8577"
-                    android:textSize="11sp"
-                    android:textStyle="bold"/>
-            </LinearLayout>
         </LinearLayout>
     </LinearLayout>
 </com.google.android.material.card.MaterialCardView>

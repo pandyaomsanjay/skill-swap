@@ -1,5 +1,7 @@
 package com.example.sgp
 
+import com.google.firebase.firestore.PropertyName
+
 data class User(
     var uid: String = "",
     var name: String = "",
@@ -17,14 +19,33 @@ data class User(
     var skillsTeach: String = "",
     var skillsLearn: String = "",
     var credits: Int = 0,
+
+    @get:PropertyName("isLocationVerified")
+    @set:PropertyName("isLocationVerified")
     var isLocationVerified: Boolean = false,
+
     var loginProvider: String = "",
     var createdAt: Long = System.currentTimeMillis(),
     var bio: String = "",
     var fcmToken: String = "",
+
+    @get:PropertyName("isOnline")
+    @set:PropertyName("isOnline")
     var isOnline: Boolean = false,
+
     var lastActive: Long = System.currentTimeMillis(),
+
+    @get:PropertyName("isBlocked")
+    @set:PropertyName("isBlocked")
     var isBlocked: Boolean = false,
+
+    @get:PropertyName("isEmailVerified")
+    @set:PropertyName("isEmailVerified")
     var isEmailVerified: Boolean = false,
+
+    @get:PropertyName("isReported")
+    @set:PropertyName("isReported")
+    var isReported: Boolean = false,
+
     var supportQuestions: List<HashMap<String, Any>> = arrayListOf()
 )

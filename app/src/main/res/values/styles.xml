@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <style name="DarkBottomSheetDialog" parent="Theme.MaterialComponents.DayNight.BottomSheetDialog">
+        <item name="bottomSheetStyle">@style/DarkBottomSheetStyle</item>
+    </style>
+
+    <style name="DarkBottomSheetStyle" parent="Widget.MaterialComponents.BottomSheet.Modal">
+        <item name="android:background">@android:color/transparent</item>
+    </style>
+
+    <style name="DialogRow">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:orientation">horizontal</item>
+        <item name="android:gravity">center_vertical</item>
+        <item name="android:paddingStart">20dp</item>
+        <item name="android:paddingEnd">20dp</item>
+        <item name="android:paddingTop">13dp</item>
+        <item name="android:paddingBottom">13dp</item>
+        <item name="android:clickable">true</item>
+        <item name="android:focusable">true</item>
+        <item name="android:foreground">?attr/selectableItemBackground</item>
+    </style>
+
+    <style name="DialogRowIcon">
+        <item name="android:layout_width">wrap_content</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:textSize">16sp</item>
+        <item name="android:layout_marginEnd">16dp</item>
+    </style>
+
+    <style name="DialogRowLabel">
+        <item name="android:layout_width">wrap_content</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:textColor">#F5F7FF</item>
+        <item name="android:textSize">15sp</item>
+    </style>
+
+    <style name="EditLabel">
+        <item name="android:layout_width">wrap_content</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:textColor">#9099BD</item>
+        <item name="android:textSize">12sp</item>
+        <item name="android:layout_marginTop">12dp</item>
+        <item name="android:layout_marginBottom">6dp</item>
+    </style>
+
+    <style name="EditInput">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:background">#161A33</item>
+        <item name="android:textColor">#F5F7FF</item>
+        <item name="android:textColorHint">#5D6690</item>
+        <item name="android:textSize">14sp</item>
+        <item name="android:padding">12dp</item>
+        <item name="android:maxLines">1</item>
+    </style>
+
+    <style name="DarkAlertDialog" parent="ThemeOverlay.MaterialComponents.MaterialAlertDialog">
+        <item name="colorSurface">#161A33</item>
+        <item name="colorOnSurface">#F5F7FF</item>
+        <item name="colorControlNormal">#F5F7FF</item>
+        <item name="materialAlertDialogTitleTextStyle">@style/DarkAlertDialogTitleText</item>
+        <item name="materialAlertDialogBodyTextStyle">@style/DarkAlertDialogBodyText</item>
+        <item name="buttonBarPositiveButtonStyle">@style/DarkAlertDialogButton</item>
+        <item name="buttonBarNegativeButtonStyle">@style/DarkAlertDialogButton</item>
+        <item name="shapeAppearanceOverlay">@style/DarkAlertDialogShape</item>
+    </style>
+
+    <style name="DarkAlertDialogShape" parent="">
+        <item name="cornerSize">20dp</item>
+    </style>
+
+    <style name="DarkAlertDialogTitleText" parent="MaterialAlertDialog.MaterialComponents.Title.Text">
+        <item name="android:textColor">#F5F7FF</item>
+    </style>
+
+    <style name="DarkAlertDialogBodyText" parent="MaterialAlertDialog.MaterialComponents.Body.Text">
+        <item name="android:textColor">#9099BD</item>
+    </style>
+
+    <style name="DarkAlertDialogButton" parent="Widget.MaterialComponents.Button.TextButton.Dialog">
+        <item name="android:textColor">#F5F7FF</item>
+    </style>
+
+</resources>

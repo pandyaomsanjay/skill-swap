@@ -30,6 +30,31 @@
                 android:layout_gravity="center"
                 android:src="@drawable/baseline_play_circle_24"
                 android:alpha="0.8" />
+
+            <!-- Report button — top-right overlay on the thumbnail -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/btnReport"
+                android:layout_width="34dp"
+                android:layout_height="34dp"
+                android:layout_gravity="top|end"
+                android:layout_margin="8dp"
+                app:cardCornerRadius="17dp"
+                app:cardElevation="0dp"
+                app:cardBackgroundColor="#66000000"
+                android:clickable="true"
+                android:focusable="true"
+                android:foreground="?attr/selectableItemBackgroundBorderless">
+
+                <ImageView
+                    android:id="@+id/ivReport"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:padding="7dp"
+                    android:src="@drawable/outline_flag_24"
+                    app:tint="@android:color/white"
+                    android:contentDescription="Report this skill" />
+            </com.google.android.material.card.MaterialCardView>
+
         </FrameLayout>
 
         <!-- Details -->

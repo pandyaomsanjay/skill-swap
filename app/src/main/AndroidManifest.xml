@@ -150,6 +150,18 @@
             android:exported="false"
             android:label="Change Password" />
 
+        <activity
+            android:name=".AdminSettingsActivity"
+            android:exported="false"
+            android:theme="@style/Theme.SGP" />
+
+        <activity
+            android:name=".AdminFeedbackActivity"
+            android:exported="false"
+            android:theme="@style/Theme.SGP" />
+
+        <activity android:name=".SubmitFeedbackActivity" />
+
     </application>
 
 </manifest>

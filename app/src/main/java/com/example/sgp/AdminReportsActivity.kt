@@ -2,18 +2,28 @@ package com.example.sgp
 
 import android.content.ContentValues
 import android.content.Context
+import android.content.Intent
 import android.content.pm.PackageManager
+import android.graphics.Color
 import android.graphics.Paint
+import android.graphics.Typeface
+import android.graphics.drawable.GradientDrawable
 import android.graphics.pdf.PdfDocument
 import android.os.Build
 import android.os.Bundle
 import android.os.Environment
 import android.provider.MediaStore
+import android.text.Editable
+import android.text.TextUtils
+import android.text.TextWatcher
+import android.util.Log
+import android.util.TypedValue
+import android.view.Gravity
 import android.view.LayoutInflater
-import android.view.Menu
-import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
+import android.widget.EditText
+import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
@@ -22,36 +32,103 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import com.google.android.material.appbar.MaterialToolbar
-import com.google.firebase.firestore.FirebaseFirestore
-import com.google.firebase.firestore.firestore
+import com.google.android.material.bottomsheet.BottomSheetDialog
+import com.google.android.material.card.MaterialCardView
 import com.google.firebase.Firebase
+import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ListenerRegistration
+import com.google.firebase.firestore.firestore
 import java.io.OutputStream
 import java.text.SimpleDateFormat
+import java.util.Calendar
 import java.util.Date
 import java.util.Locale
+import android.widget.ImageView
+import com.bumptech.glide.Glide
+
+
+private enum class ReportTab { ALL, PENDING, RESOLVED }
 
 class AdminReportsActivity : AppCompatActivity() {
 
+    private lateinit var db: FirebaseFirestore
+
+    // ---- List ----
     private lateinit var recyclerView: RecyclerView
     private lateinit var adapter: ReportAdapter
-    private val reportList = mutableListOf<Report>()
-    private lateinit var db: FirebaseFirestore
-    private var listener: ListenerRegistration? = null
+    private lateinit var emptyState: View
+    private val allReports = mutableListOf<Report>()
+    private val filteredReports = mutableListOf<Report>()
+
+    // Cache of uid -> Users, built from the "users" collection so report
+    // cards can show a name instead of a raw reportedUserId.
+    private val userCache = mutableMapOf<String, Users>()
+
+    // IMPORTANT: per your Firestore rules, reports/{id}.reportedUserId and
+    // reporterId are stored as EMAIL addresses (rules compare them against
+    // request.auth.token.email), while users/{uid} documents are keyed by
+    // Firebase Auth uid, not email. This map bridges the two so we can look
+    // up / update the right user document from a report's email-based ID.
+    private val emailToUid = mutableMapOf<String, String>()
+
+    private fun resolveUid(reportedUserId: String): String? =
+        emailToUid[reportedUserId] ?: userCache[reportedUserId]?.let { reportedUserId }
+
+    private fun resolveUser(reportedUserId: String): Users? =
+        emailToUid[reportedUserId]?.let { userCache[it] } ?: userCache[reportedUserId]
+
+    // ---- Header ----
+    private lateinit var etSearch: EditText
+    private lateinit var btnExport: MaterialCardView
+    private lateinit var tabAll: MaterialCardView
+    private lateinit var tabPending: MaterialCardView
+    private lateinit var tabResolved: MaterialCardView
+    private lateinit var tvTabAll: TextView
+    private lateinit var tvTabPending: TextView
+    private lateinit var tvTabResolved: TextView
+    private var currentTab = ReportTab.ALL
+    private var searchQuery = ""
+
+    // ---- Analytics cards ----
+    private lateinit var tvTotalUsers: TextView
+    private lateinit var tvActiveUsers: TextView
+    private lateinit var tvTotalSkills: TextView
+    private lateinit var tvTotalSwaps: TextView
+    private lateinit var tvCompletedSwaps: TextView
+    private lateinit var tvPendingSwaps: TextView
+    private lateinit var tvReportedUsers: TextView
+    private lateinit var tvAvgRating: TextView
+
+    // ---- Charts ----
+    private lateinit var userGrowthChartView: UserGrowthChartView
+    private lateinit var llUserGrowthLabels: LinearLayout
+    private lateinit var swapsByMonthChartView: SwapsTrendView
+    private lateinit var llSwapsByMonthLabels: LinearLayout
+
+    // ---- Listeners ----
+    private var reportsListener: ListenerRegistration? = null
+    private var usersListener: ListenerRegistration? = null
+    private var skillsListener: ListenerRegistration? = null
+    private var tradesListener: ListenerRegistration? = null
 
     private var pendingExport: (() -> Unit)? = null
-
     private val storagePermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { granted ->
-        if (granted) {
-            pendingExport?.invoke()
-        } else {
-            Toast.makeText(this, "Storage permission is required to export", Toast.LENGTH_SHORT).show()
-        }
+        if (granted) pendingExport?.invoke()
+        else Toast.makeText(this, "Storage permission is required to export", Toast.LENGTH_SHORT).show()
         pendingExport = null
     }
+
+    private val monthFormat = SimpleDateFormat("MMM", Locale.getDefault())
+    private val TAG = "AdminReports"
+
+    // Same dark palette as AdminTradesActivity's options sheet, so both screens feel identical.
+    private val sheetBg = Color.parseColor("#16263A")
+    private val sheetDivider = Color.parseColor("#28405A")
+    private val sheetPrimaryText = Color.parseColor("#F5EDE4")
+    private val sheetSecondaryText = Color.parseColor("#9FB3C8")
+    private val sheetDestructive = Color.parseColor("#FF8A80")
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -66,85 +143,640 @@ class AdminReportsActivity : AppCompatActivity() {
 
         db = Firebase.firestore
 
-        val toolbar = findViewById<MaterialToolbar>(R.id.toolbar)
-        toolbar.setNavigationOnClickListener { finish() }
-        toolbar.inflateMenu(R.menu.menu_admin_reports)
-        toolbar.setOnMenuItemClickListener { item ->
-            when (item.itemId) {
-                R.id.action_export_csv -> {
-                    runWithStoragePermission { exportReportsToCsv() }
-                    true
-                }
-                R.id.action_export_pdf -> {
-                    runWithStoragePermission { exportReportsToPdf() }
-                    true
-                }
-                else -> false
-            }
-        }
+        bindViews()
 
-        recyclerView = findViewById(R.id.recyclerView)
         recyclerView.layoutManager = LinearLayoutManager(this)
-        adapter = ReportAdapter(reportList) { report ->
-            showReportOptionsDialog(report)
-        }
+        adapter = ReportAdapter(filteredReports, ::resolveUser,
+            onItemClick = { report -> showReportOptionsDialog(report) },
+            onMenuClick = { report, anchor -> showReportOptionsDialog(report) }
+        )
         recyclerView.adapter = adapter
 
-        loadReports()
-    }
+        setupSearch()
+        setupTabs()
+        setupExport()
+        BottomNav.setup(this, BottomNav.REPORTS)   // ← replaces setupNavigation()
 
-    private fun loadReports() {
-        listener = db.collection("reports")
-            .addSnapshotListener { snapshot, error ->
-                if (error != null) {
-                    Toast.makeText(this@AdminReportsActivity, error.message, Toast.LENGTH_SHORT).show()
-                    return@addSnapshotListener
-                }
-                reportList.clear()
-                snapshot?.documents?.forEach { doc ->
-                    val report = doc.toObject(Report::class.java)
-                    if (report != null) {
-                        reportList.add(report)
-                    }
-                }
-                adapter.notifyDataSetChanged()
-            }
+        loadUsers()
+        loadReports()
+        loadSkillsCount()
+        loadTradesAndCharts()
     }
 
     override fun onDestroy() {
         super.onDestroy()
-        listener?.remove()
+        reportsListener?.remove()
+        usersListener?.remove()
+        skillsListener?.remove()
+        tradesListener?.remove()
     }
 
+    private fun bindViews() {
+        recyclerView = findViewById(R.id.recyclerView)
+        emptyState = findViewById(R.id.emptyState)
+
+        etSearch = findViewById(R.id.etSearch)
+        btnExport = findViewById(R.id.btnExport)
+        tabAll = findViewById(R.id.tabAll)
+        tabPending = findViewById(R.id.tabPending)
+        tabResolved = findViewById(R.id.tabResolved)
+        tvTabAll = findViewById(R.id.tvTabAll)
+        tvTabPending = findViewById(R.id.tvTabPending)
+        tvTabResolved = findViewById(R.id.tvTabResolved)
+
+        tvTotalUsers = findViewById(R.id.tvTotalUsers)
+        tvActiveUsers = findViewById(R.id.tvActiveUsers)
+        tvTotalSkills = findViewById(R.id.tvTotalSkills)
+        tvTotalSwaps = findViewById(R.id.tvTotalSwaps)
+        tvCompletedSwaps = findViewById(R.id.tvCompletedSwaps)
+        tvPendingSwaps = findViewById(R.id.tvPendingSwaps)
+        tvReportedUsers = findViewById(R.id.tvReportedUsers)
+        tvAvgRating = findViewById(R.id.tvAvgRating)
+
+        userGrowthChartView = findViewById(R.id.userGrowthChartView)
+        llUserGrowthLabels = findViewById(R.id.llUserGrowthLabels)
+        swapsByMonthChartView = findViewById(R.id.swapsByMonthChartView)
+        llSwapsByMonthLabels = findViewById(R.id.llSwapsByMonthLabels)
+    }
+
+    // ---------------- Search ----------------
+
+    private fun setupSearch() {
+        etSearch.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
+                searchQuery = s?.toString()?.trim()?.lowercase(Locale.getDefault()) ?: ""
+                applyFilters()
+            }
+            override fun afterTextChanged(s: Editable?) {}
+        })
+    }
+
+    // ---------------- Tabs (All / Pending / Resolved) ----------------
+
+    private fun setupTabs() {
+        tabAll.setOnClickListener { selectTab(ReportTab.ALL) }
+        tabPending.setOnClickListener { selectTab(ReportTab.PENDING) }
+        tabResolved.setOnClickListener { selectTab(ReportTab.RESOLVED) }
+        selectTab(ReportTab.ALL)
+    }
+
+    private fun selectTab(tab: ReportTab) {
+        currentTab = tab
+        val selectedBg = Color.parseColor("#F9F3EF")
+        val selectedText = Color.parseColor("#1B3C53")
+        val unselectedBg = Color.parseColor("#456882")
+        val unselectedText = Color.parseColor("#FFFFFF")
+
+        val cards = listOf(
+            Triple(tabAll, tvTabAll, ReportTab.ALL),
+            Triple(tabPending, tvTabPending, ReportTab.PENDING),
+            Triple(tabResolved, tvTabResolved, ReportTab.RESOLVED)
+        )
+        cards.forEach { (card, text, t) ->
+            if (t == tab) {
+                card.setCardBackgroundColor(selectedBg)
+                card.strokeWidth = 0
+                text.setTextColor(selectedText)
+            } else {
+                card.setCardBackgroundColor(unselectedBg)
+                card.strokeWidth = (1 * resources.displayMetrics.density).toInt()
+                card.strokeColor = Color.parseColor("#FFFFFF")
+                text.setTextColor(unselectedText)
+            }
+        }
+        applyFilters()
+    }
+
+    private fun applyFilters() {
+        val statusFiltered = when (currentTab) {
+            ReportTab.ALL -> allReports
+            ReportTab.PENDING -> allReports.filter { it.status.equals("pending", ignoreCase = true) }
+            ReportTab.RESOLVED -> allReports.filter { it.status.equals("resolved", ignoreCase = true) }
+        }
+
+        val searched = if (searchQuery.isBlank()) {
+            statusFiltered
+        } else {
+            statusFiltered.filter { report ->
+                val user = resolveUser(report.reportedUserId)
+                val name = user?.name?.lowercase(Locale.getDefault()) ?: ""
+                val email = user?.email?.lowercase(Locale.getDefault()) ?: ""
+                val id = report.id.lowercase(Locale.getDefault())
+                name.contains(searchQuery) || email.contains(searchQuery) || id.contains(searchQuery)
+            }
+        }
+
+        filteredReports.clear()
+        filteredReports.addAll(searched.sortedByDescending { it.timestamp })
+        adapter.notifyDataSetChanged()
+        emptyState.visibility = if (filteredReports.isEmpty()) View.VISIBLE else View.GONE
+        recyclerView.visibility = if (filteredReports.isEmpty()) View.GONE else View.VISIBLE
+    }
+
+    // ---------------- Data loading ----------------
+
+    private fun loadReports() {
+        reportsListener = db.collection("reports")
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    Toast.makeText(this, error.message, Toast.LENGTH_SHORT).show()
+                    return@addSnapshotListener
+                }
+                allReports.clear()
+                snapshot?.documents?.forEach { doc ->
+                    val report = doc.toObject(Report::class.java) ?: return@forEach
+                    val fixedReport = if (report.id.isBlank()) report.copy(id = doc.id) else report
+                    allReports.add(fixedReport)
+                }
+                tvReportedUsers.text = allReports.map { it.reportedUserId }.distinct().size.toString()
+                applyFilters()
+            }
+    }
+
+    private fun loadUsers() {
+        usersListener = db.collection("users")
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    Log.e(TAG, "users listener failed", error)
+                    return@addSnapshotListener
+                }
+                userCache.clear()
+                emailToUid.clear()
+                var activeCount = 0
+                var ratingSum = 0.0
+                var ratingCount = 0
+                snapshot?.documents?.forEach { doc ->
+                    val user = doc.toObject(Users::class.java) ?: return@forEach
+                    userCache[doc.id] = user
+                    if (user.email.isNotBlank()) {
+                        emailToUid[user.email] = doc.id
+                    }
+                    val blocked = doc.getBoolean("blocked") ?: false
+                    if (!blocked) activeCount++
+                    if (user.rating > 0.0) {
+                        ratingSum += user.rating
+                        ratingCount++
+                    }
+                }
+                tvTotalUsers.text = (snapshot?.size() ?: 0).toString()
+                tvActiveUsers.text = activeCount.toString()
+                tvAvgRating.text = if (ratingCount > 0) {
+                    String.format(Locale.getDefault(), "%.1f", ratingSum / ratingCount)
+                } else "0.0"
+
+                renderUserGrowthChart()
+                // Re-run filters/adapter since names shown on report cards depend on userCache
+                applyFilters()
+            }
+    }
+
+    private fun loadSkillsCount() {
+        skillsListener = db.collection("skills")
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    Log.e(TAG, "skills listener failed", error)
+                    return@addSnapshotListener
+                }
+                tvTotalSkills.text = (snapshot?.size() ?: 0).toString()
+            }
+    }
+
+    private fun loadTradesAndCharts() {
+        tradesListener = db.collection("trades")
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    Log.e(TAG, "trades listener failed", error)
+                    return@addSnapshotListener
+                }
+                val docs = snapshot?.documents ?: emptyList()
+                tvTotalSwaps.text = docs.size.toString()
+                tvCompletedSwaps.text = docs.count {
+                    (it.getString("status") ?: "").equals("completed", ignoreCase = true)
+                }.toString()
+                tvPendingSwaps.text = docs.count {
+                    (it.getString("status") ?: "").equals("pending", ignoreCase = true)
+                }.toString()
+
+                renderSwapsByMonthChart(docs.mapNotNull { it.getLong("timestamp") })
+            }
+    }
+
+    // ---------------- Charts: 6-month buckets ----------------
+
+    private fun last6MonthBuckets(): List<Pair<Long, Long>> {
+        val cal = Calendar.getInstance()
+        cal.set(Calendar.DAY_OF_MONTH, 1)
+        cal.set(Calendar.HOUR_OF_DAY, 0)
+        cal.set(Calendar.MINUTE, 0)
+        cal.set(Calendar.SECOND, 0)
+        cal.set(Calendar.MILLISECOND, 0)
+        cal.add(Calendar.MONTH, -5)
+
+        val buckets = mutableListOf<Pair<Long, Long>>()
+        repeat(6) {
+            val start = cal.timeInMillis
+            val startCal = cal.clone() as Calendar
+            cal.add(Calendar.MONTH, 1)
+            val end = cal.timeInMillis - 1
+            buckets.add(Pair(start, end))
+        }
+        return buckets
+    }
+
+    private fun renderUserGrowthChart() {
+        val buckets = last6MonthBuckets()
+        val allJoinDates = userCache.values.mapNotNull {
+            // joinedDate is stored as raw Long millis on the user document (see AdminDashboardActivity)
+            null // placeholder, replaced below via raw doc read
+        }
+        // We need raw joinedDate values, which Users may not expose as a typed field.
+        // Re-read them from the live snapshot instead for accuracy:
+        db.collection("users").get().addOnSuccessListener { snapshot ->
+            val joinDates = snapshot.documents.mapNotNull { it.getLong("joinedDate") }
+            var cumulative = 0
+            val cumulativeCounts = mutableListOf<Float>()
+            val labels = mutableListOf<String>()
+            buckets.forEach { (start, end) ->
+                cumulative += joinDates.count { it in start..end }
+                cumulativeCounts.add(cumulative.toFloat())
+                labels.add(monthFormat.format(Date(start)))
+            }
+            userGrowthChartView.setData(cumulativeCounts, labels)
+            renderMonthLabels(llUserGrowthLabels, labels)
+        }
+    }
+
+    private fun renderSwapsByMonthChart(timestamps: List<Long>) {
+        val buckets = last6MonthBuckets()
+        val counts = mutableListOf<Float>()
+        val labels = mutableListOf<String>()
+        buckets.forEach { (start, end) ->
+            counts.add(timestamps.count { it in start..end }.toFloat())
+            labels.add(monthFormat.format(Date(start)))
+        }
+        val peak = counts.maxOrNull() ?: 0f
+        val axisTop = if (peak <= 4f) 4f else {
+            val v = peak.toInt().coerceAtLeast(1)
+            var top = ((v / 4) + 1) * 4
+            top.toFloat()
+        }
+        swapsByMonthChartView.setData(counts, labels, axisTop)
+        renderMonthLabels(llSwapsByMonthLabels, labels)
+    }
+
+    private fun renderMonthLabels(container: LinearLayout, labels: List<String>) {
+        container.removeAllViews()
+        labels.forEach { label ->
+            val tv = TextView(this).apply {
+                text = label
+                setTextColor(Color.parseColor("#456882"))
+                textSize = 10f
+                gravity = Gravity.CENTER
+                layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
+            }
+            container.addView(tv)
+        }
+    }
+
+
+
+    // ---------------- Report actions (themed bottom sheet, matches Trades page) ----------------
+
     private fun showReportOptionsDialog(report: Report) {
-        val options = arrayOf("View Details", "Mark as Resolved", "Dismiss Report", "Delete Report")
-        AlertDialog.Builder(this)
-            .setTitle("Manage Report")
-            .setItems(options) { _, which ->
-                when (which) {
-                    0 -> viewReportDetails(report)
-                    1 -> updateReportStatus(report, "resolved")
-                    2 -> updateReportStatus(report, "dismissed")
-                    3 -> deleteReport(report)
+        val dialog = BottomSheetDialog(this, R.style.DarkBottomSheetDialog)
+        val user = resolveUser(report.reportedUserId)
+        val reporter = resolveUser(report.reporterId) // resolves who filed the report
+
+        val root = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(0, 0, 0, dp(12))
+            background = GradientDrawable().apply {
+                val r = dp(20).toFloat()
+                cornerRadii = floatArrayOf(r, r, r, r, 0f, 0f, 0f, 0f)
+                setColor(sheetBg)
+            }
+        }
+
+        // ---- Header: reported user's profile avatar + name + "Reported by" + report id ----
+        val shortId = report.id.takeLast(6).ifBlank { report.id }
+        val header = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(dp(20), dp(20), dp(20), dp(20))
+        }
+
+        // Profile avatar — loads the user's real photo via Glide when available,
+// falls back to an initial badge otherwise (same pattern as
+// AdminFeedbackActivity.showUserProfileDialog()).
+        val initial = user?.name?.trim()?.firstOrNull()?.uppercaseChar()?.toString() ?: "?"
+        header.addView(MaterialCardView(this).apply {
+            layoutParams = LinearLayout.LayoutParams(dp(44), dp(44))
+            radius = dp(22).toFloat()
+            cardElevation = 0f
+            setCardBackgroundColor(Color.parseColor("#28405A"))
+            if (!user?.profileImage.isNullOrEmpty()) {
+                val iv = ImageView(this@AdminReportsActivity).apply {
+                    layoutParams = ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
+                    scaleType = ImageView.ScaleType.CENTER_CROP
+                }
+                addView(iv)
+                Glide.with(this@AdminReportsActivity).load(user!!.profileImage).into(iv)
+            } else {
+                addView(TextView(this@AdminReportsActivity).apply {
+                    layoutParams = ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
+                    gravity = Gravity.CENTER
+                    text = initial
+                    setTextColor(sheetPrimaryText)
+                    textSize = 16f
+                    setTypeface(typeface, Typeface.BOLD)
+                })
+            }
+        })
+
+        val textCol = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply {
+                marginStart = dp(14)
+            }
+        }
+        textCol.addView(TextView(this).apply {
+            text = user?.name?.ifBlank { report.reportedUserId } ?: report.reportedUserId
+            setTextColor(sheetPrimaryText)
+            textSize = 16f
+            setTypeface(typeface, Typeface.BOLD)
+            maxLines = 1
+            ellipsize = TextUtils.TruncateAt.END
+        })
+        // Who filed the report against this user
+        textCol.addView(TextView(this).apply {
+            text = "Reported by ${reporter?.name?.ifBlank { report.reporterId } ?: report.reporterId}"
+            setTextColor(sheetSecondaryText)
+            textSize = 12f
+            maxLines = 1
+            ellipsize = TextUtils.TruncateAt.END
+            setPadding(0, dp(2), 0, 0)
+        })
+        textCol.addView(TextView(this).apply {
+            text = "Report #$shortId"
+            setTextColor(sheetSecondaryText)
+            textSize = 11f
+            setPadding(0, dp(2), 0, 0)
+        })
+        header.addView(textCol)
+        root.addView(header)
+
+        // ---- Divider ----
+        root.addView(View(this).apply {
+            layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp(1))
+            setBackgroundColor(sheetDivider)
+        })
+
+        fun addRow(emoji: String, label: String, textColor: Int = sheetPrimaryText, action: () -> Unit) {
+            val outValue = TypedValue()
+            theme.resolveAttribute(android.R.attr.selectableItemBackgroundBorderless, outValue, true)
+            val row = LinearLayout(this).apply {
+                orientation = LinearLayout.HORIZONTAL
+                gravity = Gravity.CENTER_VERTICAL
+                isClickable = true
+                isFocusable = true
+                setPadding(dp(20), dp(14), dp(20), dp(14))
+                setBackgroundResource(outValue.resourceId)
+                setOnClickListener {
+                    dialog.dismiss()
+                    action()
                 }
             }
-            .show()
+            row.addView(TextView(this).apply {
+                text = emoji
+                textSize = 18f
+                gravity = Gravity.CENTER
+                layoutParams = LinearLayout.LayoutParams(dp(28), LinearLayout.LayoutParams.WRAP_CONTENT)
+            })
+            row.addView(TextView(this).apply {
+                text = label
+                textSize = 15f
+                setTextColor(textColor)
+                layoutParams = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.WRAP_CONTENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+                ).apply { marginStart = dp(14) }
+            })
+            root.addView(row)
+        }
+
+        addRow("📋", "View Details") { viewReportDetails(report) }
+        addRow("👤", "View User Profile") { viewUserProfile(report) }
+        if (!report.status.equals("resolved", ignoreCase = true)) {
+            addRow("✅", "Resolve Report", Color.parseColor("#34D399")) { updateReportStatus(report, "resolved") }
+        }
+        addRow("🚫", "Block User", sheetDestructive) { confirmBlockUser(report) }
+
+        dialog.setContentView(root)
+        dialog.show()
     }
 
     private fun viewReportDetails(report: Report) {
-        val message = """
-            Reporter ID: ${report.reporterId}
-            Reported User ID: ${report.reportedUserId}
-            Reason: ${report.reason}
-            Description: ${report.description}
-            Status: ${report.status}
-            Date: ${SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault()).format(Date(report.timestamp))}
-        """.trimIndent()
-        AlertDialog.Builder(this)
-            .setTitle("Report Details")
-            .setMessage(message)
-            .setPositiveButton("OK", null)
-            .show()
+        val user = resolveUser(report.reportedUserId)
+        val root = dialogCard()
+
+        root.addView(dialogTitle("Report Details"))
+        root.addView(dialogDivider())
+
+        fun addDetailRow(label: String, value: String) {
+            val row = LinearLayout(this).apply {
+                orientation = LinearLayout.HORIZONTAL
+                layoutParams = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+                ).apply { bottomMargin = dp(10) }
+            }
+            row.addView(TextView(this).apply {
+                text = label
+                setTextColor(Color.parseColor("#456882"))
+                textSize = 12.5f
+                layoutParams = LinearLayout.LayoutParams(dp(112), LinearLayout.LayoutParams.WRAP_CONTENT)
+            })
+            row.addView(TextView(this).apply {
+                text = value
+                setTextColor(Color.parseColor("#1B3C53"))
+                textSize = 12.5f
+                setTypeface(typeface, Typeface.BOLD)
+                layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+            })
+            root.addView(row)
+        }
+
+        addDetailRow("Report ID", report.id)
+        addDetailRow("Reported User", user?.name ?: report.reportedUserId)
+        addDetailRow("Reporter", report.reporterId)
+        addDetailRow("Reason", report.reason)
+        addDetailRow("Description", report.description)
+        addDetailRow("Status", report.status.replaceFirstChar { it.uppercase() })
+        addDetailRow("Date", SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault()).format(Date(report.timestamp)))
+
+        val dialog = AlertDialog.Builder(this).setView(root).create()
+        dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
+
+        val btnOk = pillButton("OK", Color.parseColor("#1B3C53"), Color.WHITE).apply {
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply {
+                topMargin = dp(16)
+                gravity = Gravity.END
+            }
+            setPadding(dp(28), dp(10), dp(28), dp(10))
+            setOnClickListener { dialog.dismiss() }
+        }
+        root.addView(btnOk)
+
+        dialog.show()
+    }
+
+    private fun viewUserProfile(report: Report) {
+        val user = resolveUser(report.reportedUserId)
+        val reporter = resolveUser(report.reporterId) // resolves who filed this report
+        val root = dialogCard()
+        root.addView(dialogTitle("User Profile"))
+        root.addView(dialogDivider())
+
+        if (user == null) {
+            root.addView(TextView(this).apply {
+                text = "Profile not found for ${report.reportedUserId}"
+                setTextColor(Color.parseColor("#456882"))
+                textSize = 13f
+            })
+        } else {
+            // Avatar + name + rating badge, same layout language as the Trades
+            // "View Both User Profiles" dialog.
+            val topRow = LinearLayout(this).apply {
+                orientation = LinearLayout.HORIZONTAL
+                gravity = Gravity.CENTER_VERTICAL
+            }
+            val initial = user.name.trim().firstOrNull()?.uppercaseChar()?.toString() ?: "?"
+            val avatar = MaterialCardView(this).apply {
+                layoutParams = LinearLayout.LayoutParams(dp(44), dp(44))
+                radius = dp(22).toFloat()
+                cardElevation = 0f
+                setCardBackgroundColor(Color.parseColor("#EAE1DA"))
+                if (user.profileImage.isNotEmpty()) {
+                    val iv = ImageView(this@AdminReportsActivity).apply {
+                        layoutParams = ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
+                        scaleType = ImageView.ScaleType.CENTER_CROP
+                    }
+                    addView(iv)
+                    Glide.with(this@AdminReportsActivity).load(user.profileImage).into(iv)
+                } else {
+                    addView(TextView(this@AdminReportsActivity).apply {
+                        layoutParams = ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
+                        gravity = Gravity.CENTER
+                        text = initial
+                        setTextColor(Color.parseColor("#1B3C53"))
+                        textSize = 16f
+                        setTypeface(typeface, Typeface.BOLD)
+                    })
+                }
+            }
+            val nameCol = LinearLayout(this).apply {
+                orientation = LinearLayout.VERTICAL
+                layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply {
+                    marginStart = dp(12)
+                }
+            }
+            nameCol.addView(TextView(this).apply {
+                text = blankIfEmpty(user.name).ifBlank { "No name set" }
+                setTextColor(Color.parseColor("#1B3C53"))
+                textSize = 15f
+                setTypeface(typeface, Typeface.BOLD)
+            })
+            nameCol.addView(TextView(this).apply {
+                text = blankIfEmpty(user.email)
+                setTextColor(Color.parseColor("#456882"))
+                textSize = 12f
+                setPadding(0, dp(2), 0, 0)
+            })
+            topRow.addView(avatar)
+            topRow.addView(nameCol)
+            topRow.addView(TextView(this).apply {
+                text = "⭐ ${String.format(Locale.getDefault(), "%.1f", user.rating)}"
+                setTextColor(Color.parseColor("#1B3C53"))
+                textSize = 12f
+                setTypeface(typeface, Typeface.BOLD)
+                setPadding(dp(10), dp(4), dp(10), dp(4))
+                background = GradientDrawable().apply {
+                    cornerRadius = dp(20).toFloat()
+                    setColor(Color.parseColor("#EAF1F5"))
+                }
+            })
+            root.addView(topRow)
+
+            // "Reported by" chip row — shows who filed this specific report
+            root.addView(TextView(this).apply {
+                text = "🚩 Reported by ${reporter?.name?.ifBlank { report.reporterId } ?: report.reporterId}"
+                setTextColor(Color.parseColor("#B8860B"))
+                textSize = 12f
+                setTypeface(typeface, Typeface.BOLD)
+                setPadding(dp(10), dp(6), dp(10), dp(6))
+                background = GradientDrawable().apply {
+                    cornerRadius = dp(14).toFloat()
+                    setColor(Color.parseColor("#FFF3E0"))
+                }
+                layoutParams = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.WRAP_CONTENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+                ).apply { topMargin = dp(10) }
+            })
+
+            root.addView(dialogDivider())
+
+            fun addDetailRow(label: String, value: String) {
+                val row = LinearLayout(this).apply {
+                    orientation = LinearLayout.HORIZONTAL
+                    layoutParams = LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.MATCH_PARENT,
+                        LinearLayout.LayoutParams.WRAP_CONTENT
+                    ).apply { bottomMargin = dp(10) }
+                }
+                row.addView(TextView(this).apply {
+                    text = label
+                    setTextColor(Color.parseColor("#456882"))
+                    textSize = 12.5f
+                    layoutParams = LinearLayout.LayoutParams(dp(120), LinearLayout.LayoutParams.WRAP_CONTENT)
+                })
+                row.addView(TextView(this).apply {
+                    text = value.ifBlank { "-" }
+                    setTextColor(Color.parseColor("#1B3C53"))
+                    textSize = 12.5f
+                    setTypeface(typeface, Typeface.BOLD)
+                    layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+                })
+                root.addView(row)
+            }
+
+            addDetailRow("Phone", blankIfEmpty(user.phone))
+            addDetailRow("Can Teach", blankIfEmpty(user.skillsTeach))
+            addDetailRow("Wants to Learn", blankIfEmpty(user.skillsLearn))
+            addDetailRow("Completed Trades", user.completedTrades.toString())
+        }
+
+        val dialog = AlertDialog.Builder(this).setView(root).create()
+        dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
+
+        val btnOk = pillButton("OK", Color.parseColor("#1B3C53"), Color.WHITE).apply {
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply {
+                topMargin = dp(16)
+                gravity = Gravity.END
+            }
+            setPadding(dp(28), dp(10), dp(28), dp(10))
+            setOnClickListener { dialog.dismiss() }
+        }
+        root.addView(btnOk)
+
+        dialog.show()
     }
 
     private fun updateReportStatus(report: Report, status: String) {
@@ -158,21 +790,243 @@ class AdminReportsActivity : AppCompatActivity() {
             }
     }
 
-    private fun deleteReport(report: Report) {
-        AlertDialog.Builder(this)
-            .setTitle("Delete Report")
-            .setMessage("Are you sure you want to delete this report?")
-            .setPositiveButton("Delete") { _, _ ->
-                db.collection("reports").document(report.id).delete()
-                    .addOnSuccessListener {
-                        Toast.makeText(this, "Report deleted", Toast.LENGTH_SHORT).show()
-                    }
-                    .addOnFailureListener {
-                        Toast.makeText(this, "Failed", Toast.LENGTH_SHORT).show()
-                    }
+    private fun confirmBlockUser(report: Report) {
+        val user = resolveUser(report.reportedUserId)
+        val root = dialogCard()
+
+        root.addView(TextView(this).apply {
+            text = "🚫"
+            textSize = 30f
+            gravity = Gravity.CENTER
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply { bottomMargin = dp(8) }
+        })
+        root.addView(TextView(this).apply {
+            text = "Block User"
+            setTextColor(Color.parseColor("#1B3C53"))
+            textSize = 17f
+            setTypeface(typeface, Typeface.BOLD)
+            gravity = Gravity.CENTER
+        })
+        root.addView(TextView(this).apply {
+            text = "Block ${user?.name ?: "this user"}? They will no longer be able to use SkillSwap."
+            setTextColor(Color.parseColor("#456882"))
+            textSize = 13f
+            gravity = Gravity.CENTER
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply {
+                topMargin = dp(8)
+                bottomMargin = dp(18)
             }
-            .setNegativeButton("Cancel", null)
-            .show()
+        })
+
+        val dialog = AlertDialog.Builder(this).setView(root).create()
+        dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
+
+        val buttonRow = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+        val btnCancel = pillButton("Cancel", Color.parseColor("#EAF1F5"), Color.parseColor("#456882")).apply {
+            setOnClickListener { dialog.dismiss() }
+        }
+        val btnBlock = pillButton("Block", Color.parseColor("#DC2626"), Color.WHITE).apply {
+            setOnClickListener {
+                dialog.dismiss()
+                blockUser(report)
+            }
+        }
+        buttonRow.addView(
+            btnCancel,
+            LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply { marginEnd = dp(8) }
+        )
+        buttonRow.addView(btnBlock, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
+        root.addView(buttonRow)
+
+        dialog.show()
+    }
+
+    private fun blockUser(report: Report) {
+        // report.reportedUserId is an email; users/{uid} docs are keyed by uid,
+        // so resolve the real document ID first or this update silently
+        // creates/touches the wrong (nonexistent) document.
+        val uid = resolveUid(report.reportedUserId)
+        if (uid == null) {
+            Toast.makeText(this, "Could not find this user's account record", Toast.LENGTH_LONG).show()
+            return
+        }
+        db.collection("users").document(uid)
+            .update("blocked", true)
+            .addOnSuccessListener {
+                Toast.makeText(this, "User blocked", Toast.LENGTH_SHORT).show()
+                // Resolving the report alongside the block keeps the queue accurate
+                updateReportStatus(report, "resolved")
+            }
+            .addOnFailureListener {
+                Toast.makeText(this, "Failed to block user: ${it.message}", Toast.LENGTH_LONG).show()
+            }
+    }
+
+    // ---------------- Themed-dialog helpers (shared white rounded card + pill buttons,
+    // same look as AdminTradesActivity so both screens feel identical) ----------------
+
+    private fun dp(value: Int): Int = (value * resources.displayMetrics.density).toInt()
+
+    private fun dialogCard(): LinearLayout {
+        return LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(20), dp(22), dp(20), dp(20))
+            background = GradientDrawable().apply {
+                cornerRadius = dp(20).toFloat()
+                setColor(Color.WHITE)
+            }
+        }
+    }
+
+    private fun dialogTitle(text: String): TextView {
+        return TextView(this).apply {
+            this.text = text
+            setTextColor(Color.parseColor("#1B3C53"))
+            textSize = 17f
+            setTypeface(typeface, Typeface.BOLD)
+        }
+    }
+
+    private fun dialogDivider(): View {
+        return View(this).apply {
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                dp(1)
+            ).apply {
+                topMargin = dp(12)
+                bottomMargin = dp(12)
+            }
+            setBackgroundColor(Color.parseColor("#EAF1F5"))
+        }
+    }
+
+    private fun pillButton(text: String, bgColor: Int, textColor: Int): TextView {
+        return TextView(this).apply {
+            this.text = text
+            setTextColor(textColor)
+            textSize = 14f
+            setTypeface(typeface, Typeface.BOLD)
+            gravity = Gravity.CENTER
+            setPadding(0, dp(12), 0, dp(12))
+            background = GradientDrawable().apply {
+                cornerRadius = dp(24).toFloat()
+                setColor(bgColor)
+            }
+            isClickable = true
+            isFocusable = true
+        }
+    }
+
+    // ---------------- Export: choose between Reports Summary PDF and Users List PDF ----------------
+
+    private fun setupExport() {
+        btnExport.setOnClickListener {
+            showExportOptionsDialog()
+        }
+    }
+
+    // Lets the admin pick which PDF to generate before any storage permission is requested.
+    private fun showExportOptionsDialog() {
+        val dialog = BottomSheetDialog(this, R.style.DarkBottomSheetDialog)
+
+        val root = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(0, 0, 0, dp(12))
+            background = GradientDrawable().apply {
+                val r = dp(20).toFloat()
+                cornerRadii = floatArrayOf(r, r, r, r, 0f, 0f, 0f, 0f)
+                setColor(sheetBg)
+            }
+        }
+
+        // ---- Header ----
+        val header = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(dp(20), dp(20), dp(20), dp(20))
+        }
+        header.addView(TextView(this).apply {
+            text = "⬇️"
+            textSize = 18f
+            gravity = Gravity.CENTER
+            setBackgroundResource(R.drawable.bg_status_trade_accepted)
+            layoutParams = LinearLayout.LayoutParams(dp(44), dp(44))
+        })
+        header.addView(TextView(this).apply {
+            text = "Export PDF"
+            setTextColor(sheetPrimaryText)
+            textSize = 16f
+            setTypeface(typeface, Typeface.BOLD)
+            layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply {
+                marginStart = dp(14)
+            }
+        })
+        root.addView(header)
+
+        // ---- Divider ----
+        root.addView(View(this).apply {
+            layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp(1))
+            setBackgroundColor(sheetDivider)
+        })
+
+        fun addRow(emoji: String, label: String, subtitle: String, action: () -> Unit) {
+            val outValue = TypedValue()
+            theme.resolveAttribute(android.R.attr.selectableItemBackgroundBorderless, outValue, true)
+            val row = LinearLayout(this).apply {
+                orientation = LinearLayout.HORIZONTAL
+                gravity = Gravity.CENTER_VERTICAL
+                isClickable = true
+                isFocusable = true
+                setPadding(dp(20), dp(14), dp(20), dp(14))
+                setBackgroundResource(outValue.resourceId)
+                setOnClickListener {
+                    dialog.dismiss()
+                    action()
+                }
+            }
+            row.addView(TextView(this).apply {
+                text = emoji
+                textSize = 18f
+                gravity = Gravity.CENTER
+                layoutParams = LinearLayout.LayoutParams(dp(28), LinearLayout.LayoutParams.WRAP_CONTENT)
+            })
+            val textCol = LinearLayout(this).apply {
+                orientation = LinearLayout.VERTICAL
+                layoutParams = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.WRAP_CONTENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+                ).apply { marginStart = dp(14) }
+            }
+            textCol.addView(TextView(this).apply {
+                text = label
+                textSize = 15f
+                setTextColor(sheetPrimaryText)
+            })
+            textCol.addView(TextView(this).apply {
+                text = subtitle
+                textSize = 12f
+                setTextColor(sheetSecondaryText)
+                setPadding(0, dp(2), 0, 0)
+            })
+            row.addView(textCol)
+            root.addView(row)
+        }
+
+        addRow("🚩", "Reports Summary", "Export all reports with status & reason") {
+            runWithStoragePermission { exportReportsSummaryToPdf() }
+        }
+        addRow("👥", "Users List", "Export all registered users & their skills") {
+            runWithStoragePermission { exportUsersToPdf() }
+        }
+
+        dialog.setContentView(root)
+        dialog.show()
     }
 
     private fun runWithStoragePermission(action: () -> Unit) {
@@ -189,233 +1043,354 @@ class AdminReportsActivity : AppCompatActivity() {
         }
     }
 
-    private fun exportReportsToCsv() {
-        db.collection("users").get()
-            .addOnSuccessListener { snapshot ->
-                if (snapshot.isEmpty) {
-                    Toast.makeText(this, "No users to export", Toast.LENGTH_SHORT).show()
-                    return@addOnSuccessListener
-                }
-
-                val fileName = "SkillSwap_Users_${System.currentTimeMillis()}.csv"
-                val csvBuilder = StringBuilder()
-                csvBuilder.append("Name,Email,Phone Number,Skill I Can Teach,Skill I Want To Learn,Trades,Review\n")
-
-                snapshot.documents.forEach { doc ->
-                    val user = doc.toObject(Users::class.java) ?: return@forEach
-                    csvBuilder.append(csvEscape(blankIfEmpty(user.name))).append(",")
-                    csvBuilder.append(csvEscape(blankIfEmpty(user.email))).append(",")
-                    csvBuilder.append(csvEscape(blankIfEmpty(user.phone))).append(",")
-                    csvBuilder.append(csvEscape(blankIfEmpty(user.skillsTeach))).append(",")
-                    csvBuilder.append(csvEscape(blankIfEmpty(user.skillsLearn))).append(",")
-                    csvBuilder.append(csvEscape(blankIfZeroInt(user.completedTrades))).append(",")
-                    csvBuilder.append(csvEscape(blankIfZeroDouble(user.rating))).append("\n")
-                }
-
-                try {
-                    val outputStream = openDownloadsOutputStream(fileName, "text/csv")
-                    outputStream?.use { it.write(csvBuilder.toString().toByteArray()) }
-                    Toast.makeText(this, "Saved to Downloads: $fileName", Toast.LENGTH_LONG).show()
-                } catch (e: Exception) {
-                    e.printStackTrace()
-                    Toast.makeText(this, "Export failed: ${e.message}", Toast.LENGTH_LONG).show()
-                }
-            }
-            .addOnFailureListener { e ->
-                Toast.makeText(this, "Failed to load users: ${e.message}", Toast.LENGTH_LONG).show()
-            }
-    }
-
     private fun blankIfEmpty(value: String): String = if (value.isBlank()) "" else value
-    private fun blankIfZeroInt(value: Int): String = if (value == 0) "" else value.toString()
-    private fun blankIfZeroDouble(value: Double): String = if (value == 0.0) "" else String.format(Locale.getDefault(), "%.1f", value)
 
-    private fun csvEscape(value: String): String {
-        val escaped = value.replace("\"", "\"\"")
-        return if (escaped.contains(",") || escaped.contains("\n")) "\"$escaped\"" else escaped
+    // ---------------- Export 1: Reports Summary PDF ----------------
+
+    private fun exportReportsSummaryToPdf() {
+        if (allReports.isEmpty()) {
+            Toast.makeText(this, "No reports to export", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        val fileName = "SkillSwap_Reports.pdf"
+        val dateFormat = SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault())
+
+        val pageWidth = 842
+        val pageHeight = 595
+        val leftMargin = 24f
+        val bottomMargin = pageHeight - 30f
+        val rowHeight = 22f
+        val headerRowHeight = 24f
+        val bannerHeight = 70f
+
+        val headers = listOf("Report ID", "User Name", "Reason", "Status", "Date")
+        val tableWidth = pageWidth - (leftMargin * 2)
+        val columnWeights = listOf(0.16f, 0.2f, 0.34f, 0.12f, 0.18f)
+        val columnWidths = columnWeights.map { it * tableWidth }
+
+        val brandColor = Color.parseColor("#1B3C53")
+        val brandColorDark = Color.parseColor("#102838")
+
+        val bannerBgPaint = Paint().apply { color = brandColor; style = Paint.Style.FILL }
+        val bannerAccentPaint = Paint().apply { color = brandColorDark; style = Paint.Style.FILL }
+        val titlePaint = Paint().apply {
+            textSize = 22f; isFakeBoldText = true
+            color = Color.parseColor("#F9F3EF"); textAlign = Paint.Align.CENTER
+        }
+        val subtitlePaint = Paint().apply {
+            textSize = 11f; color = Color.parseColor("#CBD8E1"); textAlign = Paint.Align.CENTER
+        }
+        val headerPaint = Paint().apply {
+            textSize = 10f; isFakeBoldText = true; color = Color.parseColor("#F9F3EF")
+        }
+        val headerBgPaint = Paint().apply { color = brandColor; style = Paint.Style.FILL }
+        val bodyPaint = Paint().apply { textSize = 9f; color = Color.parseColor("#1B3C53") }
+        val borderPaint = Paint().apply {
+            color = Color.parseColor("#CCCCCC"); style = Paint.Style.STROKE; strokeWidth = 0.7f
+        }
+        val altRowBgPaint = Paint().apply { color = Color.parseColor("#EAF1F5"); style = Paint.Style.FILL }
+        val footerPaint = Paint().apply {
+            textSize = 8f; color = Color.parseColor("#9CA3AF"); textAlign = Paint.Align.CENTER
+        }
+
+        val pdfDocument = PdfDocument()
+        var pageNumber = 1
+        var page = pdfDocument.startPage(PdfDocument.PageInfo.Builder(pageWidth, pageHeight, pageNumber).create())
+        var canvas = page.canvas
+        var y: Float
+
+        fun drawBanner() {
+            canvas.drawRect(0f, 0f, pageWidth.toFloat(), bannerHeight, bannerBgPaint)
+            canvas.drawRect(0f, bannerHeight, pageWidth.toFloat(), bannerHeight + 4f, bannerAccentPaint)
+            val centerX = pageWidth / 2f
+            canvas.drawText("SkillSwap — Reports Summary", centerX, bannerHeight / 2f, titlePaint)
+            canvas.drawText("Generated: ${dateFormat.format(Date())}", centerX, bannerHeight / 2f + 20f, subtitlePaint)
+        }
+
+        fun drawTableHeader(startY: Float): Float {
+            var x = leftMargin
+            var localY = startY
+            canvas.drawRect(leftMargin, localY, leftMargin + tableWidth, localY + headerRowHeight, headerBgPaint)
+            headers.forEachIndexed { i, header ->
+                canvas.drawText(header, x + 4f, localY + headerRowHeight - 7f, headerPaint)
+                canvas.drawRect(x, localY, x + columnWidths[i], localY + headerRowHeight, borderPaint)
+                x += columnWidths[i]
+            }
+            return localY + headerRowHeight
+        }
+
+        fun drawFooter() {
+            canvas.drawText("Page $pageNumber", pageWidth / 2f, pageHeight - 12f, footerPaint)
+        }
+
+        fun truncate(text: String, maxWidth: Float, paint: Paint): String {
+            if (paint.measureText(text) <= maxWidth) return text
+            var end = text.length
+            while (end > 0 && paint.measureText(text.substring(0, end) + "…") > maxWidth) end--
+            return text.substring(0, end) + "…"
+        }
+
+        fun newPage() {
+            drawFooter()
+            pdfDocument.finishPage(page)
+            pageNumber++
+            page = pdfDocument.startPage(PdfDocument.PageInfo.Builder(pageWidth, pageHeight, pageNumber).create())
+            canvas = page.canvas
+            drawBanner()
+            y = drawTableHeader(bannerHeight + 24f)
+        }
+
+        drawBanner()
+        y = drawTableHeader(bannerHeight + 24f)
+
+        val sortedReports = allReports.sortedByDescending { it.timestamp }
+        sortedReports.forEachIndexed { rowIndex, report ->
+            if (y + rowHeight > bottomMargin) newPage()
+
+            val userName = resolveUser(report.reportedUserId)?.name ?: report.reportedUserId
+            val rowValues = listOf(
+                report.id,
+                userName,
+                report.reason,
+                report.status,
+                SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(Date(report.timestamp))
+            )
+
+            if (rowIndex % 2 == 1) {
+                canvas.drawRect(leftMargin, y, leftMargin + tableWidth, y + rowHeight, altRowBgPaint)
+            }
+
+            var x = leftMargin
+            rowValues.forEachIndexed { i, value ->
+                val cellPadding = 4f
+                val maxTextWidth = columnWidths[i] - (cellPadding * 2)
+                val displayText = truncate(value, maxTextWidth, bodyPaint)
+                canvas.drawText(displayText, x + cellPadding, y + rowHeight - 7f, bodyPaint)
+                canvas.drawRect(x, y, x + columnWidths[i], y + rowHeight, borderPaint)
+                x += columnWidths[i]
+            }
+            y += rowHeight
+        }
+
+        drawFooter()
+        pdfDocument.finishPage(page)
+
+        try {
+            val outputStream = openDownloadsOutputStream(fileName, "application/pdf")
+            outputStream?.use { pdfDocument.writeTo(it) }
+            Toast.makeText(this, "Saved to Downloads: $fileName", Toast.LENGTH_LONG).show()
+        } catch (e: Exception) {
+            e.printStackTrace()
+            Toast.makeText(this, "Export failed: ${e.message}", Toast.LENGTH_LONG).show()
+        } finally {
+            pdfDocument.close()
+        }
     }
 
-    // ─── PDF Export (Users) — Styled Table with Centered Banner ──
-    private fun exportReportsToPdf() {
+    // ---------------- Export 2: Users List PDF ----------------
+
+    private fun exportUsersToPdf() {
         db.collection("users").get()
-            .addOnSuccessListener { snapshot ->
-                if (snapshot.isEmpty) {
+            .addOnSuccessListener { usersSnapshot ->
+                if (usersSnapshot.isEmpty) {
                     Toast.makeText(this, "No users to export", Toast.LENGTH_SHORT).show()
                     return@addOnSuccessListener
                 }
 
-                val users = snapshot.documents.mapNotNull { it.toObject(Users::class.java) }
-                val fileName = "SkillSwap_Users_${System.currentTimeMillis()}.pdf"
-                val dateFormat = SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault())
+                // NOTE: user.completedTrades is a field on the users doc that is never
+                // incremented anywhere when a trade's status becomes "completed" in the
+                // trades collection, so it stays 0 forever. Instead we compute the real
+                // completed-trade count per user (matched by email, since trades store
+                // requesterId/receiverId as emails) directly from the trades collection.
+                db.collection("trades").get()
+                    .addOnSuccessListener { tradesSnapshot ->
+                        val completedCountByEmail = mutableMapOf<String, Int>()
+                        tradesSnapshot.documents.forEach { doc ->
+                            val status = doc.getString("status") ?: ""
+                            if (!status.equals("completed", ignoreCase = true)) return@forEach
+                            val requesterId = doc.getString("requesterId")
+                            val receiverId = doc.getString("receiverId")
+                            requesterId?.let { completedCountByEmail[it] = (completedCountByEmail[it] ?: 0) + 1 }
+                            receiverId?.let { completedCountByEmail[it] = (completedCountByEmail[it] ?: 0) + 1 }
+                        }
 
-                // ── Page geometry (A4 landscape) ───────────────────
-                val pageWidth = 842
-                val pageHeight = 595
-                val leftMargin = 24f
-                val bottomMargin = pageHeight - 30f
-                val rowHeight = 22f
-                val headerRowHeight = 24f
-                val bannerHeight = 70f
-
-                val headers = listOf(
-                    "Name", "Email", "Phone", "Skill I Can Teach",
-                    "Skill I Want To Learn", "Trades", "Review"
-                )
-                val tableWidth = pageWidth - (leftMargin * 2)
-                val columnWeights = listOf(0.13f, 0.22f, 0.11f, 0.19f, 0.19f, 0.08f, 0.08f)
-                val columnWidths = columnWeights.map { it * tableWidth }
-
-                val brandColor = android.graphics.Color.parseColor("#1B5EC8")
-                val brandColorDark = android.graphics.Color.parseColor("#123E85")
-
-                val bannerBgPaint = Paint().apply { color = brandColor; style = Paint.Style.FILL }
-                val bannerAccentPaint = Paint().apply { color = brandColorDark; style = Paint.Style.FILL }
-                val titlePaint = Paint().apply {
-                    textSize = 22f
-                    isFakeBoldText = true
-                    color = android.graphics.Color.WHITE
-                    textAlign = Paint.Align.CENTER
-                }
-                val subtitlePaint = Paint().apply {
-                    textSize = 11f
-                    color = android.graphics.Color.parseColor("#D6E4FA")
-                    textAlign = Paint.Align.CENTER
-                }
-                val headerPaint = Paint().apply {
-                    textSize = 10f
-                    isFakeBoldText = true
-                    color = android.graphics.Color.WHITE
-                }
-                val headerBgPaint = Paint().apply { color = brandColor; style = Paint.Style.FILL }
-                val bodyPaint = Paint().apply { textSize = 9f; color = android.graphics.Color.parseColor("#1A1A2E") }
-                val borderPaint = Paint().apply {
-                    color = android.graphics.Color.parseColor("#CCCCCC")
-                    style = Paint.Style.STROKE
-                    strokeWidth = 0.7f
-                }
-                val altRowBgPaint = Paint().apply {
-                    color = android.graphics.Color.parseColor("#F5F7FA")
-                    style = Paint.Style.FILL
-                }
-                val footerPaint = Paint().apply {
-                    textSize = 8f
-                    color = android.graphics.Color.parseColor("#9CA3AF")
-                    textAlign = Paint.Align.CENTER
-                }
-
-                val pdfDocument = PdfDocument()
-                var pageNumber = 1
-                var page = pdfDocument.startPage(
-                    PdfDocument.PageInfo.Builder(pageWidth, pageHeight, pageNumber).create()
-                )
-                var canvas = page.canvas
-                var y: Float
-
-                fun drawBanner() {
-                    // Full-width colored banner with a thin darker accent strip beneath it
-                    canvas.drawRect(0f, 0f, pageWidth.toFloat(), bannerHeight, bannerBgPaint)
-                    canvas.drawRect(0f, bannerHeight, pageWidth.toFloat(), bannerHeight + 4f, bannerAccentPaint)
-
-                    val centerX = pageWidth / 2f
-                    canvas.drawText("SkillSwap — User Report", centerX, bannerHeight / 2f, titlePaint)
-                    canvas.drawText(
-                        "Generated: ${dateFormat.format(Date())}",
-                        centerX,
-                        bannerHeight / 2f + 20f,
-                        subtitlePaint
-                    )
-                }
-
-                fun drawTableHeader(startY: Float): Float {
-                    var x = leftMargin
-                    var localY = startY
-                    canvas.drawRect(leftMargin, localY, leftMargin + tableWidth, localY + headerRowHeight, headerBgPaint)
-                    headers.forEachIndexed { i, header ->
-                        canvas.drawText(header, x + 4f, localY + headerRowHeight - 7f, headerPaint)
-                        canvas.drawRect(x, localY, x + columnWidths[i], localY + headerRowHeight, borderPaint)
-                        x += columnWidths[i]
+                        val users = usersSnapshot.documents.mapNotNull { it.toObject(Users::class.java) }
+                        generateUsersPdf(users, completedCountByEmail)
                     }
-                    localY += headerRowHeight
-                    return localY
-                }
-
-                fun drawFooter() {
-                    canvas.drawText("Page $pageNumber", pageWidth / 2f, pageHeight - 12f, footerPaint)
-                }
-
-                fun truncate(text: String, maxWidth: Float, paint: Paint): String {
-                    if (paint.measureText(text) <= maxWidth) return text
-                    var end = text.length
-                    while (end > 0 && paint.measureText(text.substring(0, end) + "…") > maxWidth) {
-                        end--
+                    .addOnFailureListener { e ->
+                        Toast.makeText(this, "Failed to load trades: ${e.message}", Toast.LENGTH_LONG).show()
                     }
-                    return text.substring(0, end) + "…"
-                }
-
-                fun newPage() {
-                    drawFooter()
-                    pdfDocument.finishPage(page)
-                    pageNumber++
-                    page = pdfDocument.startPage(
-                        PdfDocument.PageInfo.Builder(pageWidth, pageHeight, pageNumber).create()
-                    )
-                    canvas = page.canvas
-                    drawBanner()
-                    y = drawTableHeader(bannerHeight + 24f)
-                }
-
-                drawBanner()
-                y = drawTableHeader(bannerHeight + 24f)
-
-                users.forEachIndexed { rowIndex, user ->
-                    if (y + rowHeight > bottomMargin) {
-                        newPage()
-                    }
-
-                    val rowValues = listOf(
-                        blankIfEmpty(user.name),
-                        blankIfEmpty(user.email),
-                        blankIfEmpty(user.phone),
-                        blankIfEmpty(user.skillsTeach),
-                        blankIfEmpty(user.skillsLearn),
-                        blankIfZeroInt(user.completedTrades),
-                        blankIfZeroDouble(user.rating)
-                    )
-
-                    if (rowIndex % 2 == 1) {
-                        canvas.drawRect(leftMargin, y, leftMargin + tableWidth, y + rowHeight, altRowBgPaint)
-                    }
-
-                    var x = leftMargin
-                    rowValues.forEachIndexed { i, value ->
-                        val cellPadding = 4f
-                        val maxTextWidth = columnWidths[i] - (cellPadding * 2)
-                        val displayText = truncate(value, maxTextWidth, bodyPaint)
-                        canvas.drawText(displayText, x + cellPadding, y + rowHeight - 7f, bodyPaint)
-                        canvas.drawRect(x, y, x + columnWidths[i], y + rowHeight, borderPaint)
-                        x += columnWidths[i]
-                    }
-
-                    y += rowHeight
-                }
-
-                drawFooter()
-                pdfDocument.finishPage(page)
-
-                try {
-                    val outputStream = openDownloadsOutputStream(fileName, "application/pdf")
-                    outputStream?.use { pdfDocument.writeTo(it) }
-                    Toast.makeText(this, "Saved to Downloads: $fileName", Toast.LENGTH_LONG).show()
-                } catch (e: Exception) {
-                    e.printStackTrace()
-                    Toast.makeText(this, "Export failed: ${e.message}", Toast.LENGTH_LONG).show()
-                } finally {
-                    pdfDocument.close()
-                }
             }
             .addOnFailureListener { e ->
                 Toast.makeText(this, "Failed to load users: ${e.message}", Toast.LENGTH_LONG).show()
             }
+    }
+
+    // Builds and saves the Users PDF. completedCountByEmail maps a user's email to their
+    // real completed-trade count, computed fresh from the trades collection.
+    private fun generateUsersPdf(users: List<Users>, completedCountByEmail: Map<String, Int>) {
+        val fileName = "SkillSwap_Users.pdf"
+        val dateFormat = SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault())
+
+        val pageWidth = 842
+        val pageHeight = 595
+        val leftMargin = 24f
+        val bottomMargin = pageHeight - 30f
+        val rowHeight = 22f
+        val headerRowHeight = 24f
+        val bannerHeight = 70f
+
+        val headers = listOf(
+            "Name", "Email", "Phone", "Skill I Can Teach",
+            "Skill I Want To Learn", "Trades", "Review"
+        )
+        val tableWidth = pageWidth - (leftMargin * 2)
+        val columnWeights = listOf(0.13f, 0.22f, 0.11f, 0.19f, 0.19f, 0.08f, 0.08f)
+        val columnWidths = columnWeights.map { it * tableWidth }
+
+        val brandColor = Color.parseColor("#1B3C53")
+        val brandColorDark = Color.parseColor("#102838")
+
+        val bannerBgPaint = Paint().apply { color = brandColor; style = Paint.Style.FILL }
+        val bannerAccentPaint = Paint().apply { color = brandColorDark; style = Paint.Style.FILL }
+        val titlePaint = Paint().apply {
+            textSize = 22f
+            isFakeBoldText = true
+            color = Color.parseColor("#F9F3EF")
+            textAlign = Paint.Align.CENTER
+        }
+        val subtitlePaint = Paint().apply {
+            textSize = 11f
+            color = Color.parseColor("#CBD8E1")
+            textAlign = Paint.Align.CENTER
+        }
+        val headerPaint = Paint().apply {
+            textSize = 10f
+            isFakeBoldText = true
+            color = Color.parseColor("#F9F3EF")
+        }
+        val headerBgPaint = Paint().apply { color = brandColor; style = Paint.Style.FILL }
+        val bodyPaint = Paint().apply { textSize = 9f; color = Color.parseColor("#1B3C53") }
+        val borderPaint = Paint().apply {
+            color = Color.parseColor("#CCCCCC")
+            style = Paint.Style.STROKE
+            strokeWidth = 0.7f
+        }
+        val altRowBgPaint = Paint().apply {
+            color = Color.parseColor("#EAF1F5")
+            style = Paint.Style.FILL
+        }
+        val footerPaint = Paint().apply {
+            textSize = 8f
+            color = Color.parseColor("#9CA3AF")
+            textAlign = Paint.Align.CENTER
+        }
+
+        val pdfDocument = PdfDocument()
+        var pageNumber = 1
+        var page = pdfDocument.startPage(
+            PdfDocument.PageInfo.Builder(pageWidth, pageHeight, pageNumber).create()
+        )
+        var canvas = page.canvas
+        var y: Float
+
+        fun blankIfZeroInt(value: Int): String = if (value == 0) "" else value.toString()
+        fun blankIfZeroDouble(value: Double): String =
+            if (value == 0.0) "" else String.format(Locale.getDefault(), "%.1f", value)
+
+        fun drawBanner() {
+            canvas.drawRect(0f, 0f, pageWidth.toFloat(), bannerHeight, bannerBgPaint)
+            canvas.drawRect(0f, bannerHeight, pageWidth.toFloat(), bannerHeight + 4f, bannerAccentPaint)
+            val centerX = pageWidth / 2f
+            canvas.drawText("SkillSwap — User Report", centerX, bannerHeight / 2f, titlePaint)
+            canvas.drawText(
+                "Generated: ${dateFormat.format(Date())}",
+                centerX, bannerHeight / 2f + 20f, subtitlePaint
+            )
+        }
+
+        fun drawTableHeader(startY: Float): Float {
+            var x = leftMargin
+            var localY = startY
+            canvas.drawRect(leftMargin, localY, leftMargin + tableWidth, localY + headerRowHeight, headerBgPaint)
+            headers.forEachIndexed { i, header ->
+                canvas.drawText(header, x + 4f, localY + headerRowHeight - 7f, headerPaint)
+                canvas.drawRect(x, localY, x + columnWidths[i], localY + headerRowHeight, borderPaint)
+                x += columnWidths[i]
+            }
+            return localY + headerRowHeight
+        }
+
+        fun drawFooter() {
+            canvas.drawText("Page $pageNumber", pageWidth / 2f, pageHeight - 12f, footerPaint)
+        }
+
+        fun truncate(text: String, maxWidth: Float, paint: Paint): String {
+            if (paint.measureText(text) <= maxWidth) return text
+            var end = text.length
+            while (end > 0 && paint.measureText(text.substring(0, end) + "…") > maxWidth) end--
+            return text.substring(0, end) + "…"
+        }
+
+        fun newPage() {
+            drawFooter()
+            pdfDocument.finishPage(page)
+            pageNumber++
+            page = pdfDocument.startPage(
+                PdfDocument.PageInfo.Builder(pageWidth, pageHeight, pageNumber).create()
+            )
+            canvas = page.canvas
+            drawBanner()
+            y = drawTableHeader(bannerHeight + 24f)
+        }
+
+        drawBanner()
+        y = drawTableHeader(bannerHeight + 24f)
+
+        users.forEachIndexed { rowIndex, user ->
+            if (y + rowHeight > bottomMargin) newPage()
+
+            val realCompletedCount = completedCountByEmail[user.email] ?: 0
+            val rowValues = listOf(
+                blankIfEmpty(user.name),
+                blankIfEmpty(user.email),
+                blankIfEmpty(user.phone),
+                blankIfEmpty(user.skillsTeach),
+                blankIfEmpty(user.skillsLearn),
+                blankIfZeroInt(realCompletedCount),
+                blankIfZeroDouble(user.rating)
+            )
+
+            if (rowIndex % 2 == 1) {
+                canvas.drawRect(leftMargin, y, leftMargin + tableWidth, y + rowHeight, altRowBgPaint)
+            }
+
+            var x = leftMargin
+            rowValues.forEachIndexed { i, value ->
+                val cellPadding = 4f
+                val maxTextWidth = columnWidths[i] - (cellPadding * 2)
+                val displayText = truncate(value, maxTextWidth, bodyPaint)
+                canvas.drawText(displayText, x + cellPadding, y + rowHeight - 7f, bodyPaint)
+                canvas.drawRect(x, y, x + columnWidths[i], y + rowHeight, borderPaint)
+                x += columnWidths[i]
+            }
+            y += rowHeight
+        }
+
+        drawFooter()
+        pdfDocument.finishPage(page)
+
+        try {
+            val outputStream = openDownloadsOutputStream(fileName, "application/pdf")
+            outputStream?.use { pdfDocument.writeTo(it) }
+            Toast.makeText(this, "Saved to Downloads: $fileName", Toast.LENGTH_LONG).show()
+        } catch (e: Exception) {
+            e.printStackTrace()
+            Toast.makeText(this, "Export failed: ${e.message}", Toast.LENGTH_LONG).show()
+        } finally {
+            pdfDocument.close()
+        }
     }
 
     private fun openDownloadsOutputStream(fileName: String, mimeType: String): OutputStream? {
@@ -425,8 +1400,7 @@ class AdminReportsActivity : AppCompatActivity() {
                 put(MediaStore.MediaColumns.MIME_TYPE, mimeType)
                 put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS)
             }
-            val uri = contentResolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, contentValues)
-                ?: return null
+            val uri = contentResolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, contentValues) ?: return null
             contentResolver.openOutputStream(uri)
         } else {
             @Suppress("DEPRECATION")
@@ -437,16 +1411,26 @@ class AdminReportsActivity : AppCompatActivity() {
         }
     }
 
+    // ---------------- Adapter ----------------
+
     class ReportAdapter(
         private val reports: List<Report>,
-        private val onItemClick: (Report) -> Unit
+        private val resolveUser: (String) -> Users?,
+        private val onItemClick: (Report) -> Unit,
+        private val onMenuClick: (Report, View) -> Unit
     ) : RecyclerView.Adapter<ReportAdapter.ViewHolder>() {
 
         class ViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
-            val tvReporter: TextView = itemView.findViewById(R.id.tvReporter)
+            val tvReportId: TextView = itemView.findViewById(R.id.tvReportId)
+            val tvUserName: TextView = itemView.findViewById(R.id.tvUserName)
             val tvReason: TextView = itemView.findViewById(R.id.tvReason)
             val tvStatus: TextView = itemView.findViewById(R.id.tvStatus)
+            val cardStatus: MaterialCardView = itemView.findViewById(R.id.cardStatus)
+            val tvDate: TextView = itemView.findViewById(R.id.tvDate)
+            val ivMenu: View = itemView.findViewById(R.id.ivMenu)
         }
+
+        private val dateFormat = SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault())
 
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
             val view = LayoutInflater.from(parent.context)
@@ -456,18 +1440,27 @@ class AdminReportsActivity : AppCompatActivity() {
 
         override fun onBindViewHolder(holder: ViewHolder, position: Int) {
             val report = reports[position]
-            holder.tvReporter.text = "Reporter: ${report.reporterId}"
+            val user = resolveUser(report.reportedUserId)
+
+            holder.tvReportId.text = "Report #${report.id.takeLast(6).ifBlank { report.id }}"
+            holder.tvUserName.text = "Reported: ${user?.name?.ifBlank { report.reportedUserId } ?: report.reportedUserId}"
             holder.tvReason.text = report.reason
-            holder.tvStatus.text = report.status
-            holder.tvStatus.setTextColor(
-                when (report.status) {
-                    "pending" -> android.graphics.Color.parseColor("#FF9800")
-                    "resolved" -> android.graphics.Color.parseColor("#4CAF50")
-                    "dismissed" -> android.graphics.Color.parseColor("#F44336")
-                    else -> android.graphics.Color.parseColor("#757575")
-                }
-            )
+            holder.tvDate.text = dateFormat.format(Date(report.timestamp))
+            holder.tvStatus.text = report.status.replaceFirstChar {
+                if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString()
+            }
+
+            val (bg, text) = when (report.status.lowercase(Locale.getDefault())) {
+                "pending" -> Color.parseColor("#FFF3E0") to Color.parseColor("#B8860B")
+                "resolved" -> Color.parseColor("#E3F5E9") to Color.parseColor("#2E9E63")
+                "dismissed" -> Color.parseColor("#FDEAEA") to Color.parseColor("#DC2626")
+                else -> Color.parseColor("#EEEEEE") to Color.parseColor("#757575")
+            }
+            holder.cardStatus.setCardBackgroundColor(bg)
+            holder.tvStatus.setTextColor(text)
+
             holder.itemView.setOnClickListener { onItemClick(report) }
+            holder.ivMenu.setOnClickListener { onMenuClick(report, holder.ivMenu) }
         }
 
         override fun getItemCount() = reports.size

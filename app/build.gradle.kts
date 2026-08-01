@@ -56,6 +56,9 @@ dependencies {
     implementation(libs.firebase.database)
     implementation(libs.firebase.firestore)
     implementation(libs.firebase.storage)
+    // Firebase Functions (uses BoM only for this artifact's version)
+    implementation(platform("com.google.firebase:firebase-bom:33.13.0"))
+    implementation("com.google.firebase:firebase-functions-ktx")
 
     // Google Sign In
     implementation("com.google.android.gms:play-services-auth:21.6.0")

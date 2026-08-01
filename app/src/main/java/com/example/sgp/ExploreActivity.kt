@@ -11,12 +11,14 @@ import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.TextView
 import android.widget.Toast
+import androidx.appcompat.app.AlertDialog
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
 import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.google.android.material.textfield.TextInputEditText
 import com.google.firebase.Firebase
+import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ListenerRegistration
 import com.google.firebase.firestore.firestore
@@ -30,6 +32,17 @@ class ExploreActivity : BaseActivity() {
     private lateinit var db: FirebaseFirestore
     private var listener: ListenerRegistration? = null
 
+    // Five report reasons suited to a skill-swap marketplace: content quality,
+    // trust/scam risk, behavior, and IP concerns cover the realistic categories
+    // an admin would need to triage on this kind of app.
+    private val reportReasons = arrayOf(
+        "Inappropriate or Offensive Content",
+        "Spam or Misleading Information",
+        "Fake Skill or Scam",
+        "Harassment or Abusive Behavior",
+        "Copyright or Intellectual Property Violation"
+    )
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_explore)
@@ -42,17 +55,21 @@ class ExploreActivity : BaseActivity() {
 
         recyclerView = findViewById(R.id.recyclerView)
         recyclerView.layoutManager = LinearLayoutManager(this)
-        adapter = SkillAdapter(displayedSkills) { skill ->
-            if (skill.skillType == "single" && !skill.videoUrl.isNullOrEmpty()) {
-                playVideo(skill.videoUrl!!)
-            } else if (skill.skillType == "playlist") {
-                val intent = Intent(this, PlaylistActivity::class.java)
-                intent.putExtra("skillId", skill.id)
-                startActivity(intent)
-            } else {
-                Toast.makeText(this, "No video available", Toast.LENGTH_SHORT).show()
-            }
-        }
+        adapter = SkillAdapter(
+            displayedSkills,
+            onItemClick = { skill ->
+                if (skill.skillType == "single" && !skill.videoUrl.isNullOrEmpty()) {
+                    playVideo(skill.videoUrl!!)
+                } else if (skill.skillType == "playlist") {
+                    val intent = Intent(this, PlaylistActivity::class.java)
+                    intent.putExtra("skillId", skill.id)
+                    startActivity(intent)
+                } else {
+                    Toast.makeText(this, "No video available", Toast.LENGTH_SHORT).show()
+                }
+            },
+            onReportClick = { skill -> showReportDialog(skill) }
+        )
         recyclerView.adapter = adapter
 
         val etSearch = findViewById<TextInputEditText>(R.id.etSearch)
@@ -188,9 +205,59 @@ class ExploreActivity : BaseActivity() {
         return super.onOptionsItemSelected(item)
     }
 
+    // ---------------- Report skill / user ----------------
+
+    private fun showReportDialog(skill: Skill) {
+        // IMPORTANT: your Firestore rule for reports/{reportId} requires
+        // request.resource.data.reporterId == request.auth.token.email —
+        // so this MUST be the signed-in user's email, not their uid, or the
+        // write will be rejected with PERMISSION_DENIED.
+        val reporterEmail = FirebaseAuth.getInstance().currentUser?.email
+        if (reporterEmail.isNullOrEmpty()) {
+            Toast.makeText(this, "Please log in to report", Toast.LENGTH_SHORT).show()
+            return
+        }
+        // NOTE: per your skills/{skillId} rule, Skill.userId is also stored
+        // as the poster's email (request.resource.data.userId == currentUserEmail()),
+        // so comparing it against reporterEmail here is correct.
+        if (reporterEmail == skill.userId) {
+            Toast.makeText(this, "You can't report your own skill", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        AlertDialog.Builder(this)
+            .setTitle("Report \"${skill.title}\"")
+            .setItems(reportReasons) { _, which ->
+                submitReport(skill, reportReasons[which], reporterEmail)
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
+    }
+
+    private fun submitReport(skill: Skill, reason: String, reporterEmail: String) {
+        val docRef = db.collection("reports").document()
+        val report = Report(
+            id = docRef.id,
+            reporterId = reporterEmail,
+            reportedUserId = skill.userId, // also an email, per skills rule
+            reason = reason,
+            description = "Reported skill: \"${skill.title}\" (Skill ID: ${skill.id})",
+            status = "pending",
+            timestamp = System.currentTimeMillis()
+        )
+        docRef.set(report)
+            .addOnSuccessListener {
+                Toast.makeText(this, "Report submitted. Our team will review it.", Toast.LENGTH_LONG).show()
+            }
+            .addOnFailureListener { e ->
+                Toast.makeText(this, "Failed to submit report: ${e.message}", Toast.LENGTH_LONG).show()
+            }
+    }
+
     inner class SkillAdapter(
         private val skills: List<Skill>,
-        private val onItemClick: (Skill) -> Unit
+        private val onItemClick: (Skill) -> Unit,
+        private val onReportClick: (Skill) -> Unit
     ) : RecyclerView.Adapter<SkillAdapter.ViewHolder>() {
 
         inner class ViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
@@ -199,6 +266,7 @@ class ExploreActivity : BaseActivity() {
             val tvCategory: TextView = itemView.findViewById(R.id.tvCategory)
             val tvUser: TextView = itemView.findViewById(R.id.tvUser)
             val tvCredits: TextView = itemView.findViewById(R.id.tvCredits)
+            val btnReport: View = itemView.findViewById(R.id.btnReport)
         }
 
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
@@ -225,6 +293,7 @@ class ExploreActivity : BaseActivity() {
             }
 
             holder.itemView.setOnClickListener { onItemClick(skill) }
+            holder.btnReport.setOnClickListener { onReportClick(skill) }
         }
 
         override fun getItemCount() = skills.size

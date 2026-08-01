@@ -18,6 +18,7 @@
     <string name="already_have_account">Already have an account?</string>
     <string name="login_link">Log In</string>
     <string name="placeholder_initial">•</string>
+
     <!-- For accessibility -->
     <string name="app_logo">SkillSwap App Logo</string>
     <string name="navigation_drawer_open">Open navigation drawer</string>
@@ -29,6 +30,13 @@
     <string name="settings" />
     <string name="logout" />
     <string name="cd_change_photo" />
+
+    <!-- Bottom nav content descriptions -->
+    <string name="nav_dashboard">Dashboard</string>
+    <string name="nav_users">Users</string>
+    <string name="nav_swaps">Swaps</string>
+    <string name="nav_reports">Reports</string>
+    <string name="nav_feedback">Feedback</string>
 
     <string-array name="skill_categories">
         <item>Technology</item>
