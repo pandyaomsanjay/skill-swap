@@ -125,4 +125,10 @@
     <color name="primary_green">#10B981</color>
     <color name="primary_green_container">#D1FAE5</color>
 
+
+
+    <color name="admin_bg_light_blue">#EAF1F5</color>
+
+
+
 </resources>

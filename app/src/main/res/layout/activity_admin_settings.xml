@@ -19,19 +19,28 @@
         android:paddingTop="22dp"
         android:paddingBottom="20dp">
 
+        <!-- FIX: was a static gear icon (⚙️) with no click handler; now a
+             clickable back arrow that returns to AdminDashboardActivity
+             (wired up in AdminSettingsActivity.onCreate via btnBack). -->
         <com.google.android.material.card.MaterialCardView
+            android:id="@+id/btnBack"
             android:layout_width="44dp"
             android:layout_height="44dp"
             app:cardCornerRadius="14dp"
             app:cardElevation="0dp"
-            app:cardBackgroundColor="#456882">
+            app:cardBackgroundColor="#456882"
+            android:clickable="true"
+            android:focusable="true"
+            android:foreground="?attr/selectableItemBackground">
 
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
                 android:gravity="center"
-                android:text="⚙️"
-                android:textSize="18sp"/>
+                android:text="←"
+                android:textColor="#F9F3EF"
+                android:textSize="20sp"
+                android:textStyle="bold"/>
         </com.google.android.material.card.MaterialCardView>
 
         <TextView
@@ -604,6 +613,5 @@
 
         </LinearLayout>
     </ScrollView>
-
 
 </LinearLayout>

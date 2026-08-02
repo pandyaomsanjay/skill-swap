@@ -850,11 +850,19 @@ class AdminUsersActivity : BaseActivity() {
         root.addView(dialogTitle("Notify ${user.name.ifBlank { user.email }}"))
         root.addView(dividerLine())
 
-        val input = styledInput("Message", "", multiline = true)
+        val titleInput = styledInput("Notification title", "")
         root.addView(
-            input,
+            titleInput,
             LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply {
                 topMargin = dp(12)
+            }
+        )
+
+        val messageInput = styledInput("Message", "", multiline = true)
+        root.addView(
+            messageInput,
+            LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply {
+                topMargin = dp(10)
                 bottomMargin = dp(18)
             }
         )
@@ -868,13 +876,18 @@ class AdminUsersActivity : BaseActivity() {
         }
         val btnSend = pillButton("Send", Color.parseColor("#1B3C53"), Color.WHITE).apply {
             setOnClickListener {
-                val message = input.text.toString().trim()
+                val title = titleInput.text.toString().trim()
+                val message = messageInput.text.toString().trim()
+                if (title.isEmpty()) {
+                    Toast.makeText(this@AdminUsersActivity, "Title can't be empty", Toast.LENGTH_SHORT).show()
+                    return@setOnClickListener
+                }
                 if (message.isEmpty()) {
                     Toast.makeText(this@AdminUsersActivity, "Message can't be empty", Toast.LENGTH_SHORT).show()
                     return@setOnClickListener
                 }
                 dialog.dismiss()
-                sendPushNotification(user, message)
+                sendPushNotification(user, title, message)
             }
         }
         buttonRow.addView(btnCancel, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply { marginEnd = dp(8) })
@@ -884,13 +897,18 @@ class AdminUsersActivity : BaseActivity() {
         dialog.show()
     }
 
-    private fun sendPushNotification(user: User, message: String) {
+    // FIX: signature now takes `title` as well — this must match the 3-arg
+// call above (user, title, message). If this still reads
+// `sendPushNotification(user: User, message: String)` anywhere in your
+// file, that's the mismatch causing the red underline.
+    private fun sendPushNotification(user: User, title: String, message: String) {
         if (user.fcmToken.isBlank()) {
             Toast.makeText(this, "User has no device token on file", Toast.LENGTH_SHORT).show()
         }
         val notification = hashMapOf(
             "userId" to user.email,
             "targetUid" to user.uid,
+            "title" to title,
             "message" to message,
             "timestamp" to System.currentTimeMillis(),
             "sentByAdmin" to true

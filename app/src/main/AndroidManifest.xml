@@ -75,19 +75,24 @@
             android:exported="false" />
         <activity
             android:name=".AdminReportsActivity"
-            android:exported="false" />
+            android:exported="false"
+            android:theme="@style/Theme.SGP.Admin" />
         <activity
             android:name=".AdminTradesActivity"
-            android:exported="false" />
+            android:exported="false"
+            android:theme="@style/Theme.SGP.Admin" />
         <activity
             android:name=".AdminSkillsActivity"
-            android:exported="false" />
+            android:exported="false"
+            android:theme="@style/Theme.SGP.Admin" />
         <activity
             android:name=".AdminUsersActivity"
-            android:exported="false" />
+            android:exported="false"
+            android:theme="@style/Theme.SGP.Admin" />
         <activity
             android:name=".AdminDashboardActivity"
-            android:exported="false" />
+            android:exported="false"
+            android:theme="@style/Theme.SGP.Admin" />
         <activity
             android:name=".SettingsActivity"
             android:exported="false" />
@@ -153,14 +158,24 @@
         <activity
             android:name=".AdminSettingsActivity"
             android:exported="false"
-            android:theme="@style/Theme.SGP" />
+            android:theme="@style/Theme.SGP.Admin" />
 
         <activity
             android:name=".AdminFeedbackActivity"
             android:exported="false"
-            android:theme="@style/Theme.SGP" />
+            android:theme="@style/Theme.SGP.Admin" />
 
         <activity android:name=".SubmitFeedbackActivity" />
+
+
+        <activity
+            android:name=".ChatActivity"
+            android:exported="false" />
+
+
+        <activity android:name=".ChatListActivity" android:exported="false" />
+        <activity android:name=".NewChatActivity" android:exported="false" />
+
 
     </application>
 

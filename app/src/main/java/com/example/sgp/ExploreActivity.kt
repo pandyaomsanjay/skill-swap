@@ -32,6 +32,11 @@ class ExploreActivity : BaseActivity() {
     private lateinit var db: FirebaseFirestore
     private var listener: ListenerRegistration? = null
 
+    // Chat inbox icon + unread badge (top-right, below toolbar, above search)
+    private lateinit var btnChatInbox: View
+    private lateinit var unreadBadge: View
+    private var chatsListener: ListenerRegistration? = null
+
     // Five report reasons suited to a skill-swap marketplace: content quality,
     // trust/scam risk, behavior, and IP concerns cover the realistic categories
     // an admin would need to triage on this kind of app.
@@ -53,6 +58,14 @@ class ExploreActivity : BaseActivity() {
         setSupportActionBar(toolbar)
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
 
+        // Chat inbox icon
+        btnChatInbox = findViewById(R.id.btnChatInbox)
+        unreadBadge = findViewById(R.id.unreadBadge)
+        btnChatInbox.setOnClickListener {
+            startActivity(Intent(this, ChatListActivity::class.java))
+        }
+        listenForUnreadChats()
+
         recyclerView = findViewById(R.id.recyclerView)
         recyclerView.layoutManager = LinearLayoutManager(this)
         adapter = SkillAdapter(
@@ -68,7 +81,8 @@ class ExploreActivity : BaseActivity() {
                     Toast.makeText(this, "No video available", Toast.LENGTH_SHORT).show()
                 }
             },
-            onReportClick = { skill -> showReportDialog(skill) }
+            onReportClick = { skill -> showReportDialog(skill) },
+            onChatClick = { skill -> openChat(skill) }
         )
         recyclerView.adapter = adapter
 
@@ -109,6 +123,22 @@ class ExploreActivity : BaseActivity() {
                 else -> false
             }
         }
+    }
+
+    // ---------------- Chat inbox / unread badge ----------------
+
+    private fun listenForUnreadChats() {
+        val myEmail = FirebaseAuth.getInstance().currentUser?.email ?: return
+        chatsListener = db.collection("chats")
+            .whereArrayContains("participants", myEmail)
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) return@addSnapshotListener
+                val hasUnread = snapshot?.documents?.any { doc ->
+                    val unreadFor = doc.get("unreadFor") as? List<*>
+                    unreadFor?.contains(myEmail) == true
+                } ?: false
+                unreadBadge.visibility = if (hasUnread) View.VISIBLE else View.GONE
+            }
     }
 
     private fun setupCategoryChips() {
@@ -174,6 +204,7 @@ class ExploreActivity : BaseActivity() {
     override fun onDestroy() {
         super.onDestroy()
         listener?.remove()
+        chatsListener?.remove()
     }
 
     private fun filterSkills(query: String) {
@@ -208,18 +239,11 @@ class ExploreActivity : BaseActivity() {
     // ---------------- Report skill / user ----------------
 
     private fun showReportDialog(skill: Skill) {
-        // IMPORTANT: your Firestore rule for reports/{reportId} requires
-        // request.resource.data.reporterId == request.auth.token.email —
-        // so this MUST be the signed-in user's email, not their uid, or the
-        // write will be rejected with PERMISSION_DENIED.
         val reporterEmail = FirebaseAuth.getInstance().currentUser?.email
         if (reporterEmail.isNullOrEmpty()) {
             Toast.makeText(this, "Please log in to report", Toast.LENGTH_SHORT).show()
             return
         }
-        // NOTE: per your skills/{skillId} rule, Skill.userId is also stored
-        // as the poster's email (request.resource.data.userId == currentUserEmail()),
-        // so comparing it against reporterEmail here is correct.
         if (reporterEmail == skill.userId) {
             Toast.makeText(this, "You can't report your own skill", Toast.LENGTH_SHORT).show()
             return
@@ -239,7 +263,7 @@ class ExploreActivity : BaseActivity() {
         val report = Report(
             id = docRef.id,
             reporterId = reporterEmail,
-            reportedUserId = skill.userId, // also an email, per skills rule
+            reportedUserId = skill.userId,
             reason = reason,
             description = "Reported skill: \"${skill.title}\" (Skill ID: ${skill.id})",
             status = "pending",
@@ -254,10 +278,31 @@ class ExploreActivity : BaseActivity() {
             }
     }
 
+    // ---------------- Chat ----------------
+
+    private fun openChat(skill: Skill) {
+        val myEmail = FirebaseAuth.getInstance().currentUser?.email
+        if (myEmail.isNullOrEmpty()) {
+            Toast.makeText(this, "Please log in to chat", Toast.LENGTH_SHORT).show()
+            return
+        }
+        if (myEmail == skill.userId) {
+            Toast.makeText(this, "You can't message yourself about your own skill", Toast.LENGTH_SHORT).show()
+            return
+        }
+        val intent = Intent(this, ChatActivity::class.java)
+        intent.putExtra("otherUserEmail", skill.userId)
+        intent.putExtra("otherUserName", skill.userName)
+        intent.putExtra("skillId", skill.id)
+        intent.putExtra("skillTitle", skill.title)
+        startActivity(intent)
+    }
+
     inner class SkillAdapter(
         private val skills: List<Skill>,
         private val onItemClick: (Skill) -> Unit,
-        private val onReportClick: (Skill) -> Unit
+        private val onReportClick: (Skill) -> Unit,
+        private val onChatClick: (Skill) -> Unit
     ) : RecyclerView.Adapter<SkillAdapter.ViewHolder>() {
 
         inner class ViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {

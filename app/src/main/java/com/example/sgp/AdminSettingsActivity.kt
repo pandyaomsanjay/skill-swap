@@ -83,6 +83,18 @@ class AdminSettingsActivity : BaseActivity() {
 
         db = Firebase.firestore
 
+        // FIX: top-left is now a back button that returns to the Admin
+        // Dashboard, replacing the old static settings-gear icon that had
+        // no click handler.
+        findViewById<View>(R.id.btnBack).setOnClickListener {
+            val intent = Intent(this, AdminDashboardActivity::class.java).apply {
+                flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
+            }
+            startActivity(intent)
+            overridePendingTransition(R.anim.nav_enter, R.anim.nav_exit)
+            finish()
+        }
+
         bindProfile()
         bindGeneralSection()
         bindSecuritySection()
@@ -204,6 +216,8 @@ class AdminSettingsActivity : BaseActivity() {
     }
 
 
+    // ---------------- Send Notification: multi-select users, then title + message ----------------
+
     private fun showSendNotificationPicker() {
         val root = dialogCard()
         root.addView(dialogTitle("Send Notification"))
@@ -236,10 +250,46 @@ class AdminSettingsActivity : BaseActivity() {
         }
         root.addView(scroll)
 
+        // Selected-count + Next button, shown once at least one user is selected.
+        val selectedBar = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            visibility = View.GONE
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply { topMargin = dp(12) }
+        }
+        val tvSelectedCount = TextView(this).apply {
+            setTextColor(Color.parseColor("#456882"))
+            textSize = 12.5f
+            layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+        }
+        val btnNext = pillButton("Next", Color.parseColor("#1B3C53"), Color.WHITE).apply {
+            layoutParams = LinearLayout.LayoutParams(dp(90), LinearLayout.LayoutParams.WRAP_CONTENT)
+            setPadding(dp(18), dp(10), dp(18), dp(10))
+        }
+        selectedBar.addView(tvSelectedCount)
+        selectedBar.addView(btnNext)
+        root.addView(selectedBar)
+
         val dialog = AlertDialog.Builder(this).setView(root).create()
         dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
 
         var cachedUsers: List<User> = emptyList()
+        // Keyed by uid (falls back to email if uid is blank) so re-renders keep selection state.
+        val selectedUsers = LinkedHashMap<String, User>()
+
+        fun userKey(u: User) = u.uid.ifBlank { u.email }
+
+        fun updateSelectedBar() {
+            if (selectedUsers.isEmpty()) {
+                selectedBar.visibility = View.GONE
+            } else {
+                selectedBar.visibility = View.VISIBLE
+                tvSelectedCount.text = "${selectedUsers.size} user${if (selectedUsers.size == 1) "" else "s"} selected"
+            }
+        }
 
         fun renderResults(query: String) {
             resultsContainer.removeAllViews()
@@ -262,10 +312,18 @@ class AdminSettingsActivity : BaseActivity() {
             }
 
             matches.forEach { user ->
-                resultsContainer.addView(buildUserPickRow(user) {
-                    dialog.dismiss()
-                    showComposeNotificationDialog(user)
-                })
+                val key = userKey(user)
+                resultsContainer.addView(
+                    buildUserPickRow(user, isSelected = selectedUsers.containsKey(key)) {
+                        if (selectedUsers.containsKey(key)) {
+                            selectedUsers.remove(key)
+                        } else {
+                            selectedUsers[key] = user
+                        }
+                        renderResults(searchInput.text?.toString() ?: "")
+                        updateSelectedBar()
+                    }
+                )
             }
         }
 
@@ -276,6 +334,12 @@ class AdminSettingsActivity : BaseActivity() {
             }
             override fun afterTextChanged(s: Editable?) {}
         })
+
+        btnNext.setOnClickListener {
+            if (selectedUsers.isEmpty()) return@setOnClickListener
+            dialog.dismiss()
+            showComposeNotificationDialog(selectedUsers.values.toList())
+        }
 
         renderResults("")
         dialog.show()
@@ -297,7 +361,7 @@ class AdminSettingsActivity : BaseActivity() {
             }
     }
 
-    private fun buildUserPickRow(user: User, onClick: () -> Unit): View {
+    private fun buildUserPickRow(user: User, isSelected: Boolean, onToggle: () -> Unit): View {
         val row = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
@@ -307,7 +371,7 @@ class AdminSettingsActivity : BaseActivity() {
             val outValue = TypedValue()
             theme.resolveAttribute(android.R.attr.selectableItemBackground, outValue, true)
             setBackgroundResource(outValue.resourceId)
-            setOnClickListener { onClick() }
+            setOnClickListener { onToggle() }
         }
 
         val initial = user.name.trim().firstOrNull()?.uppercaseChar()?.toString() ?: "?"
@@ -349,14 +413,64 @@ class AdminSettingsActivity : BaseActivity() {
         })
         row.addView(textCol)
 
+        // Selection indicator (checkbox-style circle)
+        row.addView(MaterialCardView(this).apply {
+            layoutParams = LinearLayout.LayoutParams(dp(24), dp(24)).apply { marginStart = dp(8) }
+            radius = dp(12).toFloat()
+            cardElevation = 0f
+            if (isSelected) {
+                setCardBackgroundColor(Color.parseColor("#1B3C53"))
+                strokeWidth = 0
+            } else {
+                setCardBackgroundColor(Color.parseColor("#FFFFFF"))
+                strokeWidth = dp(1)
+                strokeColor = Color.parseColor("#D2C1B6")
+            }
+            addView(TextView(this@AdminSettingsActivity).apply {
+                layoutParams = ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
+                gravity = Gravity.CENTER
+                text = if (isSelected) "✓" else ""
+                setTextColor(Color.WHITE)
+                textSize = 13f
+                setTypeface(typeface, Typeface.BOLD)
+            })
+        })
+
         return row
     }
 
-    private fun showComposeNotificationDialog(user: User) {
+    private fun showComposeNotificationDialog(users: List<User>) {
         val root = dialogCard()
-        root.addView(dialogTitle("Notify ${user.name.ifBlank { user.email }}"))
+        val heading = if (users.size == 1)
+            "Notify ${users[0].name.ifBlank { users[0].email }}"
+        else
+            "Notify ${users.size} users"
+        root.addView(dialogTitle(heading))
 
-        val input = EditText(this).apply {
+        val titleInput = EditText(this).apply {
+            hint = "Notification title"
+            setHintTextColor(Color.parseColor("#9AA7B0"))
+            setTextColor(Color.parseColor("#1B3C53"))
+            textSize = 14f
+            setPadding(dp(14), dp(12), dp(14), dp(12))
+            background = GradientDrawable().apply {
+                cornerRadius = dp(12).toFloat()
+                setColor(Color.parseColor("#EAF1F5"))
+                setStroke(dp(1), Color.parseColor("#D2C1B6"))
+            }
+        }
+        root.addView(
+            titleInput,
+            LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply {
+                topMargin = dp(14)
+                bottomMargin = dp(10)
+            }
+        )
+
+        val messageInput = EditText(this).apply {
             hint = "Write your message"
             setHintTextColor(Color.parseColor("#9AA7B0"))
             setTextColor(Color.parseColor("#1B3C53"))
@@ -371,14 +485,11 @@ class AdminSettingsActivity : BaseActivity() {
             }
         }
         root.addView(
-            input,
+            messageInput,
             LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT
-            ).apply {
-                topMargin = dp(12)
-                bottomMargin = dp(18)
-            }
+            ).apply { bottomMargin = dp(18) }
         )
 
         val dialog = AlertDialog.Builder(this).setView(root).create()
@@ -388,15 +499,21 @@ class AdminSettingsActivity : BaseActivity() {
         val btnCancel = pillButton("Cancel", Color.parseColor("#EAF1F5"), Color.parseColor("#456882")).apply {
             setOnClickListener { dialog.dismiss() }
         }
+        // Call site — inside showComposeNotificationDialog's btnSend click listener
         val btnSend = pillButton("Send", Color.parseColor("#1B3C53"), Color.WHITE).apply {
             setOnClickListener {
-                val message = input.text.toString().trim()
+                val title = titleInput.text.toString().trim()
+                val message = messageInput.text.toString().trim()
+                if (title.isEmpty()) {
+                    Toast.makeText(this@AdminSettingsActivity, "Title can't be empty", Toast.LENGTH_SHORT).show()
+                    return@setOnClickListener
+                }
                 if (message.isEmpty()) {
                     Toast.makeText(this@AdminSettingsActivity, "Message can't be empty", Toast.LENGTH_SHORT).show()
                     return@setOnClickListener
                 }
                 dialog.dismiss()
-                sendPushNotification(user, message)
+                sendPushNotification(users, title, message)
             }
         }
         buttonRow.addView(
@@ -409,20 +526,40 @@ class AdminSettingsActivity : BaseActivity() {
         dialog.show()
     }
 
-    private fun sendPushNotification(user: User, message: String) {
-        if (user.fcmToken.isBlank()) {
-            Toast.makeText(this, "User has no device token on file", Toast.LENGTH_SHORT).show()
+    // FIX: signature takes (users: List<User>, title: String, message: String) —
+// must match the 3-arg call above exactly. If your file still has an older
+// version with (user: User, message: String) or (users: List<User>, message: String),
+// that mismatch is the red underline.
+    private fun sendPushNotification(users: List<User>, title: String, message: String) {
+        val usersWithoutToken = users.count { it.fcmToken.isBlank() }
+        if (usersWithoutToken > 0) {
+            Toast.makeText(
+                this,
+                "$usersWithoutToken user(s) have no device token on file",
+                Toast.LENGTH_SHORT
+            ).show()
         }
+
+        val targetUids = users.map { it.uid }.filter { it.isNotBlank() }
+        val userEmails = users.map { it.email }.filter { it.isNotBlank() }
+
         val notification = hashMapOf(
-            "userId" to user.email,
-            "targetUid" to user.uid,
+            "userIds" to userEmails,
+            "targetUids" to targetUids,
+            "title" to title,
             "message" to message,
             "timestamp" to System.currentTimeMillis(),
-            "sentByAdmin" to true
+            "sentByAdmin" to true,
+            "recipientCount" to users.size
         )
+
         db.collection("notifications").add(notification)
             .addOnSuccessListener {
-                Toast.makeText(this, "Notification sent", Toast.LENGTH_SHORT).show()
+                Toast.makeText(
+                    this,
+                    "Notification sent to ${users.size} user(s)",
+                    Toast.LENGTH_SHORT
+                ).show()
             }
             .addOnFailureListener { e ->
                 Toast.makeText(this, "Failed to send notification: ${e.message}", Toast.LENGTH_LONG).show()
@@ -931,11 +1068,6 @@ class AdminSettingsActivity : BaseActivity() {
                     return@addOnSuccessListener
                 }
 
-                // NOTE: user.completedTrades is a field on the users doc that is never
-                // incremented anywhere when a trade's status becomes "completed" in the
-                // trades collection, so it stays 0 forever. Instead we compute the real
-                // completed-trade count per user (matched by email, since trades store
-                // requesterId/receiverId as emails) directly from the trades collection.
                 db.collection("trades").get()
                     .addOnSuccessListener { tradesSnapshot ->
                         val completedCountByEmail = mutableMapOf<String, Int>()

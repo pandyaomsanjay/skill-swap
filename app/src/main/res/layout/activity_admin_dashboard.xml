@@ -37,6 +37,10 @@
                     android:orientation="horizontal"
                     android:gravity="center_vertical">
 
+                    <!-- FIX: was a hamburger (☰) icon; now a settings gear so
+                         tapping it clearly reads as "open Settings" instead of
+                         "open a menu". Click target is unchanged (btnMenu ->
+                         openSettings() in AdminDashboardActivity). -->
                     <com.google.android.material.card.MaterialCardView
                         android:id="@+id/btnMenu"
                         android:layout_width="44dp"
@@ -54,9 +58,9 @@
                             android:layout_width="match_parent"
                             android:layout_height="match_parent"
                             android:gravity="center"
-                            android:text="☰"
+                            android:text="⚙️"
                             android:textColor="#F9F3EF"
-                            android:textSize="20sp"/>
+                            android:textSize="18sp"/>
                     </com.google.android.material.card.MaterialCardView>
 
                     <LinearLayout
