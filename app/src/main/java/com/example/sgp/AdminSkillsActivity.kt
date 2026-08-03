@@ -268,6 +268,11 @@ class AdminSkillsActivity : AppCompatActivity() {
         addRow("🗑️", "Delete Skill", sheetDestructive) { deleteSkill(skill) }
 
         dialog.setContentView(root)
+        dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
+        dialog.setOnShowListener {
+            dialog.findViewById<View>(com.google.android.material.R.id.design_bottom_sheet)
+                ?.setBackgroundColor(Color.TRANSPARENT)
+        }
         dialog.show()
     }
 

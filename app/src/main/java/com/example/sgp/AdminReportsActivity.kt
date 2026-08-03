@@ -103,7 +103,10 @@ class AdminReportsActivity : AppCompatActivity() {
     private lateinit var userGrowthChartView: UserGrowthChartView
     private lateinit var llUserGrowthLabels: LinearLayout
     private lateinit var swapsByMonthChartView: SwapsTrendView
+
+    private lateinit var tvSwapsByMonthPeakValue: TextView
     private lateinit var llSwapsByMonthLabels: LinearLayout
+
 
     // ---- Listeners ----
     private var reportsListener: ListenerRegistration? = null
@@ -196,6 +199,7 @@ class AdminReportsActivity : AppCompatActivity() {
         userGrowthChartView = findViewById(R.id.userGrowthChartView)
         llUserGrowthLabels = findViewById(R.id.llUserGrowthLabels)
         swapsByMonthChartView = findViewById(R.id.swapsByMonthChartView)
+        tvSwapsByMonthPeakValue = findViewById(R.id.tvSwapsByMonthPeakValue)
         llSwapsByMonthLabels = findViewById(R.id.llSwapsByMonthLabels)
     }
 
@@ -422,6 +426,7 @@ class AdminReportsActivity : AppCompatActivity() {
             top.toFloat()
         }
         swapsByMonthChartView.setData(counts, labels, axisTop)
+        tvSwapsByMonthPeakValue.text = peak.toInt().toString()
         renderMonthLabels(llSwapsByMonthLabels, labels)
     }
 
@@ -573,6 +578,11 @@ class AdminReportsActivity : AppCompatActivity() {
         addRow("🚫", "Block User", sheetDestructive) { confirmBlockUser(report) }
 
         dialog.setContentView(root)
+        dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
+        dialog.setOnShowListener {
+            dialog.findViewById<View>(com.google.android.material.R.id.design_bottom_sheet)
+                ?.setBackgroundColor(Color.TRANSPARENT)
+        }
         dialog.show()
     }
 

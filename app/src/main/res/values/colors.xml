@@ -6,6 +6,13 @@
     <color name="black">#000000</color>
     <color name="transparent">#00000000</color>
 
+    <!-- ================= BRAND (Admin Panel navy — the app's real
+         primary look, sampled from the Admin Panel screen) ================= -->
+    <color name="brand_navy">#1B3C53</color>
+    <color name="brand_navy_dark">#132B3E</color>
+    <color name="brand_tan">#D2C1B6</color>
+    <color name="brand_cream">#F9F3EF</color>
+
     <!-- ================= MODERN THEME (Primary Indigo) ================= -->
     <color name="primary">#4F46E5</color>
     <color name="primary_dark">#4338CA</color>

@@ -1,102 +1,149 @@
 <?xml version="1.0" encoding="utf-8"?>
-<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    android:id="@+id/rootScroll"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:fitsSystemWindows="true"
-    android:background="#00FFFFFF"
-    android:fillViewport="true">
+    android:background="@color/admin_bg_light_blue">
 
-    <LinearLayout
+    <!-- ===================== Decorative floating shapes ===================== -->
+    <!-- Layered translucent circles built from the app's real brand
+         navy (#1B3C53, matched to the Admin Panel header/nav), at
+         different alpha stops so the glow reads as one consistent tint. -->
+
+    <com.google.android.material.card.MaterialCardView
+        android:layout_width="240dp"
+        android:layout_height="240dp"
+        android:layout_gravity="top|end"
+        android:layout_marginTop="-90dp"
+        android:layout_marginEnd="-70dp"
+        app:cardCornerRadius="120dp"
+        app:cardElevation="0dp"
+        app:cardBackgroundColor="#141B3C53" />
+
+    <com.google.android.material.card.MaterialCardView
+        android:layout_width="170dp"
+        android:layout_height="170dp"
+        android:layout_gravity="top|start"
+        android:layout_marginTop="70dp"
+        android:layout_marginStart="-60dp"
+        app:cardCornerRadius="85dp"
+        app:cardElevation="0dp"
+        app:cardBackgroundColor="#221B3C53" />
+
+    <com.google.android.material.card.MaterialCardView
+        android:layout_width="150dp"
+        android:layout_height="150dp"
+        android:layout_gravity="bottom|end"
+        android:layout_marginBottom="40dp"
+        android:layout_marginEnd="-50dp"
+        app:cardCornerRadius="75dp"
+        app:cardElevation="0dp"
+        app:cardBackgroundColor="#221B3C53" />
+
+    <!-- ===================== Scrolling content ===================== -->
+    <ScrollView
+        android:id="@+id/rootScroll"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:padding="24dp">
+        android:layout_height="match_parent"
+        android:fitsSystemWindows="true"
+        android:overScrollMode="never"
+        android:fillViewport="true">
 
         <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="40dp"
-            android:layout_marginBottom="32dp"
-            android:gravity="center_horizontal"
-            android:orientation="vertical">
-
-            <LinearLayout
-                android:id="@+id/logoRing"
-                android:layout_width="88dp"
-                android:layout_height="88dp"
-                android:gravity="center"
-                android:layout_marginBottom="14dp">
-
-                <ImageView
-                    android:layout_width="52dp"
-                    android:layout_height="52dp"
-                    android:src="@drawable/logo2"
-                    android:contentDescription="SkillSwap Logo" />
-            </LinearLayout>
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="SkillSwap"
-                android:textColor="#1B5EC8"
-                android:textSize="30sp"
-                android:textStyle="bold"
-                android:letterSpacing="0.04"
-                android:layout_marginBottom="6dp" />
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Share Skills, Trade Talents"
-                android:textColor="#5A7399"
-                android:textSize="13sp" />
-
-        </LinearLayout>
-
-        <LinearLayout
-            android:id="@+id/cardLogin"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:padding="26dp"
-            android:background="#FFFFFF">
+            android:paddingStart="28dp"
+            android:paddingEnd="28dp"
+            android:paddingTop="8dp"
+            android:paddingBottom="32dp">
+
+            <!-- ===================== Brand header ===================== -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="52dp"
+                android:layout_marginBottom="40dp"
+                android:gravity="center_horizontal"
+                android:orientation="vertical">
+
+                <com.google.android.material.card.MaterialCardView
+                    android:layout_width="92dp"
+                    android:layout_height="92dp"
+                    android:layout_marginBottom="18dp"
+                    app:cardCornerRadius="46dp"
+                    app:cardElevation="8dp"
+                    app:strokeWidth="1.5dp"
+                    app:strokeColor="@color/brand_tan"
+                    app:cardBackgroundColor="@color/surface">
+
+                    <ImageView
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:scaleType="centerCrop"
+                        android:src="@drawable/logo2"
+                        android:contentDescription="SkillSwap Logo" />
+                </com.google.android.material.card.MaterialCardView>
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="SkillSwap"
+                    android:textColor="@color/text_primary"
+                    android:textSize="32sp"
+                    android:fontFamily="sans-serif-black"
+                    android:letterSpacing="0.005"
+                    android:layout_marginBottom="6dp" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Share Skills, Trade Talents"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="13.5sp"
+                    android:fontFamily="sans-serif-light"
+                    android:letterSpacing="0.02" />
+
+            </LinearLayout>
+
+            <!-- ===================== Form — pill-shaped fields ===================== -->
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Welcome Back!"
-                android:textColor="#0D2145"
-                android:textSize="22sp"
-                android:textStyle="bold"
+                android:textColor="@color/text_primary"
+                android:textSize="26sp"
+                android:fontFamily="sans-serif-black"
                 android:layout_marginBottom="4dp" />
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Sign in to continue your skill journey"
-                android:textColor="#5A7399"
-                android:textSize="13sp"
-                android:layout_marginBottom="22dp" />
+                android:textColor="@color/text_secondary"
+                android:textSize="13.5sp"
+                android:fontFamily="sans-serif-light"
+                android:layout_marginBottom="32dp" />
 
             <com.google.android.material.textfield.TextInputLayout
                 android:id="@+id/email"
-                style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                style="@style/Widget.MaterialComponents.TextInputLayout.FilledBox"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="14dp"
+                android:layout_marginBottom="18dp"
                 android:hint="Email Address"
-                app:boxBackgroundColor="#FFFFFF"
-                app:boxCornerRadiusTopStart="24dp"
-                app:boxCornerRadiusTopEnd="24dp"
-                app:boxCornerRadiusBottomStart="24dp"
-                app:boxCornerRadiusBottomEnd="24dp"
-                app:boxStrokeColor="#1B5EC8"
-                app:boxStrokeWidth="2dp"
-                app:hintTextColor="#5A7399"
+                app:boxBackgroundColor="@color/surface"
+                app:boxCornerRadiusTopStart="26dp"
+                app:boxCornerRadiusTopEnd="26dp"
+                app:boxCornerRadiusBottomStart="26dp"
+                app:boxCornerRadiusBottomEnd="26dp"
+                app:boxStrokeColor="@color/brand_navy"
+                app:boxStrokeWidth="0dp"
+                app:boxStrokeWidthFocused="2.5dp"
+                app:hintTextColor="@color/text_secondary"
                 app:startIconDrawable="@drawable/outline_mail_24"
-                app:startIconTint="#1B5EC8"
+                app:startIconTint="@color/brand_navy"
                 app:endIconMode="clear_text">
 
                 <com.google.android.material.textfield.TextInputEditText
@@ -105,27 +152,29 @@
                     android:layout_height="wrap_content"
                     android:inputType="textEmailAddress"
                     android:maxLines="1"
-                    android:textColor="#0D2145"
-                    android:textColorHint="#6B87B0" />
+                    android:paddingStart="4dp"
+                    android:textColor="@color/text_primary"
+                    android:textColorHint="@color/text_hint" />
             </com.google.android.material.textfield.TextInputLayout>
 
             <com.google.android.material.textfield.TextInputLayout
                 android:id="@+id/password"
-                style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                style="@style/Widget.MaterialComponents.TextInputLayout.FilledBox"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="8dp"
+                android:layout_marginBottom="10dp"
                 android:hint="Password"
-                app:boxBackgroundColor="#FFFFFF"
-                app:boxCornerRadiusTopStart="24dp"
-                app:boxCornerRadiusTopEnd="24dp"
-                app:boxCornerRadiusBottomStart="24dp"
-                app:boxCornerRadiusBottomEnd="24dp"
-                app:boxStrokeColor="#1B5EC8"
-                app:boxStrokeWidth="2dp"
-                app:hintTextColor="#5A7399"
+                app:boxBackgroundColor="@color/surface"
+                app:boxCornerRadiusTopStart="26dp"
+                app:boxCornerRadiusTopEnd="26dp"
+                app:boxCornerRadiusBottomStart="26dp"
+                app:boxCornerRadiusBottomEnd="26dp"
+                app:boxStrokeColor="@color/brand_navy"
+                app:boxStrokeWidth="0dp"
+                app:boxStrokeWidthFocused="2.5dp"
+                app:hintTextColor="@color/text_secondary"
                 app:startIconDrawable="@drawable/outline_password_24"
-                app:startIconTint="#1B5EC8"
+                app:startIconTint="@color/brand_navy"
                 app:endIconMode="password_toggle">
 
                 <com.google.android.material.textfield.TextInputEditText
@@ -134,8 +183,9 @@
                     android:layout_height="wrap_content"
                     android:inputType="textPassword"
                     android:maxLines="1"
-                    android:textColor="#0D2145"
-                    android:textColorHint="#6B87B0" />
+                    android:paddingStart="4dp"
+                    android:textColor="@color/text_primary"
+                    android:textColorHint="@color/text_hint" />
             </com.google.android.material.textfield.TextInputLayout>
 
             <TextView
@@ -144,46 +194,50 @@
                 android:layout_height="wrap_content"
                 android:layout_gravity="end"
                 android:text="Forgot Password?"
-                android:textColor="#1B5EC8"
+                android:textColor="@color/brand_navy"
                 android:textSize="13sp"
                 android:textStyle="bold"
                 android:padding="4dp"
-                android:layout_marginBottom="20dp" />
+                android:layout_marginBottom="30dp"
+                android:background="?attr/selectableItemBackground" />
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnLogin"
                 android:layout_width="match_parent"
-                android:layout_height="52dp"
+                android:layout_height="58dp"
                 android:text="Sign In"
                 android:textAllCaps="false"
-                android:textColor="#FFFFFF"
-                android:textSize="15sp"
-                android:textStyle="bold"
-                app:cornerRadius="26dp"
-                app:backgroundTint="#1B5EC8"
-                app:strokeColor="#C0D3EE"
-                app:strokeWidth="2dp"
-                android:layout_marginBottom="22dp" />
+                android:textColor="@color/text_inverse"
+                android:textSize="16sp"
+                android:fontFamily="sans-serif-medium"
+                android:letterSpacing="0.01"
+                app:backgroundTint="@color/brand_navy"
+                app:cornerRadius="29dp"
+                app:elevation="8dp"
+                app:rippleColor="@color/overlay_light"
+                android:layout_marginBottom="26dp" />
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="horizontal"
                 android:gravity="center_vertical"
-                android:layout_marginBottom="16dp">
+                android:layout_marginBottom="20dp">
 
                 <View
                     android:layout_width="0dp"
                     android:layout_height="1dp"
                     android:layout_weight="1"
-                    android:background="#D0DCF0" />
+                    android:background="@color/brand_tan" />
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Or continue with"
-                    android:textColor="#6B87B0"
-                    android:textSize="11sp"
+                    android:text="OR CONTINUE WITH"
+                    android:textColor="@color/text_hint"
+                    android:textSize="10.5sp"
+                    android:fontFamily="sans-serif-medium"
+                    android:letterSpacing="0.08"
                     android:paddingStart="12dp"
                     android:paddingEnd="12dp" />
 
@@ -191,64 +245,68 @@
                     android:layout_width="0dp"
                     android:layout_height="1dp"
                     android:layout_weight="1"
-                    android:background="#D0DCF0" />
+                    android:background="@color/brand_tan" />
 
             </LinearLayout>
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnGoogleLogin"
+                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
                 android:layout_width="match_parent"
-                android:layout_height="50dp"
+                android:layout_height="56dp"
                 android:text="Continue with Google"
                 android:textAllCaps="false"
-                android:textColor="#0D2145"
-                android:textSize="13sp"
-                app:backgroundTint="#E8F0FB"
-                app:cornerRadius="25dp"
+                android:textColor="@color/text_primary"
+                android:textSize="14sp"
+                android:fontFamily="sans-serif-medium"
+                app:backgroundTint="@color/surface"
+                app:strokeColor="@color/brand_tan"
+                app:strokeWidth="1.5dp"
+                app:cornerRadius="28dp"
                 app:icon="@drawable/ic_google_logo"
                 app:iconTint="@null"
                 app:iconGravity="textStart"
-                app:iconPadding="8dp"
-                android:layout_marginBottom="4dp" />
+                app:iconPadding="10dp" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:gravity="center"
+                android:layout_marginTop="34dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="New to SkillSwap?"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="13.5sp" />
+
+                <Button
+                    android:id="@+id/tvCreateAccount"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Create Account"
+                    android:textColor="@color/brand_navy"
+                    android:textSize="14.5sp"
+                    android:textStyle="bold"
+                    android:textAllCaps="false"
+                    android:background="@android:color/transparent"
+                    android:padding="12dp"
+                    android:layout_marginTop="2dp" />
+
+            </LinearLayout>
+
+            <ProgressBar
+                android:id="@+id/progressBar"
+                android:layout_width="44dp"
+                android:layout_height="44dp"
+                android:layout_gravity="center"
+                android:layout_marginTop="14dp"
+                android:indeterminateTint="@color/brand_navy"
+                android:visibility="gone" />
 
         </LinearLayout>
+    </ScrollView>
 
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:gravity="center"
-            android:layout_marginTop="28dp">
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="New to SkillSwap?"
-                android:textColor="#5A7399"
-                android:textSize="13sp" />
-
-            <Button
-                android:id="@+id/tvCreateAccount"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Create Account"
-                android:textColor="#1B5EC8"
-                android:textSize="14sp"
-                android:textStyle="bold"
-                android:background="@android:color/transparent"
-                android:padding="12dp"
-                android:layout_marginTop="4dp" />
-
-        </LinearLayout>
-
-        <ProgressBar
-            android:id="@+id/progressBar"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
-            android:layout_gravity="center"
-            android:layout_marginTop="16dp"
-            android:indeterminateTint="#1B5EC8"
-            android:visibility="gone" />
-
-    </LinearLayout>
-</ScrollView>
+</FrameLayout>

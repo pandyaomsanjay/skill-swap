@@ -1,20 +1,59 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
 
+    <!-- ===================== USER-SIDE THEME ===================== -->
+    <!-- Primary is now brand_navy — matched to the Admin Panel screen
+         (header, selected pill, bottom nav), which is the app's actual
+         real-world look. primary_green from colors.xml is kept for spot
+         accents (stat icons, "Live" badges) but is no longer the theme's
+         driving color. -->
     <style name="Theme.SGP" parent="Theme.Material3.DayNight.NoActionBar">
+
         <!-- Primary -->
-        <item name="colorPrimary">@color/primary_green</item>
-        <item name="colorOnPrimary">@color/white</item>
-        <item name="colorPrimaryContainer">@color/primary_green_container</item>
+        <item name="colorPrimary">@color/brand_navy</item>
+        <item name="colorOnPrimary">@color/brand_cream</item>
+        <item name="colorPrimaryContainer">@color/brand_cream</item>
+        <item name="colorOnPrimaryContainer">@color/brand_navy</item>
+
+        <!-- Secondary / accent (kept as the soft green used for stat-card
+             icons and "Live" badges) -->
+        <item name="colorSecondary">@color/primary_green</item>
+        <item name="colorOnSecondary">@color/text_inverse</item>
+        <item name="colorSecondaryContainer">@color/primary_green_container</item>
+        <item name="colorOnSecondaryContainer">@color/text_primary</item>
+
         <!-- Surface -->
-        <item name="colorSurface">@color/white</item>
-        <item name="colorOnSurface">@color/black</item>
+        <item name="colorSurface">@color/surface</item>
+        <item name="colorOnSurface">@color/text_primary</item>
+        <item name="colorSurfaceVariant">@color/brand_cream</item>
+        <item name="colorOnSurfaceVariant">@color/text_secondary</item>
+        <item name="android:colorBackground">@color/admin_bg_light_blue</item>
+        <item name="colorOnBackground">@color/text_primary</item>
+
+        <!-- Outline / borders / dividers — tan, matching the unselected
+             pill borders on the Admin Panel screen -->
+        <item name="colorOutline">@color/brand_tan</item>
+        <item name="colorOutlineVariant">@color/border_light</item>
+
+        <!-- Feedback -->
+        <item name="colorError">@color/error</item>
+        <item name="colorOnError">@color/text_inverse</item>
+        <item name="colorErrorContainer">@color/error_soft</item>
+
+        <!-- Text defaults -->
+        <item name="android:textColorPrimary">@color/text_primary</item>
+        <item name="android:textColorSecondary">@color/text_secondary</item>
+        <item name="android:textColorHint">@color/text_hint</item>
+
         <!-- System Bars -->
         <item name="android:statusBarColor">?attr/colorPrimary</item>
         <item name="android:navigationBarColor">?attr/colorPrimary</item>
         <item name="android:windowLightNavigationBar">false</item>
+        <item name="android:windowLightStatusBar">false</item>
+
     </style>
 
-    <!-- Admin-only theme: light blue nav bar instead of green -->
+    <!-- Admin-only theme: light blue system nav bar instead of navy,
+         everything else inherited unchanged. -->
     <style name="Theme.SGP.Admin" parent="Theme.SGP">
         <item name="android:navigationBarColor">@color/admin_bg_light_blue</item>
         <item name="android:windowLightNavigationBar">true</item>

@@ -359,6 +359,13 @@ class AdminTradesActivity : BaseActivity() {
         addRow("🗑️", "Delete Record", sheetDestructive) { confirmDeleteTrade(trade) }
 
         dialog.setContentView(root)
+        dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
+
+        dialog.setOnShowListener {
+            dialog.findViewById<View>(com.google.android.material.R.id.design_bottom_sheet)
+                ?.setBackgroundColor(Color.TRANSPARENT)
+        }
+
         dialog.show()
     }
 
@@ -875,7 +882,7 @@ class AdminTradesActivity : BaseActivity() {
             val (label, textColor, bgRes) = statusDisplay(trade.status)
             holder.tvStatusBadge.text = label
             holder.tvStatusBadge.setTextColor(Color.parseColor(textColor))
-            holder.tvStatusBadge.setBackgroundResource(bgRes)
+
 
             holder.btnMoreOptions.setOnClickListener { onMoreClick(trade, it) }
         }

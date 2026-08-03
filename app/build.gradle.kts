@@ -81,6 +81,11 @@ dependencies {
     // Ktor
     implementation(libs.ktor.client.core)
     implementation(libs.ktor.client.android)
+    // NOTE: removed implementation(libs.cardview.v7) — this was the legacy
+    // com.android.support:cardview-v7:28.0.0 artifact, which duplicates
+    // META-INF/androidx.cardview_cardview.version with the AndroidX
+    // cardview that MaterialCardView (from `material`) already pulls in
+    // transitively. MaterialCardView works fine without it.
 
     // Testing
     testImplementation(libs.junit)
