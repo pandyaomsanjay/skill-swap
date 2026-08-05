@@ -15,6 +15,7 @@ import com.google.android.gms.auth.api.signin.GoogleSignInClient
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.google.android.gms.common.api.ApiException
 import com.google.android.material.snackbar.Snackbar
+import com.google.android.material.textfield.TextInputEditText
 import com.google.android.material.textfield.TextInputLayout
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.GoogleAuthProvider
@@ -95,7 +96,7 @@ class Login : BaseActivity() {
 
     private fun initializeViews() {
         val btnLogin = findViewById<Button>(R.id.btnLogin)
-        val tvCreateAccount = findViewById<Button>(R.id.tvCreateAccount)
+        val tvCreateAccount = findViewById<TextView>(R.id.tvCreateAccount)
         val tvForgotPassword = findViewById<TextView>(R.id.tvForgotPassword)
         val btnGoogleSignIn = findViewById<Button>(R.id.btnGoogleLogin)
 

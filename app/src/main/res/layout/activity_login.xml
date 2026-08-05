@@ -6,16 +6,12 @@
     android:background="@color/admin_bg_light_blue">
 
     <!-- ===================== Decorative floating shapes ===================== -->
-    <!-- Layered translucent circles built from the app's real brand
-         navy (#1B3C53, matched to the Admin Panel header/nav), at
-         different alpha stops so the glow reads as one consistent tint. -->
-
     <com.google.android.material.card.MaterialCardView
         android:layout_width="240dp"
         android:layout_height="240dp"
-        android:layout_gravity="top|end"
-        android:layout_marginTop="-90dp"
-        android:layout_marginEnd="-70dp"
+        android:layout_gravity="top|start"
+        android:layout_marginTop="-100dp"
+        android:layout_marginStart="-90dp"
         app:cardCornerRadius="120dp"
         app:cardElevation="0dp"
         app:cardBackgroundColor="#141B3C53" />
@@ -24,8 +20,8 @@
         android:layout_width="170dp"
         android:layout_height="170dp"
         android:layout_gravity="top|start"
-        android:layout_marginTop="70dp"
-        android:layout_marginStart="-60dp"
+        android:layout_marginTop="-45dp"
+        android:layout_marginStart="-45dp"
         app:cardCornerRadius="85dp"
         app:cardElevation="0dp"
         app:cardBackgroundColor="#221B3C53" />
@@ -33,16 +29,35 @@
     <com.google.android.material.card.MaterialCardView
         android:layout_width="150dp"
         android:layout_height="150dp"
-        android:layout_gravity="bottom|end"
-        android:layout_marginBottom="40dp"
-        android:layout_marginEnd="-50dp"
+        android:layout_gravity="top|end"
+        android:layout_marginTop="70dp"
+        android:layout_marginEnd="-55dp"
         app:cardCornerRadius="75dp"
+        app:cardElevation="0dp"
+        app:cardBackgroundColor="#1E1B3C53" />
+
+    <com.google.android.material.card.MaterialCardView
+        android:layout_width="190dp"
+        android:layout_height="190dp"
+        android:layout_gravity="bottom|start"
+        android:layout_marginBottom="-60dp"
+        android:layout_marginStart="-65dp"
+        app:cardCornerRadius="95dp"
         app:cardElevation="0dp"
         app:cardBackgroundColor="#221B3C53" />
 
-    <!-- ===================== Scrolling content ===================== -->
+    <com.google.android.material.card.MaterialCardView
+        android:layout_width="110dp"
+        android:layout_height="110dp"
+        android:layout_gravity="bottom|start"
+        android:layout_marginBottom="60dp"
+        android:layout_marginStart="30dp"
+        app:cardCornerRadius="55dp"
+        app:cardElevation="0dp"
+        app:cardBackgroundColor="#331B3C53" />
+
+    <!-- ===================== Static content ===================== -->
     <ScrollView
-        android:id="@+id/rootScroll"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:fitsSystemWindows="true"
@@ -56,67 +71,41 @@
             android:paddingStart="28dp"
             android:paddingEnd="28dp"
             android:paddingTop="8dp"
-            android:paddingBottom="32dp">
+            android:paddingBottom="36dp"
+            android:gravity="center_horizontal">
 
-            <!-- ===================== Brand header ===================== -->
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
+            <!-- Logo -->
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="92dp"
+                android:layout_height="92dp"
                 android:layout_marginTop="52dp"
-                android:layout_marginBottom="40dp"
-                android:gravity="center_horizontal"
-                android:orientation="vertical">
+                android:layout_marginBottom="20dp"
+                app:cardCornerRadius="46dp"
+                app:cardElevation="10dp"
+                app:strokeWidth="1.5dp"
+                app:strokeColor="@color/brand_tan"
+                app:cardBackgroundColor="@color/surface">
 
-                <com.google.android.material.card.MaterialCardView
-                    android:layout_width="92dp"
-                    android:layout_height="92dp"
-                    android:layout_marginBottom="18dp"
-                    app:cardCornerRadius="46dp"
-                    app:cardElevation="8dp"
-                    app:strokeWidth="1.5dp"
-                    app:strokeColor="@color/brand_tan"
-                    app:cardBackgroundColor="@color/surface">
+                <ImageView
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:scaleType="centerCrop"
+                    android:src="@drawable/logo2"
+                    android:contentDescription="SkillSwap Logo" />
+            </com.google.android.material.card.MaterialCardView>
 
-                    <ImageView
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:scaleType="centerCrop"
-                        android:src="@drawable/logo2"
-                        android:contentDescription="SkillSwap Logo" />
-                </com.google.android.material.card.MaterialCardView>
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="SkillSwap"
-                    android:textColor="@color/text_primary"
-                    android:textSize="32sp"
-                    android:fontFamily="sans-serif-black"
-                    android:letterSpacing="0.005"
-                    android:layout_marginBottom="6dp" />
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Share Skills, Trade Talents"
-                    android:textColor="@color/text_secondary"
-                    android:textSize="13.5sp"
-                    android:fontFamily="sans-serif-light"
-                    android:letterSpacing="0.02" />
-
-            </LinearLayout>
-
-            <!-- ===================== Form — pill-shaped fields ===================== -->
-
+            <!-- Title -->
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Welcome Back!"
                 android:textColor="@color/text_primary"
-                android:textSize="26sp"
+                android:textSize="28sp"
                 android:fontFamily="sans-serif-black"
-                android:layout_marginBottom="4dp" />
+                android:letterSpacing="0.005"
+                android:layout_marginBottom="6dp" />
 
+            <!-- Subtitle -->
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
@@ -124,14 +113,16 @@
                 android:textColor="@color/text_secondary"
                 android:textSize="13.5sp"
                 android:fontFamily="sans-serif-light"
-                android:layout_marginBottom="32dp" />
+                android:letterSpacing="0.02"
+                android:layout_marginBottom="40dp" />
+
+            <!-- ===================== Form — pill-shaped fields ===================== -->
 
             <com.google.android.material.textfield.TextInputLayout
                 android:id="@+id/email"
                 style="@style/Widget.MaterialComponents.TextInputLayout.FilledBox"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="18dp"
                 android:hint="Email Address"
                 app:boxBackgroundColor="@color/surface"
                 app:boxCornerRadiusTopStart="26dp"
@@ -144,7 +135,8 @@
                 app:hintTextColor="@color/text_secondary"
                 app:startIconDrawable="@drawable/outline_mail_24"
                 app:startIconTint="@color/brand_navy"
-                app:endIconMode="clear_text">
+                app:endIconMode="clear_text"
+                android:layout_marginBottom="16dp">
 
                 <com.google.android.material.textfield.TextInputEditText
                     android:id="@+id/etEmail"
@@ -162,7 +154,6 @@
                 style="@style/Widget.MaterialComponents.TextInputLayout.FilledBox"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="10dp"
                 android:hint="Password"
                 app:boxBackgroundColor="@color/surface"
                 app:boxCornerRadiusTopStart="26dp"
@@ -173,9 +164,10 @@
                 app:boxStrokeWidth="0dp"
                 app:boxStrokeWidthFocused="2.5dp"
                 app:hintTextColor="@color/text_secondary"
-                app:startIconDrawable="@drawable/outline_password_24"
+                app:startIconDrawable="@drawable/outline_lock_24"
                 app:startIconTint="@color/brand_navy"
-                app:endIconMode="password_toggle">
+                app:endIconMode="password_toggle"
+                android:layout_marginBottom="8dp">
 
                 <com.google.android.material.textfield.TextInputEditText
                     android:id="@+id/etPassword"
@@ -188,19 +180,21 @@
                     android:textColorHint="@color/text_hint" />
             </com.google.android.material.textfield.TextInputLayout>
 
+            <!-- Forgot Password -->
             <TextView
                 android:id="@+id/tvForgotPassword"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_gravity="end"
                 android:text="Forgot Password?"
                 android:textColor="@color/brand_navy"
                 android:textSize="13sp"
                 android:textStyle="bold"
                 android:padding="4dp"
-                android:layout_marginBottom="30dp"
-                android:background="?attr/selectableItemBackground" />
+                android:layout_gravity="end"
+                android:background="?attr/selectableItemBackground"
+                android:layout_marginBottom="30dp" />
 
+            <!-- Sign In Button -->
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnLogin"
                 android:layout_width="match_parent"
@@ -217,12 +211,13 @@
                 app:rippleColor="@color/overlay_light"
                 android:layout_marginBottom="26dp" />
 
+            <!-- OR divider -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="horizontal"
                 android:gravity="center_vertical"
-                android:layout_marginBottom="20dp">
+                android:layout_marginBottom="22dp">
 
                 <View
                     android:layout_width="0dp"
@@ -238,17 +233,16 @@
                     android:textSize="10.5sp"
                     android:fontFamily="sans-serif-medium"
                     android:letterSpacing="0.08"
-                    android:paddingStart="12dp"
-                    android:paddingEnd="12dp" />
+                    android:paddingHorizontal="12dp" />
 
                 <View
                     android:layout_width="0dp"
                     android:layout_height="1dp"
                     android:layout_weight="1"
                     android:background="@color/brand_tan" />
-
             </LinearLayout>
 
+            <!-- Google Sign In Button -->
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnGoogleLogin"
                 style="@style/Widget.MaterialComponents.Button.OutlinedButton"
@@ -266,43 +260,45 @@
                 app:icon="@drawable/ic_google_logo"
                 app:iconTint="@null"
                 app:iconGravity="textStart"
-                app:iconPadding="10dp" />
+                app:iconPadding="10dp"
+                android:layout_marginBottom="28dp" />
 
+            <!-- Create Account Link -->
             <LinearLayout
-                android:layout_width="match_parent"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:gravity="center"
-                android:layout_marginTop="34dp">
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:padding="8dp"
+                android:clickable="true"
+                android:focusable="true"
+                android:background="?attr/selectableItemBackground">
 
                 <TextView
+                    android:id="@+id/tvSignInPrompt"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="New to SkillSwap?"
+                    android:text="New to SkillSwap?  "
                     android:textColor="@color/text_secondary"
                     android:textSize="13.5sp" />
 
-                <Button
+                <TextView
                     android:id="@+id/tvCreateAccount"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="Create Account"
                     android:textColor="@color/brand_navy"
-                    android:textSize="14.5sp"
-                    android:textStyle="bold"
-                    android:textAllCaps="false"
-                    android:background="@android:color/transparent"
-                    android:padding="12dp"
-                    android:layout_marginTop="2dp" />
+                    android:textSize="13.5sp"
+                    android:textStyle="bold" />
 
             </LinearLayout>
 
+            <!-- Progress Bar -->
             <ProgressBar
                 android:id="@+id/progressBar"
                 android:layout_width="44dp"
                 android:layout_height="44dp"
-                android:layout_gravity="center"
-                android:layout_marginTop="14dp"
+                android:layout_marginTop="8dp"
                 android:indeterminateTint="@color/brand_navy"
                 android:visibility="gone" />
 

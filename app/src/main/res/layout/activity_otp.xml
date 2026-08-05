@@ -1,83 +1,109 @@
 <?xml version="1.0" encoding="utf-8"?>
-<ScrollView
-    xmlns:android="http://schemas.android.com/apk/res/android"
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#0B1437"
-    android:fillViewport="true">
+    android:background="@color/admin_bg_light_blue">
 
-    <LinearLayout
+    <!-- ===================== Decorative floating shapes ===================== -->
+    <com.google.android.material.card.MaterialCardView
+        android:layout_width="240dp"
+        android:layout_height="240dp"
+        android:layout_gravity="top|start"
+        android:layout_marginTop="-100dp"
+        android:layout_marginStart="-90dp"
+        app:cardCornerRadius="120dp"
+        app:cardElevation="0dp"
+        app:cardBackgroundColor="#141B3C53" />
+
+    <com.google.android.material.card.MaterialCardView
+        android:layout_width="170dp"
+        android:layout_height="170dp"
+        android:layout_gravity="top|start"
+        android:layout_marginTop="-45dp"
+        android:layout_marginStart="-45dp"
+        app:cardCornerRadius="85dp"
+        app:cardElevation="0dp"
+        app:cardBackgroundColor="#221B3C53" />
+
+    <com.google.android.material.card.MaterialCardView
+        android:layout_width="150dp"
+        android:layout_height="150dp"
+        android:layout_gravity="top|end"
+        android:layout_marginTop="70dp"
+        android:layout_marginEnd="-55dp"
+        app:cardCornerRadius="75dp"
+        app:cardElevation="0dp"
+        app:cardBackgroundColor="#1E1B3C53" />
+
+    <com.google.android.material.card.MaterialCardView
+        android:layout_width="190dp"
+        android:layout_height="190dp"
+        android:layout_gravity="bottom|start"
+        android:layout_marginBottom="-60dp"
+        android:layout_marginStart="-65dp"
+        app:cardCornerRadius="95dp"
+        app:cardElevation="0dp"
+        app:cardBackgroundColor="#221B3C53" />
+
+    <com.google.android.material.card.MaterialCardView
+        android:layout_width="110dp"
+        android:layout_height="110dp"
+        android:layout_gravity="bottom|start"
+        android:layout_marginBottom="60dp"
+        android:layout_marginStart="30dp"
+        app:cardCornerRadius="55dp"
+        app:cardElevation="0dp"
+        app:cardBackgroundColor="#331B3C53" />
+
+    <!-- ===================== Scrolling content ===================== -->
+    <ScrollView
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:gravity="center_horizontal">
+        android:layout_height="match_parent"
+        android:fitsSystemWindows="true"
+        android:overScrollMode="never"
+        android:fillViewport="true">
 
-        <!-- ═══════════════════════════════════════
-             HERO HEADER
-        ═══════════════════════════════════════ -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:gravity="center_horizontal"
-            android:paddingTop="56dp"
-            android:paddingBottom="32dp"
             android:paddingStart="28dp"
             android:paddingEnd="28dp"
-            android:background="#050D2E">
+            android:paddingTop="8dp"
+            android:paddingBottom="36dp"
+            android:gravity="center_horizontal">
 
-            <!-- Icon ring -->
-            <FrameLayout
-                android:id="@+id/iconBox"
-                android:layout_width="82dp"
-                android:layout_height="82dp"
-                android:layout_marginBottom="18dp">
+            <!-- Logo -->
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="92dp"
+                android:layout_height="92dp"
+                android:layout_marginTop="52dp"
+                android:layout_marginBottom="20dp"
+                app:cardCornerRadius="46dp"
+                app:cardElevation="10dp"
+                app:strokeWidth="1.5dp"
+                app:strokeColor="@color/brand_tan"
+                app:cardBackgroundColor="@color/surface">
 
-                <!-- Outer faint ring -->
-                <com.google.android.material.card.MaterialCardView
-                    android:layout_width="82dp"
-                    android:layout_height="82dp"
-                    android:layout_gravity="center"
-                    app:cardCornerRadius="41dp"
-                    app:cardBackgroundColor="#00000000"
-                    app:strokeColor="#402B3A7A"
-                    app:strokeWidth="1dp"
-                    app:cardElevation="0dp" />
-
-                <!-- Inner icon circle -->
-                <com.google.android.material.card.MaterialCardView
-                    android:layout_width="66dp"
-                    android:layout_height="66dp"
-                    android:layout_gravity="center"
-                    app:cardCornerRadius="33dp"
-                    app:cardBackgroundColor="#121D50"
-                    app:strokeColor="#4F63E8"
-                    app:strokeWidth="1dp"
-                    app:cardElevation="0dp">
-
-                    <androidx.appcompat.widget.AppCompatImageView
-                        android:layout_width="40dp"
-                        android:layout_height="40dp"
-                        android:layout_gravity="center"
-                        app:srcCompat="@drawable/logo2"
-                        android:scaleType="centerCrop"
-                        android:contentDescription="@null" />
-
-                </com.google.android.material.card.MaterialCardView>
-
-            </FrameLayout>
+                <ImageView
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:scaleType="centerCrop"
+                    android:src="@drawable/logo2"
+                    android:contentDescription="SkillSwap Logo" />
+            </com.google.android.material.card.MaterialCardView>
 
             <!-- Title -->
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="8dp"
                 android:text="Verify Your Email"
-                android:textColor="#EEF2FF"
-                android:textSize="24sp"
-                android:textStyle="bold"
-                android:letterSpacing="-0.01" />
+                android:textColor="@color/text_primary"
+                android:textSize="28sp"
+                android:fontFamily="sans-serif-black"
+                android:letterSpacing="0.005"
+                android:layout_marginBottom="6dp" />
 
             <!-- Subtitle -->
             <TextView
@@ -85,353 +111,333 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="OTP sent to your email"
-                android:textColor="#9AAAE8"
-                android:textSize="14sp"
-                android:gravity="center" />
+                android:textColor="@color/text_secondary"
+                android:textSize="13.5sp"
+                android:fontFamily="sans-serif-light"
+                android:letterSpacing="0.02"
+                android:layout_marginBottom="40dp" />
 
-        </LinearLayout>
-
-        <!-- ═══════════════════════════════════════
-             MAIN CARD
-        ═══════════════════════════════════════ -->
-        <com.google.android.material.card.MaterialCardView
-            android:id="@+id/cardMain"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_margin="20dp"
-            app:cardCornerRadius="22dp"
-            app:cardBackgroundColor="#0B1437"
-            app:strokeColor="#2B3A7A"
-            app:strokeWidth="1dp"
-            app:cardElevation="0dp">
-
-            <LinearLayout
+            <!-- ===================== Main Card ===================== -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/cardMain"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:padding="24dp">
+                app:cardCornerRadius="22dp"
+                app:cardBackgroundColor="@color/surface"
+                app:strokeColor="@color/brand_tan"
+                app:strokeWidth="1.5dp"
+                app:cardElevation="8dp"
+                android:layout_marginBottom="26dp">
 
-                <!-- Section label -->
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_gravity="center_horizontal"
-                    android:text="ENTER 6-DIGIT CODE"
-                    android:textSize="10sp"
-                    android:textStyle="bold"
-                    android:letterSpacing="0.2"
-                    android:textColor="#8C9EFF"
-                    android:layout_marginBottom="20dp" />
-
-                <!-- OTP Boxes -->
                 <LinearLayout
-                    android:id="@+id/otpBoxesContainer"
-                    android:layout_width="wrap_content"
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_gravity="center_horizontal"
-                    android:orientation="horizontal"
-                    android:layout_marginBottom="20dp">
+                    android:orientation="vertical"
+                    android:padding="24dp">
 
-                    <!-- OTP Box 1 -->
-                    <com.google.android.material.card.MaterialCardView
-                        android:id="@+id/cardOtp1"
-                        android:layout_width="44dp"
-                        android:layout_height="54dp"
-                        android:layout_marginEnd="8dp"
-                        app:cardCornerRadius="12dp"
-                        app:cardBackgroundColor="#121D50"
-                        app:strokeColor="#2B3A7A"
-                        app:strokeWidth="1dp"
-                        app:cardElevation="0dp">
-                        <EditText
-                            android:id="@+id/otp1"
-                            android:layout_width="match_parent"
-                            android:layout_height="match_parent"
-                            android:gravity="center"
-                            android:inputType="number"
-                            android:maxLength="1"
-                            android:textSize="22sp"
-                            android:textStyle="bold"
-                            android:textColor="#EEF2FF"
-                            android:cursorVisible="false"
-                            android:background="@android:color/transparent"
-                            android:padding="0dp" />
-                    </com.google.android.material.card.MaterialCardView>
-
-                    <!-- OTP Box 2 -->
-                    <com.google.android.material.card.MaterialCardView
-                        android:id="@+id/cardOtp2"
-                        android:layout_width="44dp"
-                        android:layout_height="54dp"
-                        android:layout_marginEnd="8dp"
-                        app:cardCornerRadius="12dp"
-                        app:cardBackgroundColor="#121D50"
-                        app:strokeColor="#2B3A7A"
-                        app:strokeWidth="1dp"
-                        app:cardElevation="0dp">
-                        <EditText
-                            android:id="@+id/otp2"
-                            android:layout_width="match_parent"
-                            android:layout_height="match_parent"
-                            android:gravity="center"
-                            android:inputType="number"
-                            android:maxLength="1"
-                            android:textSize="22sp"
-                            android:textStyle="bold"
-                            android:textColor="#EEF2FF"
-                            android:cursorVisible="false"
-                            android:background="@android:color/transparent"
-                            android:padding="0dp" />
-                    </com.google.android.material.card.MaterialCardView>
-
-                    <!-- OTP Box 3 -->
-                    <com.google.android.material.card.MaterialCardView
-                        android:id="@+id/cardOtp3"
-                        android:layout_width="44dp"
-                        android:layout_height="54dp"
-                        android:layout_marginEnd="8dp"
-                        app:cardCornerRadius="12dp"
-                        app:cardBackgroundColor="#121D50"
-                        app:strokeColor="#2B3A7A"
-                        app:strokeWidth="1dp"
-                        app:cardElevation="0dp">
-                        <EditText
-                            android:id="@+id/otp3"
-                            android:layout_width="match_parent"
-                            android:layout_height="match_parent"
-                            android:gravity="center"
-                            android:inputType="number"
-                            android:maxLength="1"
-                            android:textSize="22sp"
-                            android:textStyle="bold"
-                            android:textColor="#EEF2FF"
-                            android:cursorVisible="false"
-                            android:background="@android:color/transparent"
-                            android:padding="0dp" />
-                    </com.google.android.material.card.MaterialCardView>
-
-                    <!-- OTP Box 4 -->
-                    <com.google.android.material.card.MaterialCardView
-                        android:id="@+id/cardOtp4"
-                        android:layout_width="44dp"
-                        android:layout_height="54dp"
-                        android:layout_marginEnd="8dp"
-                        app:cardCornerRadius="12dp"
-                        app:cardBackgroundColor="#121D50"
-                        app:strokeColor="#2B3A7A"
-                        app:strokeWidth="1dp"
-                        app:cardElevation="0dp">
-                        <EditText
-                            android:id="@+id/otp4"
-                            android:layout_width="match_parent"
-                            android:layout_height="match_parent"
-                            android:gravity="center"
-                            android:inputType="number"
-                            android:maxLength="1"
-                            android:textSize="22sp"
-                            android:textStyle="bold"
-                            android:textColor="#EEF2FF"
-                            android:cursorVisible="false"
-                            android:background="@android:color/transparent"
-                            android:padding="0dp" />
-                    </com.google.android.material.card.MaterialCardView>
-
-                    <!-- OTP Box 5 -->
-                    <com.google.android.material.card.MaterialCardView
-                        android:id="@+id/cardOtp5"
-                        android:layout_width="44dp"
-                        android:layout_height="54dp"
-                        android:layout_marginEnd="8dp"
-                        app:cardCornerRadius="12dp"
-                        app:cardBackgroundColor="#121D50"
-                        app:strokeColor="#2B3A7A"
-                        app:strokeWidth="1dp"
-                        app:cardElevation="0dp">
-                        <EditText
-                            android:id="@+id/otp5"
-                            android:layout_width="match_parent"
-                            android:layout_height="match_parent"
-                            android:gravity="center"
-                            android:inputType="number"
-                            android:maxLength="1"
-                            android:textSize="22sp"
-                            android:textStyle="bold"
-                            android:textColor="#EEF2FF"
-                            android:cursorVisible="false"
-                            android:background="@android:color/transparent"
-                            android:padding="0dp" />
-                    </com.google.android.material.card.MaterialCardView>
-
-                    <!-- OTP Box 6 -->
-                    <com.google.android.material.card.MaterialCardView
-                        android:id="@+id/cardOtp6"
-                        android:layout_width="44dp"
-                        android:layout_height="54dp"
-                        app:cardCornerRadius="12dp"
-                        app:cardBackgroundColor="#121D50"
-                        app:strokeColor="#2B3A7A"
-                        app:strokeWidth="1dp"
-                        app:cardElevation="0dp">
-                        <EditText
-                            android:id="@+id/otp6"
-                            android:layout_width="match_parent"
-                            android:layout_height="match_parent"
-                            android:gravity="center"
-                            android:inputType="number"
-                            android:maxLength="1"
-                            android:textSize="22sp"
-                            android:textStyle="bold"
-                            android:textColor="#EEF2FF"
-                            android:cursorVisible="false"
-                            android:background="@android:color/transparent"
-                            android:padding="0dp" />
-                    </com.google.android.material.card.MaterialCardView>
-
-                </LinearLayout>
-
-                <!-- Timer Pill -->
-                <com.google.android.material.card.MaterialCardView
-                    android:id="@+id/timerPill"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_gravity="center_horizontal"
-                    android:layout_marginBottom="24dp"
-                    app:cardCornerRadius="20dp"
-                    app:cardBackgroundColor="#050D2E"
-                    app:strokeColor="#2B3A7A"
-                    app:strokeWidth="1dp"
-                    app:cardElevation="0dp">
-
-                    <LinearLayout
+                    <!-- Section label -->
+                    <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
+                        android:layout_gravity="center_horizontal"
+                        android:text="ENTER 6-DIGIT CODE"
+                        android:textSize="10sp"
+                        android:textStyle="bold"
+                        android:fontFamily="sans-serif-medium"
+                        android:letterSpacing="0.08"
+                        android:textColor="@color/text_hint"
+                        android:layout_marginBottom="20dp" />
+
+                    <!-- OTP Boxes -->
+                    <LinearLayout
+                        android:id="@+id/otpBoxesContainer"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="center_horizontal"
                         android:orientation="horizontal"
-                        android:gravity="center_vertical"
-                        android:paddingStart="16dp"
-                        android:paddingEnd="16dp"
-                        android:paddingTop="8dp"
-                        android:paddingBottom="8dp">
+                        android:layout_marginBottom="20dp">
 
-                        <TextView
-                            android:id="@+id/tvTimerLabel"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="Expires in "
-                            android:textSize="12sp"
-                            android:textColor="#7A8EC7" />
+                        <!-- OTP Box 1 -->
+                        <com.google.android.material.card.MaterialCardView
+                            android:id="@+id/cardOtp1"
+                            android:layout_width="44dp"
+                            android:layout_height="54dp"
+                            android:layout_marginEnd="8dp"
+                            app:cardCornerRadius="12dp"
+                            app:cardBackgroundColor="@color/surface"
+                            app:strokeColor="@color/brand_tan"
+                            app:strokeWidth="1.5dp"
+                            app:cardElevation="0dp">
+                            <EditText
+                                android:id="@+id/otp1"
+                                android:layout_width="match_parent"
+                                android:layout_height="match_parent"
+                                android:gravity="center"
+                                android:inputType="number"
+                                android:maxLength="1"
+                                android:textSize="22sp"
+                                android:textStyle="bold"
+                                android:textColor="@color/text_primary"
+                                android:cursorVisible="false"
+                                android:background="@android:color/transparent"
+                                android:padding="0dp" />
+                        </com.google.android.material.card.MaterialCardView>
 
-                        <TextView
-                            android:id="@+id/tvTimer"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="10:00"
-                            android:textSize="12sp"
-                            android:textStyle="bold"
-                            android:textColor="#8C9EFF"
-                            android:fontFamily="monospace" />
+                        <!-- OTP Box 2 -->
+                        <com.google.android.material.card.MaterialCardView
+                            android:id="@+id/cardOtp2"
+                            android:layout_width="44dp"
+                            android:layout_height="54dp"
+                            android:layout_marginEnd="8dp"
+                            app:cardCornerRadius="12dp"
+                            app:cardBackgroundColor="@color/surface"
+                            app:strokeColor="@color/brand_tan"
+                            app:strokeWidth="1.5dp"
+                            app:cardElevation="0dp">
+                            <EditText
+                                android:id="@+id/otp2"
+                                android:layout_width="match_parent"
+                                android:layout_height="match_parent"
+                                android:gravity="center"
+                                android:inputType="number"
+                                android:maxLength="1"
+                                android:textSize="22sp"
+                                android:textStyle="bold"
+                                android:textColor="@color/text_primary"
+                                android:cursorVisible="false"
+                                android:background="@android:color/transparent"
+                                android:padding="0dp" />
+                        </com.google.android.material.card.MaterialCardView>
+
+                        <!-- OTP Box 3 -->
+                        <com.google.android.material.card.MaterialCardView
+                            android:id="@+id/cardOtp3"
+                            android:layout_width="44dp"
+                            android:layout_height="54dp"
+                            android:layout_marginEnd="8dp"
+                            app:cardCornerRadius="12dp"
+                            app:cardBackgroundColor="@color/surface"
+                            app:strokeColor="@color/brand_tan"
+                            app:strokeWidth="1.5dp"
+                            app:cardElevation="0dp">
+                            <EditText
+                                android:id="@+id/otp3"
+                                android:layout_width="match_parent"
+                                android:layout_height="match_parent"
+                                android:gravity="center"
+                                android:inputType="number"
+                                android:maxLength="1"
+                                android:textSize="22sp"
+                                android:textStyle="bold"
+                                android:textColor="@color/text_primary"
+                                android:cursorVisible="false"
+                                android:background="@android:color/transparent"
+                                android:padding="0dp" />
+                        </com.google.android.material.card.MaterialCardView>
+
+                        <!-- OTP Box 4 -->
+                        <com.google.android.material.card.MaterialCardView
+                            android:id="@+id/cardOtp4"
+                            android:layout_width="44dp"
+                            android:layout_height="54dp"
+                            android:layout_marginEnd="8dp"
+                            app:cardCornerRadius="12dp"
+                            app:cardBackgroundColor="@color/surface"
+                            app:strokeColor="@color/brand_tan"
+                            app:strokeWidth="1.5dp"
+                            app:cardElevation="0dp">
+                            <EditText
+                                android:id="@+id/otp4"
+                                android:layout_width="match_parent"
+                                android:layout_height="match_parent"
+                                android:gravity="center"
+                                android:inputType="number"
+                                android:maxLength="1"
+                                android:textSize="22sp"
+                                android:textStyle="bold"
+                                android:textColor="@color/text_primary"
+                                android:cursorVisible="false"
+                                android:background="@android:color/transparent"
+                                android:padding="0dp" />
+                        </com.google.android.material.card.MaterialCardView>
+
+                        <!-- OTP Box 5 -->
+                        <com.google.android.material.card.MaterialCardView
+                            android:id="@+id/cardOtp5"
+                            android:layout_width="44dp"
+                            android:layout_height="54dp"
+                            android:layout_marginEnd="8dp"
+                            app:cardCornerRadius="12dp"
+                            app:cardBackgroundColor="@color/surface"
+                            app:strokeColor="@color/brand_tan"
+                            app:strokeWidth="1.5dp"
+                            app:cardElevation="0dp">
+                            <EditText
+                                android:id="@+id/otp5"
+                                android:layout_width="match_parent"
+                                android:layout_height="match_parent"
+                                android:gravity="center"
+                                android:inputType="number"
+                                android:maxLength="1"
+                                android:textSize="22sp"
+                                android:textStyle="bold"
+                                android:textColor="@color/text_primary"
+                                android:cursorVisible="false"
+                                android:background="@android:color/transparent"
+                                android:padding="0dp" />
+                        </com.google.android.material.card.MaterialCardView>
+
+                        <!-- OTP Box 6 -->
+                        <com.google.android.material.card.MaterialCardView
+                            android:id="@+id/cardOtp6"
+                            android:layout_width="44dp"
+                            android:layout_height="54dp"
+                            app:cardCornerRadius="12dp"
+                            app:cardBackgroundColor="@color/surface"
+                            app:strokeColor="@color/brand_tan"
+                            app:strokeWidth="1.5dp"
+                            app:cardElevation="0dp">
+                            <EditText
+                                android:id="@+id/otp6"
+                                android:layout_width="match_parent"
+                                android:layout_height="match_parent"
+                                android:gravity="center"
+                                android:inputType="number"
+                                android:maxLength="1"
+                                android:textSize="22sp"
+                                android:textStyle="bold"
+                                android:textColor="@color/text_primary"
+                                android:cursorVisible="false"
+                                android:background="@android:color/transparent"
+                                android:padding="0dp" />
+                        </com.google.android.material.card.MaterialCardView>
 
                     </LinearLayout>
 
-                </com.google.android.material.card.MaterialCardView>
-
-                <!-- Verify Button -->
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btnVerify"
-                    android:layout_width="match_parent"
-                    android:layout_height="54dp"
-                    android:text="Verify OTP"
-                    android:textAllCaps="false"
-                    android:textSize="16sp"
-                    android:textStyle="bold"
-                    android:textColor="#EEF2FF"
-                    app:cornerRadius="14dp"
-                    app:backgroundTint="#4F63E8"
-                    android:layout_marginBottom="16dp" />
-
-                <!-- Divider -->
-                <View
-                    android:layout_width="match_parent"
-                    android:layout_height="1dp"
-                    android:background="#1B2660"
-                    android:layout_marginBottom="16dp" />
-
-                <!-- Error message -->
-                <TextView
-                    android:id="@+id/tvError"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_gravity="center_horizontal"
-                    android:textSize="12sp"
-                    android:textColor="#8E1919"
-                    android:visibility="gone"
-                    android:text="Invalid or expired OTP"
-                    android:layout_marginBottom="8dp" />
-
-                <!-- Resend row -->
-                <LinearLayout
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_gravity="center_horizontal"
-                    android:orientation="horizontal"
-                    android:gravity="center_vertical">
-
-                    <TextView
+                    <!-- Timer Pill -->
+                    <com.google.android.material.card.MaterialCardView
+                        android:id="@+id/timerPill"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Didn't receive? "
-                        android:textColor="#7A8EC7"
-                        android:textSize="13sp" />
+                        android:layout_gravity="center_horizontal"
+                        android:layout_marginBottom="24dp"
+                        app:cardCornerRadius="20dp"
+                        app:cardBackgroundColor="@color/admin_bg_light_blue"
+                        app:strokeColor="@color/brand_tan"
+                        app:strokeWidth="1.5dp"
+                        app:cardElevation="0dp">
 
+                        <LinearLayout
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:orientation="horizontal"
+                            android:gravity="center_vertical"
+                            android:paddingStart="16dp"
+                            android:paddingEnd="16dp"
+                            android:paddingTop="8dp"
+                            android:paddingBottom="8dp">
+
+                            <TextView
+                                android:id="@+id/tvTimerLabel"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Expires in "
+                                android:textSize="12sp"
+                                android:textColor="@color/text_secondary" />
+
+                            <TextView
+                                android:id="@+id/tvTimer"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="60 Seconds"
+                                android:textSize="12sp"
+                                android:textStyle="bold"
+                                android:textColor="@color/brand_navy"
+                                android:fontFamily="monospace" />
+
+                        </LinearLayout>
+
+                    </com.google.android.material.card.MaterialCardView>
+
+                    <!-- Verify Button -->
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnVerify"
+                        android:layout_width="match_parent"
+                        android:layout_height="58dp"
+                        android:text="Verify OTP"
+                        android:textAllCaps="false"
+                        android:textColor="@color/text_inverse"
+                        android:textSize="16sp"
+                        android:fontFamily="sans-serif-medium"
+                        android:letterSpacing="0.01"
+                        app:backgroundTint="@color/brand_navy"
+                        app:cornerRadius="29dp"
+                        app:elevation="8dp"
+                        app:rippleColor="@color/overlay_light"
+                        android:layout_marginBottom="16dp" />
+
+                    <!-- Divider -->
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="1dp"
+                        android:background="@color/brand_tan"
+                        android:layout_marginBottom="16dp" />
+
+                    <!-- Error message -->
                     <TextView
-                        android:id="@+id/tvResend"
+                        android:id="@+id/tvError"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Resend OTP"
-                        android:textColor="#6979F8"
-                        android:textSize="13sp"
-                        android:textStyle="bold"
-                        android:padding="4dp"
-                        android:clickable="true"
-                        android:focusable="true" />
+                        android:layout_gravity="center_horizontal"
+                        android:textSize="12sp"
+                        android:textColor="#8E1919"
+                        android:visibility="gone"
+                        android:text="Invalid or expired OTP"
+                        android:layout_marginBottom="8dp" />
+
+                    <!-- Resend row -->
+                    <LinearLayout
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="center_horizontal"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Didn't receive? "
+                            android:textColor="@color/text_secondary"
+                            android:textSize="13sp" />
+
+                        <TextView
+                            android:id="@+id/tvResend"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Resend OTP"
+                            android:textColor="@color/brand_navy"
+                            android:textSize="13sp"
+                            android:textStyle="bold"
+                            android:padding="4dp"
+                            android:clickable="true"
+                            android:focusable="true" />
+
+                    </LinearLayout>
 
                 </LinearLayout>
 
-                <!-- Security note -->
-                <LinearLayout
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_gravity="center_horizontal"
-                    android:orientation="horizontal"
-                    android:gravity="center_vertical"
-                    android:layout_marginTop="20dp">
+            </com.google.android.material.card.MaterialCardView>
 
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="🔒 "
-                        android:textSize="11sp" />
+            <!-- Progress spinner -->
+            <ProgressBar
+                android:id="@+id/progressBar"
+                android:layout_width="44dp"
+                android:layout_height="44dp"
+                android:layout_marginTop="8dp"
+                android:indeterminateTint="@color/brand_navy"
+                android:visibility="gone" />
 
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Secured with end-to-end encryption"
-                        android:textColor="#2B3A7A"
-                        android:textSize="11sp" />
+        </LinearLayout>
+    </ScrollView>
 
-                </LinearLayout>
-
-            </LinearLayout>
-
-        </com.google.android.material.card.MaterialCardView>
-
-        <!-- Progress spinner -->
-        <ProgressBar
-            android:id="@+id/progressBar"
-            android:layout_width="44dp"
-            android:layout_height="44dp"
-            android:layout_marginTop="8dp"
-            android:indeterminateTint="#4F63E8"
-            android:visibility="gone" />
-
-    </LinearLayout>
-</ScrollView>
+</FrameLayout>

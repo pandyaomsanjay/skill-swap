@@ -6,10 +6,6 @@
     android:background="@color/admin_bg_light_blue">
 
     <!-- ===================== Decorative floating shapes ===================== -->
-    <!-- Same brand_navy-based glow as Login, mirrored, so both auth
-         screens read as one design language matched to the real
-         Admin Panel look instead of an invented palette. -->
-
     <com.google.android.material.card.MaterialCardView
         android:layout_width="240dp"
         android:layout_height="240dp"
@@ -78,6 +74,7 @@
             android:paddingBottom="36dp"
             android:gravity="center_horizontal">
 
+            <!-- Logo -->
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="92dp"
                 android:layout_height="92dp"
@@ -97,6 +94,7 @@
                     android:contentDescription="SkillSwap Logo" />
             </com.google.android.material.card.MaterialCardView>
 
+            <!-- Title -->
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
@@ -107,6 +105,7 @@
                 android:letterSpacing="0.005"
                 android:layout_marginBottom="6dp" />
 
+            <!-- Subtitle -->
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
@@ -119,6 +118,7 @@
 
             <!-- ===================== Form — pill-shaped fields ===================== -->
 
+            <!-- Email Field -->
             <com.google.android.material.textfield.TextInputLayout
                 android:id="@+id/emailLayout"
                 style="@style/Widget.MaterialComponents.TextInputLayout.FilledBox"
@@ -150,6 +150,7 @@
                     android:textColorHint="@color/text_hint" />
             </com.google.android.material.textfield.TextInputLayout>
 
+            <!-- Password Field -->
             <com.google.android.material.textfield.TextInputLayout
                 android:id="@+id/passwordLayout"
                 style="@style/Widget.MaterialComponents.TextInputLayout.FilledBox"
@@ -181,6 +182,7 @@
                     android:textColorHint="@color/text_hint" />
             </com.google.android.material.textfield.TextInputLayout>
 
+            <!-- Password Hint -->
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
@@ -192,17 +194,37 @@
                 android:paddingStart="16dp"
                 android:layout_marginBottom="24dp" />
 
-            <CheckBox
-                android:id="@+id/termsCheckbox"
-                android:layout_width="wrap_content"
+            <!-- Terms & Conditions with clickable link - FIXED -->
+            <LinearLayout
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_gravity="start"
-                android:text="I agree to the Terms &amp; Conditions"
-                android:textColor="@color/text_secondary"
-                android:textSize="13sp"
-                android:buttonTint="@color/brand_navy"
-                android:layout_marginBottom="30dp" />
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:layout_marginBottom="30dp">
 
+                <CheckBox
+                    android:id="@+id/termsCheckbox"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="13sp"
+                    android:buttonTint="@color/brand_navy"
+                    android:checked="false" />
+
+                <TextView
+                    android:id="@+id/tvTermsLink"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="I agree to the Terms &amp; Conditions"
+                    android:textColor="@color/brand_navy"
+                    android:textSize="13sp"
+                    android:textStyle="bold"
+                    android:padding="4dp"
+                    android:background="?attr/selectableItemBackground" />
+
+            </LinearLayout>
+
+            <!-- Create Account Button -->
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnCreateAccount"
                 android:layout_width="match_parent"
@@ -219,6 +241,7 @@
                 app:rippleColor="@color/overlay_light"
                 android:layout_marginBottom="26dp" />
 
+            <!-- OR Divider -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -249,6 +272,7 @@
                     android:background="@color/brand_tan" />
             </LinearLayout>
 
+            <!-- Google Sign In Button -->
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnGoogleSignIn"
                 style="@style/Widget.MaterialComponents.Button.OutlinedButton"
@@ -269,6 +293,7 @@
                 app:iconPadding="10dp"
                 android:layout_marginBottom="28dp" />
 
+            <!-- Sign In Link -->
             <LinearLayout
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"

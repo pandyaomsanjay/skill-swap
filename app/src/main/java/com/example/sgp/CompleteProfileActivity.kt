@@ -12,6 +12,7 @@ import android.view.View
 import android.widget.*
 import androidx.appcompat.app.AlertDialog
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.result.ActivityResultLauncher
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import com.bumptech.glide.Glide
@@ -50,6 +51,13 @@ class CompleteProfileActivity : BaseActivity() {
     private lateinit var btnAutoDetect: ImageButton
     private lateinit var locationValidationIcon: ImageView
     private lateinit var btnSave: MaterialButton
+    private lateinit var nameLayout: TextInputLayout
+    private lateinit var locationLayout: TextInputLayout
+    private lateinit var languageLayout: TextInputLayout
+
+    // Activity Result Launchers
+    private lateinit var galleryLauncher: ActivityResultLauncher<String>
+    private lateinit var cameraLauncher: ActivityResultLauncher<Void?>
 
     private var selectedImageUri: Uri? = null
     private var currentLocationLatLng: Pair<Double, Double>? = null
@@ -85,12 +93,46 @@ class CompleteProfileActivity : BaseActivity() {
             tempPrefs.edit().clear().apply()
         }
 
+        // Initialize activity result launchers
+        initializeLaunchers()
+
         bindViews()
         setupListeners()
 
         // Pre-fill name if provided from Google
         if (nameFromIntent.isNotEmpty()) {
             etName.setText(nameFromIntent)
+        }
+    }
+
+    private fun initializeLaunchers() {
+        // Gallery launcher
+        galleryLauncher = registerForActivityResult(
+            ActivityResultContracts.GetContent()
+        ) { uri: Uri? ->
+            uri?.let {
+                selectedImageUri = it
+                profileImage.setImageURI(it)
+            }
+        }
+
+        // Camera launcher
+        cameraLauncher = registerForActivityResult(
+            ActivityResultContracts.TakePicturePreview()
+        ) { bitmap ->
+            bitmap?.let {
+                val path = MediaStore.Images.Media.insertImage(
+                    contentResolver,
+                    it,
+                    "ProfileImage_${System.currentTimeMillis()}",
+                    null
+                )
+                path?.let { imagePath ->
+                    val uri = Uri.parse(imagePath)
+                    selectedImageUri = uri
+                    profileImage.setImageURI(uri)
+                }
+            }
         }
     }
 
@@ -101,17 +143,22 @@ class CompleteProfileActivity : BaseActivity() {
         etName = findViewById(R.id.etName)
         etLocation = findViewById(R.id.etLocation)
         etLanguage = findViewById(R.id.etLanguage)
-
-        val languages = arrayOf("English", "Spanish", "French", "German", "Hindi")
-        val languageAdapter = ArrayAdapter(this, android.R.layout.simple_dropdown_item_1line, languages)
-        etLanguage.setAdapter(languageAdapter)
         btnAutoDetect = findViewById(R.id.btnAutoDetect)
         locationValidationIcon = findViewById(R.id.locationValidationIcon)
         btnSave = findViewById(R.id.btnSave)
+        nameLayout = findViewById(R.id.nameLayout)
+        locationLayout = findViewById(R.id.locationLayout)
+        languageLayout = findViewById(R.id.languageLayout)
+
+        val languages = arrayOf("English", "Spanish", "French", "German", "Hindi", "Arabic", "Chinese", "Japanese")
+        val languageAdapter = ArrayAdapter(this, android.R.layout.simple_dropdown_item_1line, languages)
+        etLanguage.setAdapter(languageAdapter)
         btnSave.isEnabled = false // locked until location is verified valid
 
-        // Set up step dots (3 steps, second active? We'll just show visual)
-        // We'll just have a static indicator for step 3.
+        // Apply styling to match OTP page
+        nameLayout.boxBackgroundColor = ContextCompat.getColor(this, R.color.surface)
+        locationLayout.boxBackgroundColor = ContextCompat.getColor(this, R.color.surface)
+        languageLayout.boxBackgroundColor = ContextCompat.getColor(this, R.color.surface)
     }
 
     private fun setupListeners() {
@@ -160,35 +207,18 @@ class CompleteProfileActivity : BaseActivity() {
             .setTitle("Profile Picture")
             .setItems(options) { _, which ->
                 when (which) {
-                    0 -> cameraLauncher.launch(null)
-                    1 -> galleryLauncher.launch("image/*")
+                    0 -> {
+                        // Launch camera
+                        cameraLauncher.launch(null)
+                    }
+                    1 -> {
+                        // Launch gallery
+                        galleryLauncher.launch("image/*")
+                    }
                 }
             }
             .show()
     }
-
-    private val galleryLauncher =
-        registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
-            uri?.let {
-                selectedImageUri = it
-                profileImage.setImageURI(it)
-            }
-        }
-
-    private val cameraLauncher =
-        registerForActivityResult(ActivityResultContracts.TakePicturePreview()) { bitmap ->
-            bitmap?.let {
-                val path = MediaStore.Images.Media.insertImage(
-                    contentResolver,
-                    it,
-                    "ProfileImage_${System.currentTimeMillis()}",
-                    null
-                )
-                val uri = Uri.parse(path)
-                selectedImageUri = uri
-                profileImage.setImageURI(uri)
-            }
-        }
 
     private fun getCurrentLocation() {
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
@@ -238,21 +268,21 @@ class CompleteProfileActivity : BaseActivity() {
                 locationValidationIcon.setImageResource(R.drawable.ic_check_circle_green)
                 isLocationValid = true
                 btnSave.isEnabled = true
+                Toast.makeText(this@CompleteProfileActivity, "✓ Location verified", Toast.LENGTH_SHORT).show()
             } else {
                 locationValidationIcon.visibility = View.VISIBLE
                 locationValidationIcon.setImageResource(R.drawable.ic_error_red)
                 isLocationValid = false
                 btnSave.isEnabled = false
-                Toast.makeText(this, "Please enter a valid location", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this@CompleteProfileActivity, "Please enter a valid location", Toast.LENGTH_SHORT).show()
             }
         } catch (e: IOException) {
-            // Network/geocoder unavailable — treat as unverified, keep Save locked rather than
-            // silently letting an unvalidated location through
+            // Network/geocoder unavailable — treat as unverified, keep Save locked
             locationValidationIcon.visibility = View.VISIBLE
             locationValidationIcon.setImageResource(R.drawable.ic_error_red)
             isLocationValid = false
             btnSave.isEnabled = false
-            Toast.makeText(this, "Couldn't verify location — check your connection", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this@CompleteProfileActivity, "Couldn't verify location — check your connection", Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -300,7 +330,7 @@ class CompleteProfileActivity : BaseActivity() {
             } catch (e: Exception) {
                 Toast.makeText(this@CompleteProfileActivity, "Image upload failed: ${e.message}", Toast.LENGTH_SHORT).show()
                 btnSave.isEnabled = true
-                btnSave.text = "Save"
+                btnSave.text = "Save Profile"
             }
         }
     }
@@ -338,7 +368,7 @@ class CompleteProfileActivity : BaseActivity() {
         val docId = auth.currentUser?.uid ?: email
         db.collection("users").document(docId).set(user)
             .addOnSuccessListener {
-                Toast.makeText(this, "Profile saved!", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, "Profile saved successfully!", Toast.LENGTH_SHORT).show()
                 val prefs = getSharedPreferences("SkillSwapPrefs", MODE_PRIVATE)
                 with(prefs.edit()) {
                     putString("user_name", name)
@@ -357,7 +387,7 @@ class CompleteProfileActivity : BaseActivity() {
             .addOnFailureListener { e ->
                 Toast.makeText(this, "Save failed: ${e.message}", Toast.LENGTH_SHORT).show()
                 btnSave.isEnabled = true
-                btnSave.text = "Save"
+                btnSave.text = "Save Profile"
             }
     }
 

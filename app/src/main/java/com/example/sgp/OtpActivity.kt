@@ -45,35 +45,39 @@ class OtpActivity : BaseActivity() {
     private lateinit var otpBoxes: List<EditText>
     private lateinit var otpCards: List<MaterialCardView>
     private lateinit var countDownTimer: CountDownTimer
+    private lateinit var tvResend: TextView
 
-    // ── Palette (unchanged) ──────────────────────────────────────
-    private val C_CARD               = Color.parseColor("#1E293B")
-    private val C_CARD_BORDER        = Color.parseColor("#C27803")
-    private val C_BOX_FILL           = Color.parseColor("#131F2E")
-    private val C_BOX_EMPTY_BORDER   = Color.parseColor("#1E2240")
-    private val C_BOX_ACTIVE_BORDER  = Color.parseColor("#FBBF24")
-    private val C_BOX_FILLED_BORDER  = Color.parseColor("#C27803")
-    private val C_AMBER              = Color.parseColor("#FBBF24")
-    private val C_GOLDEN             = Color.parseColor("#C27803")
-    private val C_TIMER_GREEN_BG     = Color.parseColor("#0D2218")
-    private val C_TIMER_GREEN_BORDER = Color.parseColor("#166534")
-    private val C_GREEN              = Color.parseColor("#4ADE80")
+    // ── Palette (matched to SkillSwap design) ──────────────────────
+    private val C_CARD               = Color.parseColor("#FFFFFF") // Surface color
+    private val C_CARD_BORDER        = Color.parseColor("#D4A857") // Brand tan
+    private val C_BOX_FILL           = Color.parseColor("#F5F5F5") // Light surface
+    private val C_BOX_EMPTY_BORDER   = Color.parseColor("#E0D5C1") // Light tan
+    private val C_BOX_ACTIVE_BORDER  = Color.parseColor("#1B3C53") // Brand navy
+    private val C_BOX_FILLED_BORDER  = Color.parseColor("#D4A857") // Brand tan
+    private val C_AMBER              = Color.parseColor("#D4A857") // Brand tan
+    private val C_GOLDEN             = Color.parseColor("#C27803") // Darker gold
+    private val C_TIMER_GREEN_BG     = Color.parseColor("#E8F5E9")
+    private val C_TIMER_GREEN_BORDER = Color.parseColor("#4CAF50")
+    private val C_GREEN              = Color.parseColor("#4CAF50")
     private val C_GREEN_LIGHT        = Color.parseColor("#86EFAC")
-    private val C_TIMER_AMBER_BG     = Color.parseColor("#1C1500")
-    private val C_TIMER_AMBER_BORDER = Color.parseColor("#C27803")
-    private val C_AMBER_LABEL        = Color.parseColor("#FDE68A")
-    private val C_TIMER_RED_BG       = Color.parseColor("#2A0D0D")
-    private val C_TIMER_RED_BORDER   = Color.parseColor("#7F1D1D")
-    private val C_RED                = Color.parseColor("#F87171")
-    private val C_RED_LABEL          = Color.parseColor("#FCA5A5")
+    private val C_TIMER_AMBER_BG     = Color.parseColor("#FFF3E0")
+    private val C_TIMER_AMBER_BORDER = Color.parseColor("#FF9800")
+    private val C_AMBER_LABEL        = Color.parseColor("#FF9800")
+    private val C_TIMER_RED_BG       = Color.parseColor("#FFEBEE")
+    private val C_TIMER_RED_BORDER   = Color.parseColor("#F44336")
+    private val C_RED                = Color.parseColor("#F44336")
+    private val C_RED_LABEL          = Color.parseColor("#F44336")
 
     companion object {
         const val TIMER_GREEN = 0
         const val TIMER_AMBER = 1
         const val TIMER_RED   = 2
+        const val TIMER_DURATION = 60000L // 60 seconds
     }
 
     private var currentTimerState = TIMER_GREEN
+    private var remainingTime = TIMER_DURATION
+    private var isTimerRunning = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -93,6 +97,7 @@ class OtpActivity : BaseActivity() {
         tvTimerLabel = findViewById(R.id.tvTimerLabel)
         timerPill    = findViewById(R.id.timerPill)
         cardMain     = findViewById(R.id.cardMain)
+        tvResend     = findViewById(R.id.tvResend)
 
         otpCards = listOf(
             findViewById(R.id.cardOtp1),
@@ -108,10 +113,12 @@ class OtpActivity : BaseActivity() {
             findViewById(R.id.otp4), findViewById(R.id.otp5), findViewById(R.id.otp6)
         )
 
+        // Set card styles
         cardMain.setCardBackgroundColor(C_CARD)
         cardMain.strokeColor = C_CARD_BORDER
-        cardMain.strokeWidth = dp(1f).toInt()
+        cardMain.strokeWidth = dp(1.5f).toInt()
 
+        // Set email info with highlighted email
         val emailText = if (isGoogle) "OTP sent to $email (Google sign‑in)" else "OTP sent to $email"
         findViewById<TextView>(R.id.tvEmailInfo).apply {
             val spannable = android.text.SpannableString(emailText)
@@ -131,18 +138,27 @@ class OtpActivity : BaseActivity() {
             setText(spannable)
         }
 
-        applyTimerPillColor(TIMER_GREEN)
+        // Disable resend initially
+        tvResend.isEnabled = false
+        tvResend.alpha = 0.5f
 
+        // Initialize timer display
+        applyTimerPillColor(TIMER_GREEN)
+        updateTimerDisplay(TIMER_DURATION)
+        startTimer()
+
+        // Setup OTP boxes
         findViewById<View>(R.id.otpBoxesContainer).visibility = View.VISIBLE
         findViewById<MaterialButton>(R.id.btnVerify).text = "Verify OTP"
-        findViewById<TextView>(R.id.tvResend).text = "Resend OTP"
+        tvResend.text = "Resend OTP"
+
         otpBoxes.forEachIndexed { i, box ->
             setBoxStyle(i, active = false, filled = false)
         }
         setBoxStyle(0, active = true, filled = false)
         setupOtpBoxes()
-        startTimer()
 
+        // ── Button Click Listeners ──────────────────────────────────
         findViewById<MaterialButton>(R.id.btnVerify).setOnClickListener {
             val otp = otpBoxes.joinToString("") { it.text.toString().trim() }
             if (otp.length != 6) {
@@ -154,19 +170,118 @@ class OtpActivity : BaseActivity() {
             verifyOtp(otp)
         }
 
-        findViewById<TextView>(R.id.tvResend).setOnClickListener {
-            resendOtp()
+        tvResend.setOnClickListener {
+            if (isTimerRunning) {
+                Toast.makeText(this, "Please wait for the timer to expire", Toast.LENGTH_SHORT).show()
+            } else {
+                resendOtp()
+            }
         }
     }
 
-    // ─── Timer (unchanged) ──────────────────────────────────────────
-    // (all timer functions remain exactly as before)
+    // ─── Timer Implementation ──────────────────────────────────────────
 
-    private fun startTimer(totalMs: Long = 600_000L) { /* ... */ }
-    private fun applyTimerPillColor(state: Int) { /* ... */ }
-    private fun pulseTimer() { /* ... */ }
+    private fun startTimer() {
+        if (::countDownTimer.isInitialized) {
+            countDownTimer.cancel()
+        }
+
+        remainingTime = TIMER_DURATION
+        isTimerRunning = true
+        tvResend.isEnabled = false
+        tvResend.alpha = 0.5f
+
+        countDownTimer = object : CountDownTimer(TIMER_DURATION, 1000) {
+            override fun onTick(millisUntilFinished: Long) {
+                remainingTime = millisUntilFinished
+                updateTimerDisplay(millisUntilFinished)
+                updateTimerState(millisUntilFinished)
+            }
+
+            override fun onFinish() {
+                remainingTime = 0
+                updateTimerDisplay(0)
+                isTimerRunning = false
+                tvResend.isEnabled = true
+                tvResend.alpha = 1.0f
+                applyTimerPillColor(TIMER_RED)
+
+                // Update label
+                tvTimerLabel.text = "Expired "
+                tvTimerLabel.setTextColor(C_RED_LABEL)
+                tvTimer.setTextColor(C_RED)
+            }
+        }.start()
+    }
+
+    private fun updateTimerDisplay(millisUntilFinished: Long) {
+        val seconds = (millisUntilFinished / 1000).toInt()
+        val minutes = seconds / 60
+        val remainingSeconds = seconds % 60
+        tvTimer.text = String.format("%02d:%02d", minutes, remainingSeconds)
+    }
+
+    private fun updateTimerState(millisUntilFinished: Long) {
+        val secondsLeft = millisUntilFinished / 1000
+        when {
+            secondsLeft > 30 -> {
+                if (currentTimerState != TIMER_GREEN) {
+                    applyTimerPillColor(TIMER_GREEN)
+                }
+            }
+            secondsLeft > 10 -> {
+                if (currentTimerState != TIMER_AMBER) {
+                    applyTimerPillColor(TIMER_AMBER)
+                    pulseTimer()
+                }
+            }
+            else -> {
+                if (currentTimerState != TIMER_RED) {
+                    applyTimerPillColor(TIMER_RED)
+                    pulseTimer()
+                }
+            }
+        }
+    }
+
+    private fun applyTimerPillColor(state: Int) {
+        currentTimerState = state
+        when (state) {
+            TIMER_GREEN -> {
+                timerPill.setCardBackgroundColor(C_TIMER_GREEN_BG)
+                timerPill.strokeColor = C_TIMER_GREEN_BORDER
+                tvTimerLabel.setTextColor(C_GREEN)
+                tvTimer.setTextColor(C_GREEN)
+                tvTimerLabel.text = "Expires in "
+            }
+            TIMER_AMBER -> {
+                timerPill.setCardBackgroundColor(C_TIMER_AMBER_BG)
+                timerPill.strokeColor = C_TIMER_AMBER_BORDER
+                tvTimerLabel.setTextColor(C_AMBER_LABEL)
+                tvTimer.setTextColor(C_AMBER_LABEL)
+                tvTimerLabel.text = "Expires in "
+            }
+            TIMER_RED -> {
+                timerPill.setCardBackgroundColor(C_TIMER_RED_BG)
+                timerPill.strokeColor = C_TIMER_RED_BORDER
+                tvTimerLabel.setTextColor(C_RED_LABEL)
+                tvTimer.setTextColor(C_RED_LABEL)
+                tvTimerLabel.text = "Expired "
+            }
+        }
+    }
+
+    private fun pulseTimer() {
+        val anim = TranslateAnimation(0f, 0f, 0f, -4f).apply {
+            duration = 500
+            repeatMode = ValueAnimator.REVERSE
+            repeatCount = ValueAnimator.INFINITE
+        }
+        timerPill.startAnimation(anim)
+    }
 
     // ─── OTP Box Logic ─────────────────────────────────
+
     private fun setupOtpBoxes() {
         otpBoxes.forEachIndexed { index, box ->
             box.addTextChangedListener(object : TextWatcher {
@@ -241,14 +356,17 @@ class OtpActivity : BaseActivity() {
             active -> {
                 card.strokeColor = C_BOX_ACTIVE_BORDER
                 card.setCardBackgroundColor(C_BOX_FILL)
+                card.strokeWidth = dp(2.5f).toInt()
             }
             filled -> {
                 card.strokeColor = C_BOX_FILLED_BORDER
                 card.setCardBackgroundColor(C_BOX_FILL)
+                card.strokeWidth = dp(1.5f).toInt()
             }
             else -> {
                 card.strokeColor = C_BOX_EMPTY_BORDER
                 card.setCardBackgroundColor(C_BOX_FILL)
+                card.strokeWidth = dp(1.5f).toInt()
             }
         }
     }
@@ -264,18 +382,24 @@ class OtpActivity : BaseActivity() {
     }
 
     // ─── Error Helpers ─────────────────────────────────────────────
-    private fun showError(msg: String) { /* ... */ }
-    private fun hideError() { /* ... */ }
+
+    private fun showError(msg: String) {
+        tvError.text = msg
+        tvError.visibility = View.VISIBLE
+    }
+
+    private fun hideError() {
+        tvError.visibility = View.GONE
+    }
+
     private fun dp(v: Float) = v * resources.displayMetrics.density
 
     // ─── Supabase OTP Verification ───────────────────────────────
+
     private fun verifyOtp(otp: String) {
         showLoading(true)
         lifecycleScope.launch {
             try {
-                // FIX: OTP was sent via signInWith(OTP) { createUser = true },
-                // which issues an EMAIL-type code, not SIGNUP. Verifying with
-                // the wrong type throws every time even for a correct code.
                 SupabaseClient.client.auth.verifyEmailOtp(
                     type  = OtpType.Email.EMAIL,
                     email = email,
@@ -308,10 +432,17 @@ class OtpActivity : BaseActivity() {
     private fun resendOtp() {
         lifecycleScope.launch {
             try {
+                // Reset timer first
+                if (::countDownTimer.isInitialized) {
+                    countDownTimer.cancel()
+                }
+
                 SupabaseClient.client.auth.signInWith(OTP) {
                     this.email = this@OtpActivity.email
                     createUser = true
                 }
+
+                // Clear OTP boxes
                 otpBoxes.forEachIndexed { i, box ->
                     box.setText("")
                     setBoxStyle(i, active = false, filled = false)
@@ -319,7 +450,10 @@ class OtpActivity : BaseActivity() {
                 otpBoxes[0].requestFocus()
                 setBoxStyle(0, active = true, filled = false)
                 hideError()
+
+                // Restart timer
                 startTimer()
+
                 Toast.makeText(this@OtpActivity, "New OTP sent to $email ✓", Toast.LENGTH_SHORT).show()
             } catch (e: Exception) {
                 Toast.makeText(this@OtpActivity, "Failed to resend OTP. Try again.", Toast.LENGTH_SHORT).show()
@@ -328,16 +462,13 @@ class OtpActivity : BaseActivity() {
     }
 
     // ─── Common Navigation + Dual Save ──────────────────────────
+
     private fun proceedToProfile() {
         showLoading(true)
 
-        // FIX: wait for the Firestore write to actually succeed before
-        // navigating, instead of firing it and moving on immediately.
         val uid = auth.currentUser?.uid ?: email
         db.collection("users").document(uid).set(buildUserMap(uid))
             .addOnSuccessListener {
-                // Supabase insert can stay fire-and-forget; it's a secondary
-                // record and shouldn't block navigation if it's slow/fails.
                 saveToSupabase(uid)
 
                 val prefs = getSharedPreferences("SkillSwapPrefs", MODE_PRIVATE)
@@ -381,8 +512,6 @@ class OtpActivity : BaseActivity() {
     }
 
     private fun saveToSupabase(uid: String) {
-        // Insert a login/auth record into the "profiles" table in Supabase
-        // Table "profiles" needs columns: id (uuid/text), email, login_provider, created_at
         lifecycleScope.launch {
             try {
                 SupabaseClient.client.postgrest["profiles"].insert(
@@ -394,10 +523,8 @@ class OtpActivity : BaseActivity() {
                         "created_at" to System.currentTimeMillis()
                     )
                 )
-                // Insert result ignored; navigation isn't blocked by Supabase failures
             } catch (e: Exception) {
                 e.printStackTrace()
-                // Don't block navigation if Supabase insert fails
             }
         }
     }
@@ -409,6 +536,8 @@ class OtpActivity : BaseActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
-        if (::countDownTimer.isInitialized) countDownTimer.cancel()
+        if (::countDownTimer.isInitialized) {
+            countDownTimer.cancel()
+        }
     }
 }

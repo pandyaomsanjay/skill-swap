@@ -21,6 +21,10 @@ import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.auth.providers.builtin.OTP
 import kotlinx.coroutines.launch
 import androidx.lifecycle.lifecycleScope
+import android.graphics.PorterDuff
+import android.graphics.drawable.Drawable
+import androidx.core.content.ContextCompat
+import android.view.View
 
 class Createaccount : BaseActivity() {
 
@@ -36,8 +40,26 @@ class Createaccount : BaseActivity() {
     private lateinit var btnCreateAccount: MaterialButton
     private lateinit var btnGoogleSignIn: MaterialButton
     private lateinit var tvSignIn: TextView
+    private lateinit var tvTermsLink: TextView
 
     private val EMAIL_PATTERN = Regex("^[A-Za-z0-9+_.-]+@(.+)$")
+
+    // Register for Terms activity result
+    private val termsLauncher = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == RESULT_OK) {
+            // User accepted terms from Terms page - CHECK THE BOX WITH ANIMATION
+            termsCheckbox.isChecked = true
+            // Apply custom checkmark style
+            applyCheckedStyle()
+            Toast.makeText(this, "Terms accepted ✓", Toast.LENGTH_SHORT).show()
+        } else {
+            // User pressed back without accepting
+            termsCheckbox.isChecked = false
+            applyUncheckedStyle()
+        }
+    }
 
     private val googleLauncher =
         registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
@@ -71,7 +93,8 @@ class Createaccount : BaseActivity() {
                         return@registerForActivityResult
                     }
 
-                    firebaseAuthWithGoogle(idToken, email, account.displayName ?: "")
+                    // Check if account exists before proceeding
+                    checkIfAccountExistsThenProceed(email, idToken, account.displayName ?: "")
                 } catch (e: ApiException) {
                     Log.e("GoogleSignIn", "ApiException code=${e.statusCode}", e)
                     Toast.makeText(
@@ -104,6 +127,8 @@ class Createaccount : BaseActivity() {
 
         bindViews()
         setupListeners()
+        // Apply initial style
+        applyUncheckedStyle()
     }
 
     private fun bindViews() {
@@ -115,6 +140,7 @@ class Createaccount : BaseActivity() {
         btnCreateAccount = findViewById(R.id.btnCreateAccount)
         btnGoogleSignIn = findViewById(R.id.btnGoogleSignIn)
         tvSignIn = findViewById(R.id.tvSignIn)
+        tvTermsLink = findViewById(R.id.tvTermsLink)
     }
 
     private fun setupListeners() {
@@ -123,17 +149,84 @@ class Createaccount : BaseActivity() {
                 signUpWithEmail()
             } else if (!termsCheckbox.isChecked) {
                 Toast.makeText(this, "Please accept Terms & Conditions", Toast.LENGTH_SHORT).show()
+                openTermsPage()
+            }
+        }
+
+        // Make "Terms & Conditions" text clickable to open Terms page
+        tvTermsLink.setOnClickListener {
+            openTermsPage()
+        }
+
+        // Checkbox click - if user tries to check, open Terms page first
+        termsCheckbox.setOnClickListener {
+            if (!termsCheckbox.isChecked) {
+                // User is trying to check the box - open Terms page first
+                // Keep it unchecked until they come back
+                termsCheckbox.isChecked = false
+                openTermsPage()
+            } else {
+                // User is trying to uncheck - allow it
+                applyUncheckedStyle()
             }
         }
 
         btnGoogleSignIn.setOnClickListener {
-            signInWithGoogle()
+            if (termsCheckbox.isChecked) {
+                signInWithGoogle()
+            } else {
+                Toast.makeText(this, "Please accept Terms & Conditions first", Toast.LENGTH_SHORT).show()
+                openTermsPage()
+            }
         }
 
         tvSignIn.setOnClickListener {
             startActivity(Intent(this, Login::class.java))
             finish()
         }
+    }
+
+    /**
+     * Applies checked style to the checkbox with a visible tick
+     */
+    private fun applyCheckedStyle() {
+        // Use the default checked state which shows a tick
+        termsCheckbox.isChecked = true
+        // Ensure the button tint is applied (brand_navy)
+        termsCheckbox.buttonTintList = android.content.res.ColorStateList.valueOf(
+            ContextCompat.getColor(this, R.color.brand_navy)
+        )
+        // Add a small animation effect
+        termsCheckbox.animate()
+            .scaleX(1.1f)
+            .scaleY(1.1f)
+            .setDuration(200)
+            .withEndAction {
+                termsCheckbox.animate()
+                    .scaleX(1.0f)
+                    .scaleY(1.0f)
+                    .setDuration(200)
+                    .start()
+            }
+            .start()
+    }
+
+    /**
+     * Applies unchecked style to the checkbox
+     */
+    private fun applyUncheckedStyle() {
+        termsCheckbox.isChecked = false
+        termsCheckbox.buttonTintList = android.content.res.ColorStateList.valueOf(
+            ContextCompat.getColor(this, R.color.brand_navy)
+        )
+    }
+
+    /**
+     * Opens the Terms of Service page and waits for result
+     */
+    private fun openTermsPage() {
+        val intent = Intent(this, TermsOfServiceActivity::class.java)
+        termsLauncher.launch(intent)
     }
 
     private fun validateInputs(): Boolean {
@@ -182,44 +275,13 @@ class Createaccount : BaseActivity() {
             }
     }
 
-    /**
-     * Signs out of the cached Google session first, so the account chooser
-     * is always shown — the user picks an account on every click instead of
-     * Play Services silently reusing the last one.
-     */
     private fun signInWithGoogle() {
         googleSignInClient.signOut().addOnCompleteListener {
             googleLauncher.launch(googleSignInClient.signInIntent)
         }
     }
 
-    private fun firebaseAuthWithGoogle(idToken: String, email: String, name: String) {
-        val credential = GoogleAuthProvider.getCredential(idToken, null)
-        auth.signInWithCredential(credential)
-            .addOnCompleteListener { task ->
-                if (task.isSuccessful) {
-                    // Account exists in Firebase Auth now — but check if a
-                    // Firestore profile already exists for this email before
-                    // letting them "create" a duplicate account.
-                    checkIfAccountExistsThenProceed(email, name)
-                } else {
-                    Log.e("GoogleSignIn", "Firebase auth failed", task.exception)
-                    Toast.makeText(
-                        this,
-                        "Firebase auth with Google failed: ${task.exception?.message}",
-                        Toast.LENGTH_SHORT
-                    ).show()
-                }
-            }
-    }
-
-    /**
-     * Blocks account creation via Google if a Firestore user doc already
-     * exists for this email. Signs the user back out (both Firebase and
-     * Google) and redirects to Login instead of proceeding to OTP/profile
-     * creation.
-     */
-    private fun checkIfAccountExistsThenProceed(email: String, name: String) {
+    private fun checkIfAccountExistsThenProceed(email: String, idToken: String, name: String) {
         db.collection("users").whereEqualTo("email", email).get()
             .addOnSuccessListener { snapshot ->
                 if (!snapshot.isEmpty) {
@@ -234,11 +296,8 @@ class Createaccount : BaseActivity() {
                     startActivity(Intent(this, Login::class.java))
                     finish()
                 } else {
-                    // New user — safe to proceed with OTP + account creation.
-                    val prefs = getSharedPreferences("TempPrefs", MODE_PRIVATE)
-                    prefs.edit().putString("google_name", name).apply()
-                    Toast.makeText(this, "Google sign‑in successful", Toast.LENGTH_SHORT).show()
-                    sendSupabaseOtp(email, "", isGoogle = true)
+                    // New user - proceed with Firebase auth and OTP
+                    firebaseAuthWithGoogle(idToken, email, name)
                 }
             }
             .addOnFailureListener { e ->
@@ -251,12 +310,28 @@ class Createaccount : BaseActivity() {
             }
     }
 
-    /**
-     * Sole email-verification path. Sends an OTP via Supabase (using your
-     * configured SMTP) and moves to the OTP screen on success. Firebase's
-     * createUserWithEmailAndPassword + sendEmailVerification link flow has
-     * been removed — no fallback, so make sure Supabase SMTP is reliable.
-     */
+    private fun firebaseAuthWithGoogle(idToken: String, email: String, name: String) {
+        val credential = GoogleAuthProvider.getCredential(idToken, null)
+        auth.signInWithCredential(credential)
+            .addOnCompleteListener { task ->
+                if (task.isSuccessful) {
+                    // Store Google name temporarily
+                    val prefs = getSharedPreferences("TempPrefs", MODE_PRIVATE)
+                    prefs.edit().putString("google_name", name).apply()
+
+                    Toast.makeText(this, "Google sign‑in successful", Toast.LENGTH_SHORT).show()
+                    sendSupabaseOtp(email, "", isGoogle = true)
+                } else {
+                    Log.e("GoogleSignIn", "Firebase auth failed", task.exception)
+                    Toast.makeText(
+                        this,
+                        "Firebase auth with Google failed: ${task.exception?.message}",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
+            }
+    }
+
     private fun sendSupabaseOtp(email: String, password: String, isGoogle: Boolean) {
         btnCreateAccount.isEnabled = false
         lifecycleScope.launch {
