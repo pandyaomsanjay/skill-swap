@@ -13,7 +13,7 @@
     <uses-permission
         android:name="android.permission.READ_EXTERNAL_STORAGE"
         android:maxSdkVersion="32" />
-    <uses-permission android:name="android.permission.INTERNET" />    <!-- Queries for Google Play services (required for some devices) -->
+    <uses-permission android:name="android.permission.INTERNET" />
     <queries>
         <package android:name="com.google.android.gms" />
         <package android:name="com.android.vending" />
@@ -99,9 +99,7 @@
         <activity
             android:name=".MyTradesActivity"
             android:exported="false" />
-        <activity
-            android:name=".ForgotPasswordActivity"
-            android:exported="false" />
+        <activity android:name=".ForgotPasswordEmailActivity" />
         <activity
             android:name=".Profile"
             android:exported="false" />
@@ -175,7 +173,26 @@
 
         <activity android:name=".ChatListActivity" android:exported="false" />
         <activity android:name=".NewChatActivity" android:exported="false" />
+        <activity android:name=".ResetPasswordActivity" />
 
+        <activity
+            android:name=".OtpVerificationActivity"
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
+
+        <activity
+            android:name=".AdminVideoPlayerActivity"
+            android:exported="false"
+            android:supportsPictureInPicture="true"
+            android:configChanges="orientation|screenSize|screenLayout|keyboardHidden|smallestScreenSize|uiMode" />
+
+        <activity
+            android:name=".VideoPlayerActivity"
+            android:exported="false"
+            android:screenOrientation="unspecified"
+            android:configChanges="orientation|screenSize|screenLayout|keyboardHidden|smallestScreenSize"
+            android:supportsPictureInPicture="true"
+            android:resizeableActivity="true" />
 
     </application>
 

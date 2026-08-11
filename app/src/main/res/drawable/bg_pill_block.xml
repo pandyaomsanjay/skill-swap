@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Block User pill. Reuses the same #8E1919 danger red already used for
+     error text elsewhere in the admin screens, so warnings read consistently
+     across the app. -->
+<selector xmlns:android="http://schemas.android.com/res/android">
+
+    <item android:state_pressed="true">
+        <shape android:shape="rectangle">
+            <solid android:color="#6E1313" />
+            <corners android:radius="20dp" />
+        </shape>
+    </item>
+
+    <item>
+        <shape android:shape="rectangle">
+            <solid android:color="#8E1919" />
+            <corners android:radius="20dp" />
+        </shape>
+    </item>
+
+</selector>

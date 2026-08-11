@@ -407,6 +407,18 @@ class OtpActivity : BaseActivity() {
                 )
 
                 if (!isGoogle && password.isNotEmpty()) {
+                    // Set the password on the Supabase auth user too —
+                    // verifyEmailOtp() above creates the Supabase user
+                    // passwordless, so without this, Supabase-based login
+                    // would never work for this account.
+                    try {
+                        SupabaseClient.client.auth.updateUser {
+                            this.password = password
+                        }
+                    } catch (e: Exception) {
+                        android.util.Log.e("OtpActivity", "Failed to set Supabase password: ${e.message}", e)
+                    }
+
                     auth.createUserWithEmailAndPassword(email, password)
                         .addOnCompleteListener { task ->
                             if (!task.isSuccessful) {

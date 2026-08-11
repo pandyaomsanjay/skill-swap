@@ -1,6 +1,7 @@
 package com.example.sgp
 
 import android.content.Context
+import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
 import android.util.Log
@@ -15,8 +16,6 @@ import com.google.android.material.textfield.TextInputEditText
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.firestore
 import kotlinx.coroutines.*
-import com.google.android.material.bottomnavigation.BottomNavigationView
-import android.content.Intent
 import io.github.jan.supabase.storage.storage
 import com.google.firebase.Firebase
 
@@ -165,31 +164,7 @@ class AddSkillActivity : BaseActivity() {
         }
 
         // Bottom Navigation
-        val bottomNav = findViewById<BottomNavigationView>(R.id.bottomNavigation)
-        bottomNav.selectedItemId = R.id.nav_add_skill
-        bottomNav.setOnItemSelectedListener { item ->
-            when (item.itemId) {
-                R.id.nav_home -> {
-                    startActivity(Intent(this, Home::class.java))
-                    finish()
-                    true
-                }
-                R.id.nav_explore -> {
-                    startActivity(Intent(this, ExploreActivity::class.java))
-                    true
-                }
-                R.id.nav_add_skill -> true
-                R.id.nav_trades -> {
-                    startActivity(Intent(this, MyTradesActivity::class.java))
-                    true
-                }
-                R.id.nav_profile -> {
-                    startActivity(Intent(this, Profile::class.java))
-                    true
-                }
-                else -> false
-            }
-        }
+        BottomNavHelper.setup(this, BottomNavItem.ADD_SKILL)
     }
 
     private fun handleSingleVideoSelected(uri: Uri) {

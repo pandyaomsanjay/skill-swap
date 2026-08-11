@@ -3,7 +3,7 @@ package com.example.sgp
 import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.location.Geocoder
+import android.location.Geocoder   // built-in Android SDK class that converts coordinates to a readable address and back
 import android.location.Location
 import android.net.Uri
 import android.os.Bundle
@@ -16,7 +16,7 @@ import androidx.activity.result.ActivityResultLauncher
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import com.bumptech.glide.Glide
-import com.google.android.gms.location.FusedLocationProviderClient
+import com.google.android.gms.location.FusedLocationProviderClient //Google Play Services library that fetches the device's raw GPS coordinates
 import com.google.android.gms.location.LocationServices
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.card.MaterialCardView

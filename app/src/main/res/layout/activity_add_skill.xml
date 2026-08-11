@@ -340,15 +340,11 @@
         </LinearLayout>
     </ScrollView>
 
-    <!-- Bottom Navigation -->
-    <com.google.android.material.bottomnavigation.BottomNavigationView
-        android:id="@+id/bottomNavigation"
+    <include
+        android:id="@+id/customBottomNav"
+        layout="@layout/custom_bottom_nav"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="@android:color/white"
-        app:menu="@menu/bottom_navigation_menu"
-        app:itemIconTint="@drawable/bottom_nav_colors"
-        app:itemTextColor="@drawable/bottom_nav_colors"
-        app:labelVisibilityMode="labeled"
-        app:elevation="8dp" />
+        android:layout_gravity="bottom" />
+
 </LinearLayout>

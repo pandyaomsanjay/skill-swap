@@ -4,6 +4,7 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.google.gms.google.services)
+    alias(libs.plugins.kotlin.serialization)
 }
 
 android {
@@ -59,7 +60,6 @@ dependencies {
     implementation(libs.firebase.database)
     implementation(libs.firebase.firestore)
     implementation(libs.firebase.storage)
-    // Firebase Functions (uses BoM only for this artifact's version)
     implementation(platform("com.google.firebase:firebase-bom:33.13.0"))
     implementation("com.google.firebase:firebase-functions-ktx")
 
@@ -69,7 +69,7 @@ dependencies {
     // Places
     implementation(libs.places)
 
-    // Glide (image loading — used for profile avatars)
+    // Glide
     implementation(libs.glide)
 
     // Supabase
@@ -77,15 +77,17 @@ dependencies {
     implementation(libs.supabase.auth)
     implementation(libs.supabase.postgrest)
     implementation(libs.supabase.storage)
+    implementation(libs.supabase.functions)
 
     // Ktor
     implementation(libs.ktor.client.core)
     implementation(libs.ktor.client.android)
-    // NOTE: removed implementation(libs.cardview.v7) — this was the legacy
-    // com.android.support:cardview-v7:28.0.0 artifact, which duplicates
-    // META-INF/androidx.cardview_cardview.version with the AndroidX
-    // cardview that MaterialCardView (from `material`) already pulls in
-    // transitively. MaterialCardView works fine without it.
+    implementation(libs.ktor.client.content.negotiation)
+    implementation(libs.ktor.serialization.kotlinx.json)
+
+    // kotlinx.serialization runtime — required for @Serializable request/response
+    // data classes in AuthRepository.kt
+    implementation(libs.kotlinx.serialization.json)
 
     // Testing
     testImplementation(libs.junit)

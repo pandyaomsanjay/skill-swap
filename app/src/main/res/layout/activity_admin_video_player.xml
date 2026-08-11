@@ -1,0 +1,233 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="#EAF1F5"
+    android:fitsSystemWindows="true">
+
+    <!-- ===== Video (embedded, YouTube-watch-page style — not fullscreen by default) ===== -->
+    <FrameLayout
+        android:id="@+id/videoContainer"
+        android:layout_width="match_parent"
+        android:layout_height="220dp"
+        android:background="#000000"
+        android:clipChildren="true">
+
+        <!-- Custom center-crop VideoView (see ResizableVideoView.kt) so the
+             video fills this container fully instead of letterboxing with
+             black bars on the side. -->
+        <com.example.sgp.ResizableVideoView
+            android:id="@+id/videoView"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_gravity="center" />
+
+        <ProgressBar
+            android:id="@+id/progressBar"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:indeterminateTint="#F9F3EF" />
+
+        <!-- Back / close, top-left over the video. Wrapped in topBar so the
+             Activity can hide it in fullscreen / PiP (matches AdminVideoPlayerActivity's
+             findViewById(R.id.topBar) + R.id.btnClose). Navy-tinted (#1B3C53 at ~70%
+             opacity) instead of plain black, so it reads as this app's brand color
+             sitting over the video rather than a generic system overlay — same
+             language as the navy pills/header used on the Reports screen. -->
+        <FrameLayout
+            android:id="@+id/topBar"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="top|start">
+
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/btnClose"
+                android:layout_width="34dp"
+                android:layout_height="34dp"
+                android:layout_margin="10dp"
+                app:cardCornerRadius="17dp"
+                app:cardElevation="0dp"
+                app:cardBackgroundColor="#B31B3C53"
+                android:clickable="true"
+                android:focusable="true"
+                android:foreground="?attr/selectableItemBackgroundBorderless">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:gravity="center"
+                    android:text="←"
+                    android:textColor="#F9F3EF"
+                    android:textSize="16sp"
+                    android:textStyle="bold" />
+            </com.google.android.material.card.MaterialCardView>
+
+        </FrameLayout>
+
+        <!-- PiP + fullscreen, bottom-right over the video (same corner YouTube
+             puts its settings/fullscreen icons in) -->
+        <LinearLayout
+            android:id="@+id/videoControlsRow"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="bottom|end"
+            android:layout_margin="10dp"
+            android:orientation="horizontal">
+
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/btnPip"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:layout_marginEnd="8dp"
+                app:cardCornerRadius="16dp"
+                app:cardElevation="0dp"
+                app:cardBackgroundColor="#B31B3C53"
+                android:clickable="true"
+                android:focusable="true"
+                android:foreground="?attr/selectableItemBackgroundBorderless">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:gravity="center"
+                    android:text="⧉"
+                    android:textColor="#F9F3EF"
+                    android:textSize="14sp"
+                    android:textStyle="bold" />
+            </com.google.android.material.card.MaterialCardView>
+
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/btnFullscreen"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                app:cardCornerRadius="16dp"
+                app:cardElevation="0dp"
+                app:cardBackgroundColor="#B31B3C53"
+                android:clickable="true"
+                android:focusable="true"
+                android:foreground="?attr/selectableItemBackgroundBorderless">
+
+                <TextView
+                    android:id="@+id/tvFullscreenIcon"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:gravity="center"
+                    android:text="⛶"
+                    android:textColor="#F9F3EF"
+                    android:textSize="14sp"
+                    android:textStyle="bold" />
+            </com.google.android.material.card.MaterialCardView>
+
+        </LinearLayout>
+
+    </FrameLayout>
+
+    <!-- ===== Details below the video (title, actions, report info) ===== -->
+    <androidx.core.widget.NestedScrollView
+        android:id="@+id/scrollContent"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="18dp">
+
+            <TextView
+                android:id="@+id/tvVideoTitle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Reported Video"
+                android:textColor="#1B3C53"
+                android:textSize="17sp"
+                android:fontFamily="sans-serif-medium"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/tvVideoSubtitle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:text=""
+                android:textColor="#456882"
+                android:textSize="12.5sp"
+                android:visibility="gone" />
+
+            <!-- Quick admin actions, right where YouTube puts Like/Share/Save.
+                 bg_pill_resolve/bg_pill_block already use the same green/red as
+                 the status pills on the Reports list, so these stay as-is. -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_marginTop="16dp">
+
+                <TextView
+                    android:id="@+id/btnResolve"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:layout_marginEnd="8dp"
+                    android:gravity="center"
+                    android:paddingTop="11dp"
+                    android:paddingBottom="11dp"
+                    android:text="✅ Resolve Report"
+                    android:textColor="#1B3C53"
+                    android:textSize="13sp"
+                    android:textStyle="bold"
+                    android:background="@drawable/bg_pill_resolve"
+                    android:clickable="true"
+                    android:focusable="true" />
+
+                <TextView
+                    android:id="@+id/btnBlock"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:paddingTop="11dp"
+                    android:paddingBottom="11dp"
+                    android:text="🚫 Block User"
+                    android:textColor="#1B3C53"
+                    android:textSize="13sp"
+                    android:textStyle="bold"
+                    android:background="@drawable/bg_pill_block"
+                    android:clickable="true"
+                    android:focusable="true" />
+
+            </LinearLayout>
+
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:background="#D9E3EA"
+                android:layout_marginTop="18dp"
+                android:layout_marginBottom="16dp" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Report Details"
+                android:textColor="#1B3C53"
+                android:textSize="14sp"
+                android:fontFamily="sans-serif-medium"
+                android:textStyle="bold" />
+
+            <!-- Populated in AdminVideoPlayerActivity.populateReportDetails() -->
+            <LinearLayout
+                android:id="@+id/llReportInfo"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:layout_marginTop="10dp" />
+
+        </LinearLayout>
+
+    </androidx.core.widget.NestedScrollView>
+
+</LinearLayout>

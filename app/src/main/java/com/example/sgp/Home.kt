@@ -9,15 +9,14 @@ import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
+import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.appcompat.app.ActionBarDrawerToggle
 import androidx.appcompat.app.AlertDialog
-import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.GravityCompat
 import androidx.drawerlayout.widget.DrawerLayout
 import com.bumptech.glide.Glide
-import com.google.android.material.bottomnavigation.BottomNavigationView
-import com.google.android.material.card.MaterialCardView
+import com.google.android.material.button.MaterialButton
 import com.google.android.material.navigation.NavigationView
 import com.google.android.material.snackbar.Snackbar
 import com.google.firebase.auth.FirebaseAuth
@@ -28,7 +27,6 @@ class Home : BaseActivity(), NavigationView.OnNavigationItemSelectedListener {
 
     private lateinit var drawerLayout: DrawerLayout
     private lateinit var navigationView: NavigationView
-    private lateinit var bottomNavigationView: BottomNavigationView
     private lateinit var sharedPreferences: SharedPreferences
     private lateinit var ivProfilePicture: ImageView
     private val db: FirebaseFirestore by lazy { FirebaseFirestore.getInstance() }
@@ -53,7 +51,6 @@ class Home : BaseActivity(), NavigationView.OnNavigationItemSelectedListener {
 
         drawerLayout = findViewById(R.id.main)
         navigationView = findViewById(R.id.navigationView)
-        bottomNavigationView = findViewById(R.id.bottomNavigation)
         ivProfilePicture = findViewById(R.id.ivProfilePicture)
 
         val toolbar: androidx.appcompat.widget.Toolbar = findViewById(R.id.toolbar)
@@ -71,7 +68,6 @@ class Home : BaseActivity(), NavigationView.OnNavigationItemSelectedListener {
         toggle.syncState()
 
         navigationView.setNavigationItemSelectedListener(this)
-        bottomNavigationView.setOnNavigationItemSelectedListener(bottomNavListener)
 
         ivProfilePicture.setOnClickListener {
             startActivity(Intent(this, Profile::class.java))
@@ -82,56 +78,39 @@ class Home : BaseActivity(), NavigationView.OnNavigationItemSelectedListener {
         updateGreetingMessage()
         loadUserData()
 
-        bottomNavigationView.selectedItemId = R.id.nav_home
-    }
-
-    private val bottomNavListener = BottomNavigationView.OnNavigationItemSelectedListener { item ->
-        when (item.itemId) {
-            R.id.nav_home -> true
-            R.id.nav_explore -> {
-                startActivity(Intent(this, ExploreActivity::class.java))
-                true
-            }
-            R.id.nav_add_skill -> {
-                startActivity(Intent(this, AddSkillActivity::class.java))
-                true
-            }
-            R.id.nav_trades -> {
-                startActivity(Intent(this, MyTradesActivity::class.java))
-                true
-            }
-            R.id.nav_profile -> {
-                val intent = Intent(this, Profile::class.java)
-                intent.putExtra("email", sharedPreferences.getString(KEY_USER_EMAIL, ""))
-                startActivity(intent)
-                true
-            }
-            else -> false
-        }
+        BottomNavHelper.setup(this, BottomNavItem.HOME)
     }
 
     private fun setupQuickActions() {
-        findViewById<MaterialCardView>(R.id.cardFindSkills).setOnClickListener {
+        // Material Buttons
+        findViewById<MaterialButton>(R.id.btnNearby).setOnClickListener {
+            showMessage("Show nearby skills")
+        }
+
+        findViewById<MaterialButton>(R.id.btnFilter).setOnClickListener {
+            showMessage("Open filters")
+        }
+
+        // LinearLayout cards (not MaterialCardView)
+        findViewById<LinearLayout>(R.id.cardFindSkills).setOnClickListener {
             startActivity(Intent(this, ExploreActivity::class.java))
         }
-        findViewById<MaterialCardView>(R.id.cardTeachSkills).setOnClickListener {
+
+        findViewById<LinearLayout>(R.id.cardTeachSkills).setOnClickListener {
             startActivity(Intent(this, AddSkillActivity::class.java))
         }
-        findViewById<MaterialCardView>(R.id.cardCreateTrade).setOnClickListener {
+
+        findViewById<LinearLayout>(R.id.cardCreateTrade).setOnClickListener {
             startActivity(Intent(this, CreateTradeActivity::class.java))
         }
+
+        // TextViews
         findViewById<TextView>(R.id.tvSeeAll).setOnClickListener {
             startActivity(Intent(this, ExploreActivity::class.java))
         }
+
         findViewById<TextView>(R.id.tvViewAllTrades).setOnClickListener {
             startActivity(Intent(this, MyTradesActivity::class.java))
-        }
-
-        findViewById<View>(R.id.btnNearby).setOnClickListener {
-            showMessage("Show nearby skills")
-        }
-        findViewById<View>(R.id.btnFilter).setOnClickListener {
-            showMessage("Open filters")
         }
     }
 
@@ -184,8 +163,6 @@ class Home : BaseActivity(), NavigationView.OnNavigationItemSelectedListener {
             loadProfileImage(userProfileImage)
         }
 
-        // Refresh from Firestore so a profile picture (or stats) updated on
-        // another screen shows up here without waiting for a fresh login.
         refreshFromFirestore(userEmail)
     }
 
@@ -217,8 +194,6 @@ class Home : BaseActivity(), NavigationView.OnNavigationItemSelectedListener {
                     )
                 }
             }
-        // Silently ignore failures here — the cached SharedPreferences values
-        // (already applied above) are a fine fallback if this fetch fails.
     }
 
     private fun loadProfileImage(url: String) {
@@ -233,7 +208,6 @@ class Home : BaseActivity(), NavigationView.OnNavigationItemSelectedListener {
             ivProfilePicture.setImageResource(R.drawable.ic_default_profile)
         }
 
-        // Also update the nav drawer header image
         navigationView.getHeaderView(0)?.findViewById<ImageView>(R.id.imgNavProfile)?.let { navImg ->
             if (url.isNotEmpty()) {
                 Glide.with(this)
@@ -249,7 +223,7 @@ class Home : BaseActivity(), NavigationView.OnNavigationItemSelectedListener {
     }
 
     private fun updateUI(userName: String, location: String, points: Int) {
-        findViewById<TextView>(R.id.tvUserName).text = capitalizeName(userName)
+        findViewById<TextView>(R.id.tvUserName).text = formatName(userName)
         findViewById<TextView>(R.id.tvPoints).text = points.toString()
     }
 
@@ -262,7 +236,7 @@ class Home : BaseActivity(), NavigationView.OnNavigationItemSelectedListener {
         totalSkills: Int
     ) {
         val headerView = navigationView.getHeaderView(0) ?: return
-        headerView.findViewById<TextView>(R.id.tvNavUserName)?.text = capitalizeName(userName)
+        headerView.findViewById<TextView>(R.id.tvNavUserName)?.text = formatName(userName)
         headerView.findViewById<TextView>(R.id.tvNavUserEmail)?.text = userEmail
         headerView.findViewById<TextView>(R.id.tvNavUserPoints)?.text = "$points Points"
 
@@ -284,16 +258,16 @@ class Home : BaseActivity(), NavigationView.OnNavigationItemSelectedListener {
 
     override fun onNavigationItemSelected(item: MenuItem): Boolean {
         when (item.itemId) {
-            R.id.nav_home -> { /* already on home */ }
+            R.id.nav_home -> { }
             R.id.nav_my_skills -> showMessage("My Skills")
             R.id.nav_my_trades -> startActivity(Intent(this, MyTradesActivity::class.java))
-            R.id.nav_messages -> showMessage("Messages")
+            R.id.nav_messages -> startActivity(Intent(this, ChatListActivity::class.java))
             R.id.nav_notifications -> startActivity(Intent(this, NotificationsActivity::class.java))
             R.id.nav_favorites -> showMessage("Favorites")
             R.id.nav_history -> showMessage("History")
             R.id.nav_settings -> startActivity(Intent(this, SettingsActivity::class.java))
-            R.id.nav_help -> startActivity(Intent(this, HelpSupportActivity::class.java))   // was showMessage(...)
-            R.id.nav_about -> startActivity(Intent(this, AboutActivity::class.java))        // was showMessage(...)
+            R.id.nav_help -> startActivity(Intent(this, HelpSupportActivity::class.java))
+            R.id.nav_about -> showMessage("About")
             R.id.nav_logout -> performLogout()
         }
         drawerLayout.closeDrawer(GravityCompat.START)
@@ -324,12 +298,9 @@ class Home : BaseActivity(), NavigationView.OnNavigationItemSelectedListener {
             .setTitle("Logout")
             .setMessage("Are you sure you want to logout?")
             .setPositiveButton("Logout") { _, _ ->
-                // Sign out from Firebase Authentication
                 FirebaseAuth.getInstance().signOut()
-                // Clear local SharedPreferences
                 sharedPreferences.edit().clear().apply()
                 showMessage("Logged out successfully")
-                // Navigate to Login
                 val intent = Intent(this, Login::class.java)
                 intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
                 startActivity(intent)
@@ -341,6 +312,16 @@ class Home : BaseActivity(), NavigationView.OnNavigationItemSelectedListener {
 
     private fun showMessage(message: String) {
         Snackbar.make(findViewById(android.R.id.content), message, Snackbar.LENGTH_SHORT).show()
+    }
+
+    private fun formatName(name: String): String {
+        return name.split(" ").joinToString(" ") { word ->
+            if (word.isNotEmpty()) {
+                word.substring(0, 1).uppercase() + word.substring(1).lowercase()
+            } else {
+                word
+            }
+        }
     }
 
     override fun onResume() {

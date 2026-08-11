@@ -6,12 +6,64 @@
     <color name="black">#000000</color>
     <color name="transparent">#00000000</color>
 
-    <!-- ================= BRAND (Admin Panel navy — the app's real
-         primary look, sampled from the Admin Panel screen) ================= -->
+    <!-- ================= BRAND (Admin Panel navy — kept for the admin
+         side / legacy references) ================= -->
     <color name="brand_navy">#1B3C53</color>
     <color name="brand_navy_dark">#132B3E</color>
     <color name="brand_tan">#D2C1B6</color>
     <color name="brand_cream">#F9F3EF</color>
+
+    <!-- ================= BRAND (User-side — blue palette) ================= -->
+    <color name="brand_blue">#96B6C5</color>
+    <color name="brand_blue_light">#ADC4CE</color>
+    <color name="brand_tan_new">#EEE0C9</color>
+    <color name="brand_cream_new">#F1F0E8</color>
+
+    <!-- ================= BRAND (User-side — sage/green palette) ================= -->
+    <color name="brand_sage_dark">#819A91</color>
+    <color name="brand_sage">#A7C1A8</color>
+    <color name="brand_sage_light">#D1D8BE</color>
+    <color name="brand_sage_cream">#EEEFE0</color>
+
+    <!-- ================= BRAND (User-side — forest/olive palette) ================= -->
+    <color name="brand_forest">#254336</color>
+    <color name="brand_forest_mid">#6B8A7A</color>
+    <color name="brand_olive">#B7B597</color>
+    <color name="brand_olive_light">#DAD3BE</color>
+
+    <!-- ================= BRAND (User-side — sage/gold palette) ================= -->
+    <color name="brand_sage2">#8FA28A</color>
+    <color name="brand_sage2_light">#C7D3C0</color>
+    <color name="brand_sage2_cream">#F7F4ED</color>
+    <color name="brand_gold">#C8A96B</color>
+
+    <!-- ================= BRAND (User-side — pastel cyan palette) ================= -->
+    <color name="brand_cyan_dark">#71C9CE</color>
+    <color name="brand_cyan">#A6E3E9</color>
+    <color name="brand_cyan_light">#CBF1F5</color>
+    <color name="brand_cyan_cream">#E3FDFD</color>
+
+    <!-- ================= BRAND (User-side — dark slate/teal palette) ================= -->
+    <color name="brand_slate_darkest">#222831</color>
+    <color name="brand_slate">#393E46</color>
+    <color name="brand_teal_accent">#00ADB5</color>
+    <color name="brand_slate_light">#EEEEEE</color>
+
+    <color name="brand_final_primary">#0F6E6A</color>
+    <color name="brand_final_primary_container">#CFEEEB</color>
+    <color name="brand_final_background">#F7F5F0</color>
+    <color name="brand_final_accent">#E4A94A</color>
+    <color name="brand_final_on_primary_container">#083A38</color>
+
+    <!-- On-color / surface companions for the palette above -->
+    <color name="brand_final_on_primary">#FFFFFF</color>
+    <color name="brand_final_surface">#FFFFFF</color>
+    <color name="brand_final_on_surface">#1B2422</color>
+    <color name="brand_final_on_background">#1B2422</color>
+    <color name="brand_final_surface_variant">#E8E4DC</color>
+    <color name="brand_final_on_surface_variant">#5B6B69</color>
+    <color name="brand_final_outline_variant">#D8D2C6</color>
+    <color name="brand_final_on_accent">#3A2A08</color>
 
     <!-- ================= MODERN THEME (Primary Indigo) ================= -->
     <color name="primary">#4F46E5</color>
@@ -132,10 +184,6 @@
     <color name="primary_green">#10B981</color>
     <color name="primary_green_container">#D1FAE5</color>
 
-
-
     <color name="admin_bg_light_blue">#EAF1F5</color>
-
-
 
 </resources>

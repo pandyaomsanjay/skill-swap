@@ -15,7 +15,6 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.lifecycle.lifecycleScope
 import com.bumptech.glide.Glide
-import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.google.android.material.button.MaterialButton
 import com.google.firebase.Firebase
 import com.google.firebase.firestore.FirebaseFirestore
@@ -41,7 +40,6 @@ class Profile : BaseActivity() {
     private lateinit var tvCredits: TextView
     private lateinit var skillsContainer: LinearLayout
     private lateinit var achievementsGrid: GridLayout
-    private lateinit var bottomNav: BottomNavigationView
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -51,7 +49,8 @@ class Profile : BaseActivity() {
 
         initViews()
         setupToolbar()
-        setupBottomNavigation()
+
+        BottomNavHelper.setup(this, BottomNavItem.PROFILE)
 
         getUserFromPrefs()
         loadUserProfile()
@@ -66,7 +65,6 @@ class Profile : BaseActivity() {
         tvCredits = findViewById(R.id.tvCredits)
         skillsContainer = findViewById(R.id.skillsContainer)
         achievementsGrid = findViewById(R.id.achievementsGrid)
-        bottomNav = findViewById(R.id.bottomNavigation)
 
         findViewById<ImageButton>(R.id.btnChangePhoto).setOnClickListener {
             showImagePickerDialog()
@@ -119,33 +117,6 @@ class Profile : BaseActivity() {
         supportActionBar?.title = getString(R.string.my_profile)
         toolbar.setNavigationOnClickListener {
             finish()
-        }
-    }
-
-    private fun setupBottomNavigation() {
-        bottomNav.selectedItemId = R.id.nav_profile
-        bottomNav.setOnItemSelectedListener { item ->
-            when (item.itemId) {
-                R.id.nav_home -> {
-                    startActivity(Intent(this, Home::class.java))
-                    finish()
-                    true
-                }
-                R.id.nav_explore -> {
-                    startActivity(Intent(this, ExploreActivity::class.java))
-                    true
-                }
-                R.id.nav_add_skill -> {
-                    startActivity(Intent(this, AddSkillActivity::class.java))
-                    true
-                }
-                R.id.nav_trades -> {
-                    startActivity(Intent(this, MyTradesActivity::class.java))
-                    true
-                }
-                R.id.nav_profile -> true
-                else -> false
-            }
         }
     }
 

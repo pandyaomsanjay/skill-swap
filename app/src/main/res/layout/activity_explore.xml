@@ -5,154 +5,379 @@
     android:layout_height="match_parent"
     android:orientation="vertical"
     android:fitsSystemWindows="true"
-    android:background="@color/background">
+    android:background="#EAF1F5">
 
-    <com.google.android.material.appbar.MaterialToolbar
-        android:id="@+id/toolbar"
-        android:layout_width="match_parent"
-        android:layout_height="?attr/actionBarSize"
-        android:background="@color/primary"
-        app:title="Explore Skills"
-        app:titleTextColor="@color/text_white"
-        app:navigationIcon="@drawable/outline_arrow_back_24" />
-
-    <!-- Chat inbox icon with unread badge — below toolbar, above search -->
+    <!-- ===================== Header ===================== -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:gravity="end"
-        android:paddingEnd="@dimen/spacing_lg"
-        android:paddingTop="@dimen/spacing_sm">
-
-        <FrameLayout
-            android:id="@+id/btnChatInbox"
-            android:layout_width="40dp"
-            android:layout_height="40dp"
-            android:clickable="true"
-            android:focusable="true"
-            android:foreground="?attr/selectableItemBackgroundBorderless">
-
-            <ImageView
-                android:layout_width="24dp"
-                android:layout_height="24dp"
-                android:layout_gravity="center"
-                android:src="@drawable/baseline_chat_24"
-                app:tint="@color/primary" />
-
-            <View
-                android:id="@+id/unreadBadge"
-                android:layout_width="10dp"
-                android:layout_height="10dp"
-                android:layout_gravity="top|end"
-                android:layout_marginTop="4dp"
-                android:layout_marginEnd="4dp"
-                android:background="@drawable/badge_dot"
-                android:visibility="gone" />
-
-        </FrameLayout>
-
-    </LinearLayout>
-
-    <!-- Search Bar -->
-    <androidx.cardview.widget.CardView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_margin="@dimen/spacing_lg"
-        app:cardCornerRadius="@dimen/radius_lg"
-        app:cardElevation="@dimen/elevation_sm">
-
-        <com.google.android.material.textfield.TextInputLayout
-            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            app:startIconDrawable="@drawable/outline_search_24"
-            app:startIconTint="@color/primary"
-            app:endIconMode="clear_text">
-
-            <com.google.android.material.textfield.TextInputEditText
-                android:id="@+id/etSearch"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:hint="Search skills..."
-                android:textSize="@dimen/text_body_large" />
-        </com.google.android.material.textfield.TextInputLayout>
-    </androidx.cardview.widget.CardView>
-
-    <!-- Filter Chips -->
-    <HorizontalScrollView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:paddingHorizontal="@dimen/spacing_lg"
-        android:paddingBottom="@dimen/spacing_md"
-        android:scrollbars="none">
+        android:orientation="vertical"
+        android:background="#1B3C53"
+        android:paddingStart="20dp"
+        android:paddingEnd="20dp"
+        android:paddingTop="22dp"
+        android:paddingBottom="20dp">
 
         <LinearLayout
-            android:layout_width="wrap_content"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="horizontal">
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginBottom="18dp">
 
-            <com.google.android.material.chip.Chip
-                android:id="@+id/chipAll"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="All"
-                android:textColor="@color/primary"
-                android:backgroundTint="@color/primary_soft"
-                app:chipStrokeColor="@color/primary"
-                app:chipStrokeWidth="1dp"
-                android:layout_marginEnd="@dimen/spacing_sm" />
+            <ImageView
+                android:id="@+id/ivLogo"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:src="@drawable/outline_handshake_24"
+                app:tint="#F9F3EF" />
 
-            <com.google.android.material.chip.Chip
-                android:id="@+id/chipProgramming"
-                android:layout_width="wrap_content"
+            <TextView
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:text="Programming"
-                android:textColor="@color/text_secondary"
-                android:layout_marginEnd="@dimen/spacing_sm" />
+                android:layout_weight="1"
+                android:layout_marginStart="14dp"
+                android:text="Explore Skills"
+                android:textColor="#F9F3EF"
+                android:textSize="19sp"
+                android:fontFamily="sans-serif-medium"
+                android:textStyle="bold" />
 
-            <com.google.android.material.chip.Chip
-                android:id="@+id/chipDesign"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Design"
-                android:textColor="@color/text_secondary"
-                android:layout_marginEnd="@dimen/spacing_sm" />
+            <FrameLayout
+                android:id="@+id/btnChatInbox"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:clickable="true"
+                android:focusable="true"
+                android:foreground="?attr/selectableItemBackgroundBorderless">
 
-            <com.google.android.material.chip.Chip
-                android:id="@+id/chipMusic"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Music"
-                android:textColor="@color/text_secondary"
-                android:layout_marginEnd="@dimen/spacing_sm" />
+                <ImageView
+                    android:layout_width="26dp"
+                    android:layout_height="26dp"
+                    android:layout_gravity="center"
+                    android:src="@drawable/baseline_chat_24"
+                    app:tint="#F9F3EF" />
 
-            <com.google.android.material.chip.Chip
-                android:id="@+id/chipLanguage"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Language"
-                android:textColor="@color/text_secondary" />
+                <View
+                    android:id="@+id/unreadBadge"
+                    android:layout_width="10dp"
+                    android:layout_height="10dp"
+                    android:layout_gravity="top|end"
+                    android:layout_marginTop="2dp"
+                    android:layout_marginEnd="2dp"
+                    android:background="@drawable/badge_dot"
+                    android:visibility="gone" />
+            </FrameLayout>
         </LinearLayout>
-    </HorizontalScrollView>
 
-    <!-- RecyclerView -->
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/recyclerView"
+        <!-- Search Bar -->
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:cardCornerRadius="16dp"
+            app:cardElevation="0dp"
+            app:strokeWidth="1dp"
+            app:strokeColor="#456882"
+            app:cardBackgroundColor="#456882"
+            android:layout_marginBottom="16dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:paddingStart="14dp"
+                android:paddingEnd="14dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="🔍"
+                    android:textSize="16sp"
+                    android:layout_marginEnd="10dp" />
+
+                <EditText
+                    android:id="@+id/etSearch"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:paddingTop="12dp"
+                    android:paddingBottom="12dp"
+                    android:background="@android:color/transparent"
+                    android:hint="Search skills, category, or user"
+                    android:textColorHint="#FFFEFE"
+                    android:textColor="#F9F3EF"
+                    android:textSize="14sp"
+                    android:inputType="text"
+                    android:maxLines="1" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- Category Tabs — scrollable pill row -->
+        <HorizontalScrollView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:scrollbars="none"
+            android:overScrollMode="never">
+
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                app:cardCornerRadius="22dp"
+                app:cardElevation="0dp"
+                app:cardBackgroundColor="#456882">
+
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:padding="4dp">
+
+                    <com.google.android.material.card.MaterialCardView
+                        android:id="@+id/tabAll"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        app:cardCornerRadius="18dp"
+                        app:cardElevation="0dp"
+                        app:cardBackgroundColor="#F9F3EF"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:foreground="?attr/selectableItemBackground">
+
+                        <TextView
+                            android:id="@+id/tvTabAll"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:gravity="center"
+                            android:paddingTop="10dp"
+                            android:paddingBottom="10dp"
+                            android:paddingStart="16dp"
+                            android:paddingEnd="16dp"
+                            android:text="All"
+                            android:textColor="#1B3C53"
+                            android:textSize="10sp"
+                            android:textStyle="bold"
+                            android:maxLines="1"
+                            android:ellipsize="end" />
+                    </com.google.android.material.card.MaterialCardView>
+
+                    <com.google.android.material.card.MaterialCardView
+                        android:id="@+id/tabTechnology"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        app:cardCornerRadius="18dp"
+                        app:cardElevation="0dp"
+                        app:cardBackgroundColor="@android:color/transparent"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:foreground="?attr/selectableItemBackground">
+
+                        <TextView
+                            android:id="@+id/tvTabTechnology"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:gravity="center"
+                            android:paddingTop="10dp"
+                            android:paddingBottom="10dp"
+                            android:paddingStart="16dp"
+                            android:paddingEnd="16dp"
+                            android:text="Technology"
+                            android:textColor="#D2C1B6"
+                            android:textSize="10sp"
+                            android:textStyle="bold"
+                            android:maxLines="1"
+                            android:ellipsize="end" />
+                    </com.google.android.material.card.MaterialCardView>
+
+                    <com.google.android.material.card.MaterialCardView
+                        android:id="@+id/tabArts"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        app:cardCornerRadius="18dp"
+                        app:cardElevation="0dp"
+                        app:cardBackgroundColor="@android:color/transparent"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:foreground="?attr/selectableItemBackground">
+
+                        <TextView
+                            android:id="@+id/tvTabArts"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:gravity="center"
+                            android:paddingTop="10dp"
+                            android:paddingBottom="10dp"
+                            android:paddingStart="16dp"
+                            android:paddingEnd="16dp"
+                            android:text="Arts"
+                            android:textColor="#D2C1B6"
+                            android:textSize="10sp"
+                            android:textStyle="bold"
+                            android:maxLines="1"
+                            android:ellipsize="end" />
+                    </com.google.android.material.card.MaterialCardView>
+
+                    <com.google.android.material.card.MaterialCardView
+                        android:id="@+id/tabSports"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        app:cardCornerRadius="18dp"
+                        app:cardElevation="0dp"
+                        app:cardBackgroundColor="@android:color/transparent"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:foreground="?attr/selectableItemBackground">
+
+                        <TextView
+                            android:id="@+id/tvTabSports"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:gravity="center"
+                            android:paddingTop="10dp"
+                            android:paddingBottom="10dp"
+                            android:paddingStart="16dp"
+                            android:paddingEnd="16dp"
+                            android:text="Sports"
+                            android:textColor="#D2C1B6"
+                            android:textSize="10sp"
+                            android:textStyle="bold"
+                            android:maxLines="1"
+                            android:ellipsize="end" />
+                    </com.google.android.material.card.MaterialCardView>
+
+                    <com.google.android.material.card.MaterialCardView
+                        android:id="@+id/tabHome"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        app:cardCornerRadius="18dp"
+                        app:cardElevation="0dp"
+                        app:cardBackgroundColor="@android:color/transparent"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:foreground="?attr/selectableItemBackground">
+
+                        <TextView
+                            android:id="@+id/tvTabHome"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:gravity="center"
+                            android:paddingTop="10dp"
+                            android:paddingBottom="10dp"
+                            android:paddingStart="16dp"
+                            android:paddingEnd="16dp"
+                            android:text="Home"
+                            android:textColor="#D2C1B6"
+                            android:textSize="10sp"
+                            android:textStyle="bold"
+                            android:maxLines="1"
+                            android:ellipsize="end" />
+                    </com.google.android.material.card.MaterialCardView>
+
+                    <com.google.android.material.card.MaterialCardView
+                        android:id="@+id/tabEducation"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        app:cardCornerRadius="18dp"
+                        app:cardElevation="0dp"
+                        app:cardBackgroundColor="@android:color/transparent"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:foreground="?attr/selectableItemBackground">
+
+                        <TextView
+                            android:id="@+id/tvTabEducation"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:gravity="center"
+                            android:paddingTop="10dp"
+                            android:paddingBottom="10dp"
+                            android:paddingStart="16dp"
+                            android:paddingEnd="16dp"
+                            android:text="Education"
+                            android:textColor="#D2C1B6"
+                            android:textSize="10sp"
+                            android:textStyle="bold"
+                            android:maxLines="1"
+                            android:ellipsize="end" />
+                    </com.google.android.material.card.MaterialCardView>
+
+                    <com.google.android.material.card.MaterialCardView
+                        android:id="@+id/tabLifestyle"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        app:cardCornerRadius="18dp"
+                        app:cardElevation="0dp"
+                        app:cardBackgroundColor="@android:color/transparent"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:foreground="?attr/selectableItemBackground">
+
+                        <TextView
+                            android:id="@+id/tvTabLifestyle"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:gravity="center"
+                            android:paddingTop="10dp"
+                            android:paddingBottom="10dp"
+                            android:paddingStart="16dp"
+                            android:paddingEnd="16dp"
+                            android:text="Lifestyle"
+                            android:textColor="#D2C1B6"
+                            android:textSize="10sp"
+                            android:textStyle="bold"
+                            android:maxLines="1"
+                            android:ellipsize="end" />
+                    </com.google.android.material.card.MaterialCardView>
+
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+        </HorizontalScrollView>
+    </LinearLayout>
+
+    <!-- ===================== Skill List ===================== -->
+    <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_weight="1"
-        android:padding="@dimen/spacing_lg"
-        android:clipToPadding="false" />
+        android:layout_weight="1">
 
-    <!-- Bottom Navigation -->
-    <com.google.android.material.bottomnavigation.BottomNavigationView
-        android:id="@+id/bottomNavigation"
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/recyclerView"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:padding="16dp"
+            android:clipToPadding="false" />
+
+        <LinearLayout
+            android:id="@+id/emptyState"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:visibility="gone">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="🧩"
+                android:textSize="40sp"
+                android:layout_marginBottom="12dp" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="No skills found"
+                android:textColor="#456882"
+                android:textSize="14sp"
+                android:fontFamily="sans-serif-medium" />
+        </LinearLayout>
+    </FrameLayout>
+
+    <include
+        android:id="@+id/customBottomNav"
+        layout="@layout/custom_bottom_nav"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="@color/surface"
-        app:menu="@menu/bottom_navigation_menu"
-        app:itemIconTint="@drawable/bottom_nav_colors"
-        app:itemTextColor="@drawable/bottom_nav_colors"
-        app:labelVisibilityMode="labeled"
-        app:elevation="@dimen/elevation_md" />
+        android:layout_gravity="bottom" />
+
 </LinearLayout>

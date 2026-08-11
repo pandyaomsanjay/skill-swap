@@ -1,0 +1,184 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:paddingStart="16dp"
+    android:paddingEnd="16dp"
+    android:paddingBottom="16dp"
+    android:paddingTop="8dp">
+
+    <com.google.android.material.card.MaterialCardView
+        android:layout_width="match_parent"
+        android:layout_height="64dp"
+        app:cardCornerRadius="32dp"
+        app:cardElevation="8dp"
+        app:cardBackgroundColor="#1B3C53">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:weightSum="5"
+            android:paddingStart="8dp"
+            android:paddingEnd="8dp">
+
+            <!-- Home -->
+            <LinearLayout
+                android:id="@+id/navHome"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:clickable="true"
+                android:focusable="true"
+                android:contentDescription="Home"
+                android:foreground="?attr/selectableItemBackgroundBorderless">
+
+                <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/cardHomeIcon"
+                    android:layout_width="46dp"
+                    android:layout_height="46dp"
+                    app:cardCornerRadius="23dp"
+                    app:cardElevation="2dp"
+                    app:cardBackgroundColor="#FFFFFF">
+
+                    <ImageView
+                        android:id="@+id/ivHomeIcon"
+                        android:layout_width="20dp"
+                        android:layout_height="20dp"
+                        android:layout_gravity="center"
+                        android:src="@drawable/baseline_home_24"
+                        app:tint="#1B3C53"
+                        android:importantForAccessibility="no"/>
+                </com.google.android.material.card.MaterialCardView>
+            </LinearLayout>
+
+            <!-- Explore -->
+            <LinearLayout
+                android:id="@+id/navExplore"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:clickable="true"
+                android:focusable="true"
+                android:contentDescription="Explore"
+                android:foreground="?attr/selectableItemBackgroundBorderless">
+
+                <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/cardExploreIcon"
+                    android:layout_width="46dp"
+                    android:layout_height="46dp"
+                    app:cardCornerRadius="23dp"
+                    app:cardElevation="0dp"
+                    app:cardBackgroundColor="#00000000">
+
+                    <ImageView
+                        android:id="@+id/ivExploreIcon"
+                        android:layout_width="20dp"
+                        android:layout_height="20dp"
+                        android:layout_gravity="center"
+                        android:src="@drawable/outline_explore_24"
+                        app:tint="#FFFFFF"
+                        android:importantForAccessibility="no"/>
+                </com.google.android.material.card.MaterialCardView>
+            </LinearLayout>
+
+            <!-- Add Skill -->
+            <LinearLayout
+                android:id="@+id/navAddSkill"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:clickable="true"
+                android:focusable="true"
+                android:contentDescription="Add Skill"
+                android:foreground="?attr/selectableItemBackgroundBorderless">
+
+                <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/cardAddSkillIcon"
+                    android:layout_width="46dp"
+                    android:layout_height="46dp"
+                    app:cardCornerRadius="23dp"
+                    app:cardElevation="0dp"
+                    app:cardBackgroundColor="#00000000">
+
+                    <ImageView
+                        android:id="@+id/ivAddSkillIcon"
+                        android:layout_width="20dp"
+                        android:layout_height="20dp"
+                        android:layout_gravity="center"
+                        android:src="@drawable/baseline_add_24"
+                        app:tint="#FFFFFF"
+                        android:importantForAccessibility="no"/>
+                </com.google.android.material.card.MaterialCardView>
+            </LinearLayout>
+
+            <!-- Trades -->
+            <LinearLayout
+                android:id="@+id/navTrades"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:clickable="true"
+                android:focusable="true"
+                android:contentDescription="Trades"
+                android:foreground="?attr/selectableItemBackgroundBorderless">
+
+                <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/cardTradesIcon"
+                    android:layout_width="46dp"
+                    android:layout_height="46dp"
+                    app:cardCornerRadius="23dp"
+                    app:cardElevation="0dp"
+                    app:cardBackgroundColor="#00000000">
+
+                    <ImageView
+                        android:id="@+id/ivTradesIcon"
+                        android:layout_width="20dp"
+                        android:layout_height="20dp"
+                        android:layout_gravity="center"
+                        android:src="@drawable/outline_handshake_24"
+                        app:tint="#FFFFFF"
+                        android:importantForAccessibility="no"/>
+                </com.google.android.material.card.MaterialCardView>
+            </LinearLayout>
+
+            <!-- Profile -->
+            <LinearLayout
+                android:id="@+id/navProfile"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:clickable="true"
+                android:focusable="true"
+                android:contentDescription="Profile"
+                android:foreground="?attr/selectableItemBackgroundBorderless">
+
+                <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/cardProfileIcon"
+                    android:layout_width="46dp"
+                    android:layout_height="46dp"
+                    app:cardCornerRadius="23dp"
+                    app:cardElevation="0dp"
+                    app:cardBackgroundColor="#00000000">
+
+                    <ImageView
+                        android:id="@+id/ivProfileIcon"
+                        android:layout_width="20dp"
+                        android:layout_height="20dp"
+                        android:layout_gravity="center"
+                        android:src="@drawable/outline_person_24"
+                        app:tint="#FFFFFF"
+                        android:importantForAccessibility="no"/>
+                </com.google.android.material.card.MaterialCardView>
+            </LinearLayout>
+
+        </LinearLayout>
+    </com.google.android.material.card.MaterialCardView>
+</FrameLayout>

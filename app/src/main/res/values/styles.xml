@@ -84,4 +84,13 @@
         <item name="android:textColor">#F5F7FF</item>
     </style>
 
+
+    <style name="RuleText">
+        <item name="android:textSize">13sp</item>
+        <item name="android:textColor">#9E9E9E</item>
+        <item name="android:paddingTop">2dp</item>
+        <item name="android:paddingBottom">2dp</item>
+    </style>
+
+
 </resources>

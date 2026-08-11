@@ -571,6 +571,7 @@ class AdminReportsActivity : AppCompatActivity() {
         }
 
         addRow("📋", "View Details") { viewReportDetails(report) }
+        addRow("🎬", "View Reported Video") { viewReportedSkill(report) }
         addRow("👤", "View User Profile") { viewUserProfile(report) }
         if (!report.status.equals("resolved", ignoreCase = true)) {
             addRow("✅", "Resolve Report", Color.parseColor("#34D399")) { updateReportStatus(report, "resolved") }
@@ -628,18 +629,28 @@ class AdminReportsActivity : AppCompatActivity() {
         val dialog = AlertDialog.Builder(this).setView(root).create()
         dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
 
-        val btnOk = pillButton("OK", Color.parseColor("#1B3C53"), Color.WHITE).apply {
-            layoutParams = LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.WRAP_CONTENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT
-            ).apply {
-                topMargin = dp(16)
-                gravity = Gravity.END
+        val buttonRow = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+        val btnViewVideo = pillButton("View Video", Color.parseColor("#EAF1F5"), Color.parseColor("#1B3C53")).apply {
+            setOnClickListener {
+                dialog.dismiss()
+                viewReportedSkill(report)
             }
-            setPadding(dp(28), dp(10), dp(28), dp(10))
+        }
+        val btnOk = pillButton("OK", Color.parseColor("#1B3C53"), Color.WHITE).apply {
             setOnClickListener { dialog.dismiss() }
         }
-        root.addView(btnOk)
+        buttonRow.addView(
+            btnViewVideo,
+            LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply {
+                topMargin = dp(16)
+                marginEnd = dp(8)
+            }
+        )
+        buttonRow.addView(
+            btnOk,
+            LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply { topMargin = dp(16) }
+        )
+        root.addView(buttonRow)
 
         dialog.show()
     }
@@ -787,6 +798,160 @@ class AdminReportsActivity : AppCompatActivity() {
         root.addView(btnOk)
 
         dialog.show()
+    }
+
+    // ---------------- Reported video (new) ----------------
+
+    // Looks up the skill this report points to (via report.skillId) and shows
+    // its thumbnail/title/description with a button to actually play it, or
+    // open the playlist screen when the reported item is a playlist. Falls
+    // back gracefully for older reports that were created before skillId
+    // existed, and for skills that have since been deleted.
+    // Reports created before the skillId field existed on Report don't have it
+    // populated (Firestore just defaults it to ""). But submitReport() has always
+    // embedded the skill's real ID inside the description text as
+    // "...(Skill ID: <id>)", so we can recover it from there for old reports too.
+    private fun extractSkillId(report: Report): String {
+        if (report.skillId.isNotBlank()) return report.skillId
+        val match = Regex("Skill ID:\\s*([^)]+)\\)").find(report.description)
+        return match?.groupValues?.get(1)?.trim() ?: ""
+    }
+
+    private fun viewReportedSkill(report: Report) {
+        val skillId = extractSkillId(report)
+        if (skillId.isBlank()) {
+            Toast.makeText(this, "No video is linked to this report", Toast.LENGTH_SHORT).show()
+            return
+        }
+        db.collection("skills").document(skillId).get()
+            .addOnSuccessListener { doc ->
+                val skill = doc.toObject(Skill::class.java)
+                if (skill == null || !doc.exists()) {
+                    Toast.makeText(this, "This skill/video has been deleted", Toast.LENGTH_SHORT).show()
+                    return@addOnSuccessListener
+                }
+                showReportedSkillDialog(report, skill)
+            }
+            .addOnFailureListener { e ->
+                Toast.makeText(this, "Failed to load video: ${e.message}", Toast.LENGTH_LONG).show()
+            }
+    }
+
+    private fun showReportedSkillDialog(report: Report, skill: Skill) {
+        val root = dialogCard()
+        root.addView(dialogTitle("Reported Video"))
+        root.addView(dialogDivider())
+
+        // Thumbnail preview
+        val thumbCard = MaterialCardView(this).apply {
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, dp(160)
+            ).apply { bottomMargin = dp(14) }
+            radius = dp(12).toFloat()
+            cardElevation = 0f
+            setCardBackgroundColor(Color.parseColor("#EAF1F5"))
+        }
+        val thumbView = ImageView(this).apply {
+            layoutParams = ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
+            scaleType = ImageView.ScaleType.CENTER_CROP
+        }
+        thumbCard.addView(thumbView)
+        if (!skill.videoUrl.isNullOrEmpty()) {
+            Glide.with(this)
+                .load(skill.videoUrl)
+                .placeholder(R.drawable.baseline_videocam_24)
+                .error(R.drawable.baseline_videocam_24)
+                .into(thumbView)
+        } else {
+            thumbView.setImageResource(R.drawable.baseline_videocam_24)
+        }
+        root.addView(thumbCard)
+
+        root.addView(TextView(this).apply {
+            text = skill.title
+            setTextColor(Color.parseColor("#1B3C53"))
+            textSize = 16f
+            setTypeface(typeface, Typeface.BOLD)
+        })
+        root.addView(TextView(this).apply {
+            text = "${skill.category} • By ${skill.userName} • ${skill.credits} credits"
+            setTextColor(Color.parseColor("#456882"))
+            textSize = 12.5f
+            setPadding(0, dp(4), 0, dp(10))
+        })
+        if (skill.description.isNotBlank()) {
+            root.addView(TextView(this).apply {
+                text = skill.description
+                setTextColor(Color.parseColor("#1B3C53"))
+                textSize = 12.5f
+                setPadding(0, 0, 0, dp(6))
+            })
+        }
+
+        val dialog = AlertDialog.Builder(this).setView(root).create()
+        dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
+
+        val buttonRow = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply { topMargin = dp(10) }
+        }
+        val btnClose = pillButton("Close", Color.parseColor("#EAF1F5"), Color.parseColor("#456882")).apply {
+            setOnClickListener { dialog.dismiss() }
+        }
+        val isPlaylist = skill.skillType == "playlist"
+        val btnPlay = pillButton(
+            if (isPlaylist) "Open Playlist" else "▶ Play Video",
+            Color.parseColor("#1B3C53"),
+            Color.WHITE
+        ).apply {
+            setOnClickListener {
+                dialog.dismiss()
+                when {
+                    isPlaylist -> {
+                        val intent = Intent(this@AdminReportsActivity, PlaylistActivity::class.java)
+                        intent.putExtra("skillId", skill.id)
+                        startActivity(intent)
+                    }
+                    !skill.videoUrl.isNullOrEmpty() -> playReportedVideo(
+                        report,
+                        skill.videoUrl!!,
+                        skill.title,
+                        "${skill.category} • By ${skill.userName}"
+                    )
+                    else -> Toast.makeText(this@AdminReportsActivity, "No video available", Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
+        buttonRow.addView(btnClose, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply { marginEnd = dp(8) })
+        buttonRow.addView(btnPlay, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
+        root.addView(buttonRow)
+
+        dialog.show()
+    }
+
+    // Plays the video inside the app (AdminVideoPlayerActivity) instead of handing it
+    // off to whatever external player the device has installed. Also passes the
+    // report's own data through so the player screen can render "Report Details"
+    // and let the admin resolve/block right from there.
+    private fun playReportedVideo(report: Report, videoUrl: String, title: String, subtitle: String) {
+        val user = resolveUser(report.reportedUserId)
+        val reporter = resolveUser(report.reporterId)
+        val uid = resolveUid(report.reportedUserId)
+
+        val intent = Intent(this, AdminVideoPlayerActivity::class.java)
+        intent.putExtra("videoUrl", videoUrl)
+        intent.putExtra("videoTitle", title)
+        intent.putExtra("videoSubtitle", subtitle)
+        intent.putExtra("reportId", report.id)
+        intent.putExtra("reportedUserName", user?.name?.ifBlank { report.reportedUserId } ?: report.reportedUserId)
+        intent.putExtra("reporterName", reporter?.name?.ifBlank { report.reporterId } ?: report.reporterId)
+        intent.putExtra("reportReason", report.reason)
+        intent.putExtra("reportStatus", report.status)
+        intent.putExtra("reportTimestamp", report.timestamp)
+        intent.putExtra("reportedUserUid", uid)
+        startActivity(intent)
     }
 
     private fun updateReportStatus(report: Report, status: String) {

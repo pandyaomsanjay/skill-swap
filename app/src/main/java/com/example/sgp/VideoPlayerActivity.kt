@@ -1,0 +1,298 @@
+package com.example.sgp
+
+import android.app.PictureInPictureParams
+import android.content.pm.ActivityInfo
+import android.content.res.Configuration
+import android.net.Uri
+import android.os.Build
+import android.os.Bundle
+import android.util.Rational
+import android.view.View
+import android.view.ViewGroup
+import android.view.WindowManager
+import android.widget.FrameLayout
+import android.widget.MediaController
+import android.widget.ProgressBar
+import android.widget.TextView
+import android.widget.Toast
+import androidx.appcompat.app.AlertDialog
+import androidx.appcompat.app.AppCompatActivity
+import androidx.core.widget.NestedScrollView
+import com.google.firebase.Firebase
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.firestore
+
+// User-facing counterpart to AdminVideoPlayerActivity — same in-app viewing
+// experience (embedded player, fullscreen toggle that rotates to landscape
+// and expands to fill the screen like YouTube, Picture-in-Picture on
+// navigating away) but themed and scoped for a regular viewer: no
+// resolve/block controls, just Message the uploader and Report the video.
+class VideoPlayerActivity : AppCompatActivity() {
+
+    private lateinit var videoView: ResizableVideoView
+    private lateinit var videoContainer: FrameLayout
+    private lateinit var scrollContent: NestedScrollView
+    private lateinit var topBar: View
+    private lateinit var mediaController: MediaController
+    private lateinit var tvFullscreenIcon: TextView
+
+    private val db: FirebaseFirestore by lazy { Firebase.firestore }
+
+    private var isFullscreen = false
+    private var originalVideoContainerParams: ViewGroup.LayoutParams? = null
+
+    // Same five reasons used on the Explore list's report flow, kept in sync
+    // so reporting from inside the player matches reporting from the card.
+    private val reportReasons = arrayOf(
+        "Inappropriate or Offensive Content",
+        "Spam or Misleading Information",
+        "Fake Skill or Scam",
+        "Harassment or Abusive Behavior",
+        "Copyright or Intellectual Property Violation"
+    )
+
+    private var skillId: String = ""
+    private var skillTitle: String = ""
+    private var skillUserId: String = ""   // uploader's email (matches Report/Skill model)
+    private var skillUserName: String = ""
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContentView(R.layout.activity_video_player)
+
+        window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+
+        videoView = findViewById(R.id.videoView)
+        videoContainer = findViewById(R.id.videoContainer)
+        scrollContent = findViewById(R.id.scrollContent)
+        topBar = findViewById(R.id.topBar)
+        val progressBar: ProgressBar = findViewById(R.id.progressBar)
+        val tvTitle: TextView = findViewById(R.id.tvVideoTitle)
+        val tvSubtitle: TextView = findViewById(R.id.tvVideoSubtitle)
+        val tvDescription: TextView = findViewById(R.id.tvVideoDescription)
+        val btnClose: View = findViewById(R.id.btnClose)
+        val btnFullscreen: View = findViewById(R.id.btnFullscreen)
+        val btnPip: View = findViewById(R.id.btnPip)
+        val btnMessage: View = findViewById(R.id.btnMessage)
+        val btnReport: View = findViewById(R.id.btnReport)
+        tvFullscreenIcon = findViewById(R.id.tvFullscreenIcon)
+
+        originalVideoContainerParams = videoContainer.layoutParams
+
+        val videoUrl = intent.getStringExtra("videoUrl")
+        skillId = intent.getStringExtra("skillId") ?: ""
+        skillTitle = intent.getStringExtra("skillTitle") ?: "Skill Video"
+        skillUserId = intent.getStringExtra("skillUserId") ?: ""
+        skillUserName = intent.getStringExtra("skillUserName") ?: "Unknown"
+        val category = intent.getStringExtra("skillCategory") ?: ""
+        val credits = intent.getIntExtra("skillCredits", 0)
+        val description = intent.getStringExtra("skillDescription") ?: ""
+
+        tvTitle.text = skillTitle
+        tvSubtitle.text = listOfNotNull(
+            category.ifBlank { null },
+            "By $skillUserName",
+            "$credits credits"
+        ).joinToString(" • ")
+        tvDescription.text = description.ifBlank { "No description provided." }
+
+        btnClose.setOnClickListener { finish() }
+        btnFullscreen.setOnClickListener { toggleFullscreen() }
+        btnPip.setOnClickListener { enterPip() }
+        btnMessage.setOnClickListener { openChat() }
+        btnReport.setOnClickListener { showReportDialog() }
+
+        if (videoUrl.isNullOrBlank()) {
+            Toast.makeText(this, "No video available", Toast.LENGTH_SHORT).show()
+            finish()
+            return
+        }
+
+        mediaController = MediaController(this)
+        mediaController.setAnchorView(videoView)
+        videoView.setMediaController(mediaController)
+        videoView.setVideoURI(Uri.parse(videoUrl))
+
+        videoView.setOnPreparedListener { mp ->
+            progressBar.visibility = View.GONE
+            mp.isLooping = false
+            videoView.setVideoSize(mp.videoWidth, mp.videoHeight)
+            videoView.start()
+        }
+        videoView.setOnErrorListener { _, _, _ ->
+            progressBar.visibility = View.GONE
+            Toast.makeText(this, "Unable to play this video", Toast.LENGTH_SHORT).show()
+            true
+        }
+    }
+
+    // ---------------- Message the uploader ----------------
+
+    private fun openChat() {
+        val myEmail = FirebaseAuth.getInstance().currentUser?.email
+        if (myEmail.isNullOrEmpty()) {
+            Toast.makeText(this, "Please log in to chat", Toast.LENGTH_SHORT).show()
+            return
+        }
+        if (myEmail == skillUserId) {
+            Toast.makeText(this, "You can't message yourself about your own skill", Toast.LENGTH_SHORT).show()
+            return
+        }
+        val chatIntent = android.content.Intent(this, ChatActivity::class.java)
+        chatIntent.putExtra("otherUserEmail", skillUserId)
+        chatIntent.putExtra("otherUserName", skillUserName)
+        chatIntent.putExtra("skillId", skillId)
+        chatIntent.putExtra("skillTitle", skillTitle)
+        startActivity(chatIntent)
+    }
+
+    // ---------------- Report ----------------
+
+    private fun showReportDialog() {
+        val reporterEmail = FirebaseAuth.getInstance().currentUser?.email
+        if (reporterEmail.isNullOrEmpty()) {
+            Toast.makeText(this, "Please log in to report", Toast.LENGTH_SHORT).show()
+            return
+        }
+        if (reporterEmail == skillUserId) {
+            Toast.makeText(this, "You can't report your own skill", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        AlertDialog.Builder(this)
+            .setTitle("Report \"$skillTitle\"")
+            .setItems(reportReasons) { _, which ->
+                submitReport(reportReasons[which], reporterEmail)
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
+    }
+
+    private fun submitReport(reason: String, reporterEmail: String) {
+        val docRef = db.collection("reports").document()
+        val report = Report(
+            id = docRef.id,
+            reporterId = reporterEmail,
+            reportedUserId = skillUserId,
+            skillId = skillId,
+            reason = reason,
+            description = "Reported skill: \"$skillTitle\" (Skill ID: $skillId)",
+            status = "pending",
+            timestamp = System.currentTimeMillis()
+        )
+        docRef.set(report)
+            .addOnSuccessListener {
+                Toast.makeText(this, "Report submitted. Our team will review it.", Toast.LENGTH_LONG).show()
+            }
+            .addOnFailureListener { e ->
+                Toast.makeText(this, "Failed to submit report: ${e.message}", Toast.LENGTH_LONG).show()
+            }
+    }
+
+    // ---------------- Fullscreen (YouTube-style: rotate + expand the video, hide details) ----------------
+
+    private fun toggleFullscreen() {
+        isFullscreen = !isFullscreen
+        if (isFullscreen) {
+            requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
+            topBar.visibility = View.GONE
+            tvFullscreenIcon.text = "⤢"
+            hideSystemBars()
+            enterFullscreenVideoLayout()
+        } else {
+            requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
+            topBar.visibility = View.VISIBLE
+            tvFullscreenIcon.text = "⛶"
+            showSystemBars()
+            exitFullscreenVideoLayout()
+        }
+    }
+
+    private fun enterFullscreenVideoLayout() {
+        scrollContent.visibility = View.GONE
+        val params = videoContainer.layoutParams
+        params.height = ViewGroup.LayoutParams.MATCH_PARENT
+        videoContainer.layoutParams = params
+    }
+
+    private fun exitFullscreenVideoLayout() {
+        originalVideoContainerParams?.let {
+            videoContainer.layoutParams = it
+        }
+        scrollContent.visibility = View.VISIBLE
+    }
+
+    @Suppress("DEPRECATION")
+    private fun hideSystemBars() {
+        window.decorView.systemUiVisibility = (
+                View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
+                        or View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+                        or View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+                        or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+                        or View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+                        or View.SYSTEM_UI_FLAG_FULLSCREEN
+                )
+    }
+
+    @Suppress("DEPRECATION")
+    private fun showSystemBars() {
+        window.decorView.systemUiVisibility = View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+    }
+
+    // ---------------- Picture-in-Picture ----------------
+
+    private fun buildPipParams(): PictureInPictureParams {
+        return PictureInPictureParams.Builder()
+            .setAspectRatio(Rational(16, 9))
+            .build()
+    }
+
+    private fun enterPip() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
+            Toast.makeText(this, "Picture-in-picture needs Android 8.0 or newer", Toast.LENGTH_SHORT).show()
+            return
+        }
+        try {
+            enterPictureInPictureMode(buildPipParams())
+        } catch (e: Exception) {
+            Toast.makeText(this, "Picture-in-picture isn't supported on this device", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    override fun onUserLeaveHint() {
+        super.onUserLeaveHint()
+        if (::videoView.isInitialized && videoView.isPlaying) {
+            enterPip()
+        }
+    }
+
+    override fun onPictureInPictureModeChanged(isInPictureInPictureMode: Boolean, newConfig: Configuration) {
+        super.onPictureInPictureModeChanged(isInPictureInPictureMode, newConfig)
+        if (isInPictureInPictureMode) {
+            topBar.visibility = View.GONE
+            videoView.setMediaController(null)
+        } else {
+            topBar.visibility = if (isFullscreen) View.GONE else View.VISIBLE
+            videoView.setMediaController(mediaController)
+        }
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        if (::videoView.isInitialized && videoView.isPlaying) {
+            videoView.stopPlayback()
+        }
+    }
+
+    override fun onBackPressed() {
+        if (isFullscreen) {
+            toggleFullscreen()
+            return
+        }
+        if (::videoView.isInitialized && videoView.isPlaying) {
+            videoView.stopPlayback()
+        }
+        super.onBackPressed()
+    }
+}
