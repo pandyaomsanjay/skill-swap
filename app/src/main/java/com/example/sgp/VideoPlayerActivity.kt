@@ -3,14 +3,20 @@ package com.example.sgp
 import android.app.PictureInPictureParams
 import android.content.pm.ActivityInfo
 import android.content.res.Configuration
+import android.graphics.Color
+import android.graphics.Typeface
+import android.graphics.drawable.GradientDrawable
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.util.Rational
+import android.util.TypedValue
+import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
 import android.view.WindowManager
 import android.widget.FrameLayout
+import android.widget.LinearLayout
 import android.widget.MediaController
 import android.widget.ProgressBar
 import android.widget.TextView
@@ -23,11 +29,6 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.firestore
 
-// User-facing counterpart to AdminVideoPlayerActivity — same in-app viewing
-// experience (embedded player, fullscreen toggle that rotates to landscape
-// and expands to fill the screen like YouTube, Picture-in-Picture on
-// navigating away) but themed and scoped for a regular viewer: no
-// resolve/block controls, just Message the uploader and Report the video.
 class VideoPlayerActivity : AppCompatActivity() {
 
     private lateinit var videoView: ResizableVideoView
@@ -74,7 +75,6 @@ class VideoPlayerActivity : AppCompatActivity() {
         val btnClose: View = findViewById(R.id.btnClose)
         val btnFullscreen: View = findViewById(R.id.btnFullscreen)
         val btnPip: View = findViewById(R.id.btnPip)
-        val btnMessage: View = findViewById(R.id.btnMessage)
         val btnReport: View = findViewById(R.id.btnReport)
         tvFullscreenIcon = findViewById(R.id.tvFullscreenIcon)
 
@@ -100,7 +100,6 @@ class VideoPlayerActivity : AppCompatActivity() {
         btnClose.setOnClickListener { finish() }
         btnFullscreen.setOnClickListener { toggleFullscreen() }
         btnPip.setOnClickListener { enterPip() }
-        btnMessage.setOnClickListener { openChat() }
         btnReport.setOnClickListener { showReportDialog() }
 
         if (videoUrl.isNullOrBlank()) {
@@ -127,27 +126,7 @@ class VideoPlayerActivity : AppCompatActivity() {
         }
     }
 
-    // ---------------- Message the uploader ----------------
-
-    private fun openChat() {
-        val myEmail = FirebaseAuth.getInstance().currentUser?.email
-        if (myEmail.isNullOrEmpty()) {
-            Toast.makeText(this, "Please log in to chat", Toast.LENGTH_SHORT).show()
-            return
-        }
-        if (myEmail == skillUserId) {
-            Toast.makeText(this, "You can't message yourself about your own skill", Toast.LENGTH_SHORT).show()
-            return
-        }
-        val chatIntent = android.content.Intent(this, ChatActivity::class.java)
-        chatIntent.putExtra("otherUserEmail", skillUserId)
-        chatIntent.putExtra("otherUserName", skillUserName)
-        chatIntent.putExtra("skillId", skillId)
-        chatIntent.putExtra("skillTitle", skillTitle)
-        startActivity(chatIntent)
-    }
-
-    // ---------------- Report ----------------
+    // ---------------- Report (themed dialog — matches ExploreActivity) ----------------
 
     private fun showReportDialog() {
         val reporterEmail = FirebaseAuth.getInstance().currentUser?.email
@@ -160,13 +139,62 @@ class VideoPlayerActivity : AppCompatActivity() {
             return
         }
 
-        AlertDialog.Builder(this)
-            .setTitle("Report \"$skillTitle\"")
-            .setItems(reportReasons) { _, which ->
-                submitReport(reportReasons[which], reporterEmail)
+        val root = dialogCard()
+
+        root.addView(dialogTitle("Report \"$skillTitle\""))
+
+        root.addView(TextView(this).apply {
+            text = "Help us understand what's wrong"
+            setTextColor(Color.parseColor("#456882"))
+            textSize = 13f
+            setPadding(0, dp(4), 0, dp(4))
+        })
+
+        root.addView(dividerLine())
+
+        val dialog = AlertDialog.Builder(this).setView(root).create()
+        dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
+
+        reportReasons.forEachIndexed { index, reason ->
+            root.addView(reportReasonRow(reason) {
+                dialog.dismiss()
+                submitReport(reason, reporterEmail)
+            })
+            if (index != reportReasons.lastIndex) {
+                root.addView(dividerLine())
             }
-            .setNegativeButton("Cancel", null)
-            .show()
+        }
+
+        val btnCancel = pillButton("Cancel", Color.parseColor("#EAF1F5"), Color.parseColor("#456882")).apply {
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply {
+                topMargin = dp(16)
+                gravity = Gravity.END
+            }
+            setPadding(dp(28), dp(10), dp(28), dp(10))
+            setOnClickListener { dialog.dismiss() }
+        }
+        root.addView(btnCancel)
+
+        dialog.show()
+    }
+
+    /** A single tappable reason row, styled to match the app's navy/steel palette. */
+    private fun reportReasonRow(text: String, onClick: () -> Unit): TextView {
+        val outValue = TypedValue()
+        theme.resolveAttribute(android.R.attr.selectableItemBackground, outValue, true)
+        return TextView(this).apply {
+            this.text = text
+            setTextColor(Color.parseColor("#1B3C53"))
+            textSize = 15f
+            setPadding(dp(4), dp(8), dp(4), dp(8))
+            setBackgroundResource(outValue.resourceId)
+            isClickable = true
+            isFocusable = true
+            setOnClickListener { onClick() }
+        }
     }
 
     private fun submitReport(reason: String, reporterEmail: String) {
@@ -188,6 +216,60 @@ class VideoPlayerActivity : AppCompatActivity() {
             .addOnFailureListener { e ->
                 Toast.makeText(this, "Failed to submit report: ${e.message}", Toast.LENGTH_LONG).show()
             }
+    }
+
+    // ---------------- Themed-dialog helpers (shared white/cream rounded card + pill buttons) ----------------
+
+    private fun dp(value: Int): Int = (value * resources.displayMetrics.density).toInt()
+
+    private fun dialogCard(): LinearLayout {
+        return LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(20), dp(22), dp(20), dp(20))
+            background = GradientDrawable().apply {
+                cornerRadius = dp(20).toFloat()
+                setColor(Color.WHITE)
+            }
+        }
+    }
+
+    private fun dialogTitle(text: String): TextView {
+        return TextView(this).apply {
+            this.text = text
+            setTextColor(Color.parseColor("#1B3C53"))
+            textSize = 17f
+            setTypeface(typeface, Typeface.BOLD)
+        }
+    }
+
+    private fun dividerLine(): View {
+        return View(this).apply {
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                dp(1)
+            ).apply {
+                topMargin = dp(12)
+                bottomMargin = dp(12)
+            }
+            setBackgroundColor(Color.parseColor("#EAF1F5"))
+        }
+    }
+
+    private fun pillButton(text: String, bgColor: Int, textColor: Int): TextView {
+        return TextView(this).apply {
+            this.text = text
+            setTextColor(textColor)
+            textSize = 14f
+            setTypeface(typeface, Typeface.BOLD)
+            gravity = Gravity.CENTER
+            setPadding(0, dp(12), 0, dp(12))
+            background = GradientDrawable().apply {
+                cornerRadius = dp(24).toFloat()
+                setColor(bgColor)
+            }
+            isClickable = true
+            isFocusable = true
+        }
     }
 
     // ---------------- Fullscreen (YouTube-style: rotate + expand the video, hide details) ----------------

@@ -47,5 +47,12 @@ data class User(
     @set:PropertyName("isReported")
     var isReported: Boolean = false,
 
-    var supportQuestions: List<HashMap<String, Any>> = arrayListOf()
+    var supportQuestions: List<HashMap<String, Any>> = arrayListOf(),
+
+    // ---------- Follow system ----------
+    // Denormalized counters so profile screens don't need to query the
+    // "follows" collection just to show a number. Keep these in sync
+    // whenever a follow/unfollow write succeeds (increment/decrement).
+    var followersCount: Int = 0,
+    var followingCount: Int = 0
 )

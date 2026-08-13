@@ -1,0 +1,346 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#EAF1F5">
+
+    <androidx.core.widget.NestedScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:fillViewport="true">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:clipChildren="false"
+            android:clipToPadding="false"
+            android:paddingBottom="32dp">
+
+            <!-- ===================== Cover + Avatar ===================== -->
+            <FrameLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:clipChildren="false"
+                android:clipToPadding="false">
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="150dp"
+                    android:background="@drawable/bg_profile_cover" />
+
+                <!--
+                  Moved slightly lower (was 16dp top margin) so it doesn't
+                  sit flush against the status bar / notch area.
+                -->
+                <FrameLayout
+                    android:id="@+id/btnBack"
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:layout_marginStart="16dp"
+                    android:layout_marginTop="36dp"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:foreground="?attr/selectableItemBackgroundBorderless">
+
+                    <com.google.android.material.card.MaterialCardView
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        app:cardCornerRadius="20dp"
+                        app:cardElevation="0dp"
+                        app:cardBackgroundColor="#331B3C53">
+
+                        <ImageView
+                            android:layout_width="21dp"
+                            android:layout_height="15dp"
+                            android:layout_gravity="center"
+                            android:src="@drawable/baseline_arrow_back_24"
+                            app:tint="#F9F3EF" />
+                    </com.google.android.material.card.MaterialCardView>
+                </FrameLayout>
+
+                <com.google.android.material.card.MaterialCardView
+                    android:layout_width="96dp"
+                    android:layout_height="96dp"
+                    android:layout_gravity="bottom|start"
+                    android:layout_marginStart="20dp"
+                    android:layout_marginBottom="-40dp"
+                    app:cardCornerRadius="48dp"
+                    app:cardElevation="0dp"
+                    app:strokeWidth="4dp"
+                    app:strokeColor="#EAF1F5"
+                    app:cardBackgroundColor="#456882">
+
+                    <ImageView
+                        android:id="@+id/ivAvatar"
+                        android:layout_width="56dp"
+                        android:layout_height="56dp"
+                        android:layout_gravity="center"
+                        android:scaleType="fitCenter"
+                        android:src="@drawable/baseline_account_circle_24"
+                        app:tint="#F9F3EF" />
+                </com.google.android.material.card.MaterialCardView>
+
+            </FrameLayout>
+
+            <!-- ===================== Name / Headline block ===================== -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:paddingStart="20dp"
+                android:paddingEnd="20dp"
+                android:paddingTop="52dp">
+
+                <!-- Name + online status -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical">
+
+                    <TextView
+                        android:id="@+id/tvName"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="User Name"
+                        android:textColor="#1B3C53"
+                        android:textSize="21sp"
+                        android:fontFamily="sans-serif-medium"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/tvOnlineStatus"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="⚪ Offline"
+                        android:textColor="#456882"
+                        android:textSize="12sp"
+                        android:fontFamily="sans-serif-medium" />
+                </LinearLayout>
+
+                <TextView
+                    android:id="@+id/tvHeadline"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:text="Skill swapper on SkillSwap"
+                    android:textColor="#456882"
+                    android:textSize="13.5sp" />
+
+                <!-- Location row -->
+                <LinearLayout
+                    android:id="@+id/llLocation"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:layout_marginTop="6dp"
+                    android:visibility="gone">
+
+                    <TextView
+                        android:id="@+id/tvLocation"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="📍 —"
+                        android:textColor="#456882"
+                        android:textSize="12.5sp" />
+                </LinearLayout>
+
+                <!-- Skills they want to learn -->
+                <LinearLayout
+                    android:id="@+id/llSkillsLearn"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:layout_marginTop="6dp"
+                    android:visibility="gone">
+
+                    <TextView
+                        android:id="@+id/tvSkillsLearn"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="💡 Wants to learn: —"
+                        android:textColor="#456882"
+                        android:textSize="12.5sp" />
+                </LinearLayout>
+
+                <!-- Stats line: skills shared only -->
+                <TextView
+                    android:id="@+id/tvStats"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:text="0 skills shared"
+                    android:textColor="#2E9E63"
+                    android:textSize="13sp"
+                    android:fontFamily="sans-serif-medium"
+                    android:textStyle="bold" />
+
+                <!-- Message / More buttons -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:layout_marginTop="18dp">
+
+                    <com.google.android.material.card.MaterialCardView
+                        android:id="@+id/btnMessage"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:layout_marginEnd="10dp"
+                        app:cardCornerRadius="20dp"
+                        app:cardElevation="0dp"
+                        app:cardBackgroundColor="#1B3C53"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:foreground="?attr/selectableItemBackground">
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="horizontal"
+                            android:gravity="center"
+                            android:paddingTop="11dp"
+                            android:paddingBottom="11dp">
+
+                            <ImageView
+                                android:layout_width="16dp"
+                                android:layout_height="16dp"
+                                android:layout_marginEnd="8dp"
+                                android:src="@drawable/baseline_chat_24"
+                                app:tint="#F9F3EF" />
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Message"
+                                android:textColor="#F9F3EF"
+                                android:textSize="13sp"
+                                android:fontFamily="sans-serif-medium"
+                                android:textStyle="bold" />
+                        </LinearLayout>
+                    </com.google.android.material.card.MaterialCardView>
+
+                    <!--
+                      "..." (more) button. Opens the "User Statistics"
+                      popup (rating, credits, trades, member since) that
+                      used to live as a persistent card on the page.
+                    -->
+                    <com.google.android.material.card.MaterialCardView
+                        android:id="@+id/btnReportUser"
+                        android:layout_width="44dp"
+                        android:layout_height="44dp"
+                        app:cardCornerRadius="20dp"
+                        app:cardElevation="0dp"
+                        app:strokeWidth="1dp"
+                        app:strokeColor="#D2C1B6"
+                        app:cardBackgroundColor="#F9F3EF"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:foreground="?attr/selectableItemBackground">
+
+                        <ImageView
+                            android:layout_width="18dp"
+                            android:layout_height="18dp"
+                            android:layout_gravity="center"
+                            android:src="@drawable/outline_more_horiz_24"
+                            app:tint="#456882" />
+                    </com.google.android.material.card.MaterialCardView>
+                </LinearLayout>
+            </LinearLayout>
+
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="8dp"
+                android:background="#EAF1F5"
+                android:layout_marginTop="20dp" />
+
+            <!--
+              ===================== Stats card — REMOVED =====================
+              The rating / credits / trades / joined card that used to sit
+              here has been removed from the page. That info now shows in
+              the "User Statistics" popup opened via the "..." button above.
+            -->
+
+            <!-- ===================== About ===================== -->
+            <LinearLayout
+                android:id="@+id/aboutSection"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="20dp"
+                android:visibility="gone">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="About"
+                    android:textColor="#1B3C53"
+                    android:textSize="15sp"
+                    android:fontFamily="sans-serif-medium"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/tvAbout"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:text=""
+                    android:textColor="#456882"
+                    android:textSize="13.5sp"
+                    android:lineSpacingExtra="3dp" />
+            </LinearLayout>
+
+            <!-- ===================== Skills offered by this user ===================== -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:paddingStart="20dp"
+                android:paddingEnd="20dp"
+                android:paddingTop="4dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Skills offered"
+                    android:textColor="#1B3C53"
+                    android:textSize="15sp"
+                    android:fontFamily="sans-serif-medium"
+                    android:textStyle="bold"
+                    android:layout_marginBottom="10dp" />
+
+                <androidx.recyclerview.widget.RecyclerView
+                    android:id="@+id/recyclerUserSkills"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:nestedScrollingEnabled="false" />
+
+                <TextView
+                    android:id="@+id/tvNoSkills"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center_horizontal"
+                    android:text="No skills posted yet"
+                    android:textColor="#456882"
+                    android:textSize="13sp"
+                    android:layout_marginTop="12dp"
+                    android:visibility="gone" />
+            </LinearLayout>
+
+        </LinearLayout>
+    </androidx.core.widget.NestedScrollView>
+
+    <!-- ===================== Loading overlay ===================== -->
+    <ProgressBar
+        android:id="@+id/progressBar"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:indeterminateTint="#1B3C53"
+        android:visibility="gone" />
+
+</androidx.coordinatorlayout.widget.CoordinatorLayout>

@@ -113,226 +113,234 @@
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
-        <!-- Category Tabs — scrollable pill row -->
+        <!-- Category Tabs — styled like Manage Swap tabs -->
         <HorizontalScrollView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:scrollbars="none"
             android:overScrollMode="never">
 
-            <com.google.android.material.card.MaterialCardView
+            <LinearLayout
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                app:cardCornerRadius="22dp"
-                app:cardElevation="0dp"
-                app:cardBackgroundColor="#456882">
+                android:orientation="horizontal">
 
-                <LinearLayout
+                <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/tabAll"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:padding="4dp">
+                    android:layout_marginEnd="8dp"
+                    app:cardCornerRadius="14dp"
+                    app:cardElevation="0dp"
+                    app:cardBackgroundColor="#F9F3EF"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:foreground="?attr/selectableItemBackground">
 
-                    <com.google.android.material.card.MaterialCardView
-                        android:id="@+id/tabAll"
+                    <TextView
+                        android:id="@+id/tvTabAll"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        app:cardCornerRadius="18dp"
-                        app:cardElevation="0dp"
-                        app:cardBackgroundColor="#F9F3EF"
-                        android:clickable="true"
-                        android:focusable="true"
-                        android:foreground="?attr/selectableItemBackground">
+                        android:gravity="center"
+                        android:paddingTop="10dp"
+                        android:paddingBottom="10dp"
+                        android:paddingStart="16dp"
+                        android:paddingEnd="16dp"
+                        android:text="All"
+                        android:textColor="#1B3C53"
+                        android:textSize="10sp"
+                        android:textStyle="bold"
+                        android:maxLines="1"
+                        android:ellipsize="end"/>
+                </com.google.android.material.card.MaterialCardView>
 
-                        <TextView
-                            android:id="@+id/tvTabAll"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:gravity="center"
-                            android:paddingTop="10dp"
-                            android:paddingBottom="10dp"
-                            android:paddingStart="16dp"
-                            android:paddingEnd="16dp"
-                            android:text="All"
-                            android:textColor="#1B3C53"
-                            android:textSize="10sp"
-                            android:textStyle="bold"
-                            android:maxLines="1"
-                            android:ellipsize="end" />
-                    </com.google.android.material.card.MaterialCardView>
+                <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/tabTechnology"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginEnd="8dp"
+                    app:cardCornerRadius="14dp"
+                    app:cardElevation="0dp"
+                    app:strokeWidth="1dp"
+                    app:strokeColor="#D2C1B6"
+                    app:cardBackgroundColor="#456882"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:foreground="?attr/selectableItemBackground">
 
-                    <com.google.android.material.card.MaterialCardView
-                        android:id="@+id/tabTechnology"
+                    <TextView
+                        android:id="@+id/tvTabTechnology"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        app:cardCornerRadius="18dp"
-                        app:cardElevation="0dp"
-                        app:cardBackgroundColor="@android:color/transparent"
-                        android:clickable="true"
-                        android:focusable="true"
-                        android:foreground="?attr/selectableItemBackground">
+                        android:gravity="center"
+                        android:paddingTop="10dp"
+                        android:paddingBottom="10dp"
+                        android:paddingStart="16dp"
+                        android:paddingEnd="16dp"
+                        android:text="Technology"
+                        android:textColor="#D2C1B6"
+                        android:textSize="10sp"
+                        android:textStyle="bold"
+                        android:maxLines="1"
+                        android:ellipsize="end"/>
+                </com.google.android.material.card.MaterialCardView>
 
-                        <TextView
-                            android:id="@+id/tvTabTechnology"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:gravity="center"
-                            android:paddingTop="10dp"
-                            android:paddingBottom="10dp"
-                            android:paddingStart="16dp"
-                            android:paddingEnd="16dp"
-                            android:text="Technology"
-                            android:textColor="#D2C1B6"
-                            android:textSize="10sp"
-                            android:textStyle="bold"
-                            android:maxLines="1"
-                            android:ellipsize="end" />
-                    </com.google.android.material.card.MaterialCardView>
+                <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/tabArts"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginEnd="8dp"
+                    app:cardCornerRadius="14dp"
+                    app:cardElevation="0dp"
+                    app:strokeWidth="1dp"
+                    app:strokeColor="#D2C1B6"
+                    app:cardBackgroundColor="#456882"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:foreground="?attr/selectableItemBackground">
 
-                    <com.google.android.material.card.MaterialCardView
-                        android:id="@+id/tabArts"
+                    <TextView
+                        android:id="@+id/tvTabArts"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        app:cardCornerRadius="18dp"
-                        app:cardElevation="0dp"
-                        app:cardBackgroundColor="@android:color/transparent"
-                        android:clickable="true"
-                        android:focusable="true"
-                        android:foreground="?attr/selectableItemBackground">
+                        android:gravity="center"
+                        android:paddingTop="10dp"
+                        android:paddingBottom="10dp"
+                        android:paddingStart="16dp"
+                        android:paddingEnd="16dp"
+                        android:text="Arts"
+                        android:textColor="#D2C1B6"
+                        android:textSize="10sp"
+                        android:textStyle="bold"
+                        android:maxLines="1"
+                        android:ellipsize="end"/>
+                </com.google.android.material.card.MaterialCardView>
 
-                        <TextView
-                            android:id="@+id/tvTabArts"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:gravity="center"
-                            android:paddingTop="10dp"
-                            android:paddingBottom="10dp"
-                            android:paddingStart="16dp"
-                            android:paddingEnd="16dp"
-                            android:text="Arts"
-                            android:textColor="#D2C1B6"
-                            android:textSize="10sp"
-                            android:textStyle="bold"
-                            android:maxLines="1"
-                            android:ellipsize="end" />
-                    </com.google.android.material.card.MaterialCardView>
+                <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/tabSports"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginEnd="8dp"
+                    app:cardCornerRadius="14dp"
+                    app:cardElevation="0dp"
+                    app:strokeWidth="1dp"
+                    app:strokeColor="#D2C1B6"
+                    app:cardBackgroundColor="#456882"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:foreground="?attr/selectableItemBackground">
 
-                    <com.google.android.material.card.MaterialCardView
-                        android:id="@+id/tabSports"
+                    <TextView
+                        android:id="@+id/tvTabSports"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        app:cardCornerRadius="18dp"
-                        app:cardElevation="0dp"
-                        app:cardBackgroundColor="@android:color/transparent"
-                        android:clickable="true"
-                        android:focusable="true"
-                        android:foreground="?attr/selectableItemBackground">
+                        android:gravity="center"
+                        android:paddingTop="10dp"
+                        android:paddingBottom="10dp"
+                        android:paddingStart="16dp"
+                        android:paddingEnd="16dp"
+                        android:text="Sports"
+                        android:textColor="#D2C1B6"
+                        android:textSize="10sp"
+                        android:textStyle="bold"
+                        android:maxLines="1"
+                        android:ellipsize="end"/>
+                </com.google.android.material.card.MaterialCardView>
 
-                        <TextView
-                            android:id="@+id/tvTabSports"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:gravity="center"
-                            android:paddingTop="10dp"
-                            android:paddingBottom="10dp"
-                            android:paddingStart="16dp"
-                            android:paddingEnd="16dp"
-                            android:text="Sports"
-                            android:textColor="#D2C1B6"
-                            android:textSize="10sp"
-                            android:textStyle="bold"
-                            android:maxLines="1"
-                            android:ellipsize="end" />
-                    </com.google.android.material.card.MaterialCardView>
+                <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/tabHome"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginEnd="8dp"
+                    app:cardCornerRadius="14dp"
+                    app:cardElevation="0dp"
+                    app:strokeWidth="1dp"
+                    app:strokeColor="#D2C1B6"
+                    app:cardBackgroundColor="#456882"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:foreground="?attr/selectableItemBackground">
 
-                    <com.google.android.material.card.MaterialCardView
-                        android:id="@+id/tabHome"
+                    <TextView
+                        android:id="@+id/tvTabHome"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        app:cardCornerRadius="18dp"
-                        app:cardElevation="0dp"
-                        app:cardBackgroundColor="@android:color/transparent"
-                        android:clickable="true"
-                        android:focusable="true"
-                        android:foreground="?attr/selectableItemBackground">
+                        android:gravity="center"
+                        android:paddingTop="10dp"
+                        android:paddingBottom="10dp"
+                        android:paddingStart="16dp"
+                        android:paddingEnd="16dp"
+                        android:text="Home"
+                        android:textColor="#D2C1B6"
+                        android:textSize="10sp"
+                        android:textStyle="bold"
+                        android:maxLines="1"
+                        android:ellipsize="end"/>
+                </com.google.android.material.card.MaterialCardView>
 
-                        <TextView
-                            android:id="@+id/tvTabHome"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:gravity="center"
-                            android:paddingTop="10dp"
-                            android:paddingBottom="10dp"
-                            android:paddingStart="16dp"
-                            android:paddingEnd="16dp"
-                            android:text="Home"
-                            android:textColor="#D2C1B6"
-                            android:textSize="10sp"
-                            android:textStyle="bold"
-                            android:maxLines="1"
-                            android:ellipsize="end" />
-                    </com.google.android.material.card.MaterialCardView>
+                <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/tabEducation"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginEnd="8dp"
+                    app:cardCornerRadius="14dp"
+                    app:cardElevation="0dp"
+                    app:strokeWidth="1dp"
+                    app:strokeColor="#D2C1B6"
+                    app:cardBackgroundColor="#456882"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:foreground="?attr/selectableItemBackground">
 
-                    <com.google.android.material.card.MaterialCardView
-                        android:id="@+id/tabEducation"
+                    <TextView
+                        android:id="@+id/tvTabEducation"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        app:cardCornerRadius="18dp"
-                        app:cardElevation="0dp"
-                        app:cardBackgroundColor="@android:color/transparent"
-                        android:clickable="true"
-                        android:focusable="true"
-                        android:foreground="?attr/selectableItemBackground">
+                        android:gravity="center"
+                        android:paddingTop="10dp"
+                        android:paddingBottom="10dp"
+                        android:paddingStart="16dp"
+                        android:paddingEnd="16dp"
+                        android:text="Education"
+                        android:textColor="#D2C1B6"
+                        android:textSize="10sp"
+                        android:textStyle="bold"
+                        android:maxLines="1"
+                        android:ellipsize="end"/>
+                </com.google.android.material.card.MaterialCardView>
 
-                        <TextView
-                            android:id="@+id/tvTabEducation"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:gravity="center"
-                            android:paddingTop="10dp"
-                            android:paddingBottom="10dp"
-                            android:paddingStart="16dp"
-                            android:paddingEnd="16dp"
-                            android:text="Education"
-                            android:textColor="#D2C1B6"
-                            android:textSize="10sp"
-                            android:textStyle="bold"
-                            android:maxLines="1"
-                            android:ellipsize="end" />
-                    </com.google.android.material.card.MaterialCardView>
+                <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/tabLifestyle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    app:cardCornerRadius="14dp"
+                    app:cardElevation="0dp"
+                    app:strokeWidth="1dp"
+                    app:strokeColor="#D2C1B6"
+                    app:cardBackgroundColor="#456882"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:foreground="?attr/selectableItemBackground">
 
-                    <com.google.android.material.card.MaterialCardView
-                        android:id="@+id/tabLifestyle"
+                    <TextView
+                        android:id="@+id/tvTabLifestyle"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        app:cardCornerRadius="18dp"
-                        app:cardElevation="0dp"
-                        app:cardBackgroundColor="@android:color/transparent"
-                        android:clickable="true"
-                        android:focusable="true"
-                        android:foreground="?attr/selectableItemBackground">
+                        android:gravity="center"
+                        android:paddingTop="10dp"
+                        android:paddingBottom="10dp"
+                        android:paddingStart="16dp"
+                        android:paddingEnd="16dp"
+                        android:text="Lifestyle"
+                        android:textColor="#D2C1B6"
+                        android:textSize="10sp"
+                        android:textStyle="bold"
+                        android:maxLines="1"
+                        android:ellipsize="end"/>
+                </com.google.android.material.card.MaterialCardView>
 
-                        <TextView
-                            android:id="@+id/tvTabLifestyle"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:gravity="center"
-                            android:paddingTop="10dp"
-                            android:paddingBottom="10dp"
-                            android:paddingStart="16dp"
-                            android:paddingEnd="16dp"
-                            android:text="Lifestyle"
-                            android:textColor="#D2C1B6"
-                            android:textSize="10sp"
-                            android:textStyle="bold"
-                            android:maxLines="1"
-                            android:ellipsize="end" />
-                    </com.google.android.material.card.MaterialCardView>
-
-                </LinearLayout>
-            </com.google.android.material.card.MaterialCardView>
-        </HorizontalScrollView>
-    </LinearLayout>
+            </LinearLayout>
+        </HorizontalScrollView>    </LinearLayout>
 
     <!-- ===================== Skill List ===================== -->
     <FrameLayout

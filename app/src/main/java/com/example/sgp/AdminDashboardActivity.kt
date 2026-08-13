@@ -29,9 +29,6 @@ import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 
-
-
-
 enum class DashboardRange { TODAY, WEEK, MONTH, CUSTOM, ALL }
 
 class AdminDashboardActivity : BaseActivity() {
@@ -95,13 +92,6 @@ class AdminDashboardActivity : BaseActivity() {
     private var reportsListener: ListenerRegistration? = null
     private var swapsChartListener: ListenerRegistration? = null
 
-    // FIX: these four constants previously held a dark-purple theme's colors
-    // (#7C3AED / #161A33 / #FFFFFF / #9099BD) — leftover from another screen.
-    // Your actual layout XML is a cream/navy design (#F9F3EF / #1B3C53 /
-    // #456882 / #D2C1B6), so every unselected chip was being repainted almost
-    // black (#161A33) right after inflation, in onCreate() -> applyOverviewRange()
-    // / applySwapsRange(). That's what read as "coming in black" even though
-    // the XML defaults themselves were correct.
     private val colorChipSelectedBg = Color.parseColor("#1B3C53")
     private val colorChipUnselectedBg = Color.parseColor("#F9F3EF")
     private val colorChipSelectedText = Color.parseColor("#F9F3EF")
@@ -191,9 +181,14 @@ class AdminDashboardActivity : BaseActivity() {
         findViewById<View>(R.id.btnMenu).setOnClickListener {
             openSettings()
         }
+
+        // Top-right entry point: now opens the Manage Videos screen (list of
+        // every uploaded skill video across all users), not a bare player.
+        findViewById<View>(R.id.btnVideos).setOnClickListener {
+            startActivity(Intent(this, AdminVideosActivity::class.java))
+            overridePendingTransition(R.anim.nav_enter, R.anim.nav_exit)
+        }
     }
-
-
 
     private fun setupNavigation() {
         findViewById<View>(R.id.navDashboard).setOnClickListener { /* already here */ }
@@ -320,9 +315,7 @@ class AdminDashboardActivity : BaseActivity() {
     }
 
     private fun updateChipStyles(chips: List<Pair<MaterialCardView, TextView>>, selectedIndex: Int) {
-        // FIX: strokeWidth now uses a dp->px conversion instead of a raw "2"
-        // pixel value, and the unselected stroke color now matches this
-        // design's #D2C1B6 cream border (was the dark theme's #242A4E).
+
         val strokeWidthPx = (1 * resources.displayMetrics.density).toInt()
         chips.forEachIndexed { index, (card, text) ->
             if (index == selectedIndex) {
@@ -338,8 +331,6 @@ class AdminDashboardActivity : BaseActivity() {
         }
     }
 
-    // start/end are ignored for ALL — attachOverviewListeners/attachSwapsChartListener
-    // skip date filtering entirely in that case, so these values are unused placeholders.
     private fun rangeToMillis(range: DashboardRange, customStart: Long, customEnd: Long): Pair<Long, Long> {
         val now = System.currentTimeMillis()
         return when (range) {
@@ -360,13 +351,6 @@ class AdminDashboardActivity : BaseActivity() {
             DashboardRange.ALL -> Pair(0L, now)
         }
     }
-
-    // ---------- Real-time Overview stats ----------
-    // All timestamp fields (Users.joinedDate, Skill.timestamp, Trade.timestamp,
-    // Report.timestamp) are stored as plain Long millis — NOT Firestore Timestamp
-    // objects — so every range query below compares Long against Long.
-    // When range == ALL, the date filters are skipped entirely so every document
-    // in the collection is counted, regardless of when it was created.
 
     private fun attachOverviewListeners(startMillis: Long, endMillis: Long, range: DashboardRange) {
         usersListener?.remove()
@@ -418,12 +402,6 @@ class AdminDashboardActivity : BaseActivity() {
             tvTotalSkills.text = (snapshot?.size() ?: 0).toString()
         }
 
-        // NOTE: when a date range is applied, this combines an equality filter
-        // (status) with a range filter (timestamp) on different fields, which
-        // requires a composite index in Firestore. Check Logcat the first time
-        // this runs for a FAILED_PRECONDITION error containing a direct link to
-        // auto-create it. The ALL case below only filters on status, so it
-        // needs no composite index.
         var reportsQuery: Query = db.collection("reports").whereEqualTo("status", "pending")
         if (!isAll) {
             reportsQuery = reportsQuery
@@ -465,18 +443,14 @@ class AdminDashboardActivity : BaseActivity() {
             } ?: emptyList()
 
             if (isAll) {
-                // For "All", the true range is whatever the actual data spans —
-                // not "today" or "this week" — so derive start/end from the
-                // earliest and latest trade instead of using now-relative bounds.
+
                 if (docTimestamps.isEmpty()) {
                     renderChart(0L, 1L, emptyList(), 7, range)
                 } else {
                     val actualStart = docTimestamps.min()
                     var actualEnd = docTimestamps.max()
                     val bucketCount = 8
-                    // If all trades fall within a very narrow span (even a single
-                    // trade), stretch the end so each bucket gets a distinct day
-                    // label instead of every label formatting the same timestamp.
+
                     val minSpan = bucketCount.toLong() * 24L * 60 * 60 * 1000L
                     if (actualEnd - actualStart < minSpan) {
                         actualEnd = actualStart + minSpan
@@ -554,10 +528,6 @@ class AdminDashboardActivity : BaseActivity() {
         }
     }
 
-    // Picks the y-axis ceiling. Small peaks (<=4) use the exact peak so a
-    // single data point (e.g. 1 swap) doesn't get inflated against a max of 4.
-    // Larger peaks round up to a "nice" number divisible by 4 so the 4 grid
-    // labels are always distinct integers.
     private fun computeAxisTop(peak: Float): Float {
         if (peak <= 0f) return 4f
         if (peak <= 4f) return peak
@@ -623,8 +593,6 @@ class SwapsTrendView @JvmOverloads constructor(
 
     private var selectedIndex: Int = -1
 
-    // FIX: bar/grid/tooltip colors updated to match the cream/navy design
-    // (previously #7C3AED / #242A4E / #1E2347, from the dark-purple theme).
     private val barPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         color = Color.parseColor("#1B3C53")
         style = Paint.Style.FILL
@@ -665,14 +633,6 @@ class SwapsTrendView @JvmOverloads constructor(
         textAlign = Paint.Align.CENTER
     }
 
-    /**
-     * @param newPoints bucketed counts to plot
-     * @param newLabels optional per-bucket labels (e.g. "12 Jul") shown in the
-     *                   tooltip when a bar is tapped. Defaults to blank labels
-     *                   if omitted or mismatched in size.
-     * @param newAxisMax optional scale ceiling matching the activity's y-axis
-     *                    labels. Pass <= 0 to fall back to the local data max.
-     */
     fun setData(newPoints: List<Float>, newLabels: List<String> = emptyList(), newAxisMax: Float = -1f) {
         points = if (newPoints.size < 2) listOf(0f, 0f) else newPoints
         labels = if (newLabels.size == points.size) newLabels else List(points.size) { "" }
@@ -712,7 +672,7 @@ class SwapsTrendView @JvmOverloads constructor(
 
         val w = width.toFloat()
         val h = height.toFloat()
-        val topPad = h * 0.16f   // room for tooltip above the tallest bar
+        val topPad = h * 0.16f
         val bottomPad = h * 0.04f
         val plotTop = topPad
         val plotBottom = h - bottomPad
@@ -721,14 +681,12 @@ class SwapsTrendView @JvmOverloads constructor(
         val localMax = (points.maxOrNull() ?: 0f).let { if (it <= 0f) 1f else it }
         val maxVal = if (axisMax > 0f) axisMax else localMax
 
-        // --- Horizontal grid lines (4 rows) ---
         val gridRows = 4
         for (i in 0..gridRows) {
             val y = plotTop + (plotHeight / gridRows) * i
             canvas.drawLine(0f, y, w, y, gridPaint)
         }
 
-        // --- Compute bar geometry ---
         val slotWidth = w / points.size
         val barWidth = slotWidth * 0.55f
         val cornerRadius = (barWidth / 2f).coerceAtMost(10f)
@@ -747,14 +705,12 @@ class SwapsTrendView @JvmOverloads constructor(
             barTops[i] = plotBottom - barHeight
         }
 
-        // --- Draw bars ---
         for (i in points.indices) {
             val paint = if (i == selectedIndex) barSelectedPaint else barPaint
             val rect = android.graphics.RectF(barLefts[i], barTops[i], barRights[i], plotBottom)
             canvas.drawRoundRect(rect, cornerRadius, cornerRadius, paint)
         }
 
-        // --- Tooltip for the selected bar ---
         if (selectedIndex in points.indices) {
             drawTooltip(canvas, selectedIndex, w)
         }

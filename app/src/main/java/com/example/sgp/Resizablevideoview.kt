@@ -5,14 +5,6 @@ import android.util.AttributeSet
 import android.view.View
 import android.widget.VideoView
 
-/**
- * A VideoView that fills its container completely (center-crop) instead of
- * the stock VideoView, which letterboxes/pillarboxes to the video's native
- * aspect ratio and leaves black bars around it.
- *
- * Call setVideoSize() once the real video dimensions are known — normally
- * from MediaPlayer.OnPreparedListener (mp.videoWidth / mp.videoHeight).
- */
 class ResizableVideoView @JvmOverloads constructor(
     context: Context,
     attrs: AttributeSet? = null
@@ -43,10 +35,7 @@ class ResizableVideoView @JvmOverloads constructor(
         val measuredWidth: Int
         val measuredHeight: Int
         if (videoRatio > viewRatio) {
-            // Video is relatively wider than the container: match the
-            // container's height, let width overflow — the parent
-            // (FrameLayout, clipChildren=true by default) crops the excess,
-            // same visual result as ImageView.ScaleType.CENTER_CROP.
+
             measuredHeight = viewHeight
             measuredWidth = (viewHeight * videoRatio).toInt()
         } else {

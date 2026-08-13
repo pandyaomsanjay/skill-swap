@@ -15,7 +15,7 @@
         android:layout_height="wrap_content"
         app:cardCornerRadius="16dp"
         app:cardElevation="0dp"
-        app:cardBackgroundColor="#4CAF50">
+        app:cardBackgroundColor="#1B3C53">
 
         <TextView
             android:id="@+id/tvMessageText"
@@ -25,7 +25,7 @@
             android:paddingEnd="14dp"
             android:paddingTop="10dp"
             android:paddingBottom="10dp"
-            android:textColor="@android:color/white"
+            android:textColor="#F9F3EF"
             android:textSize="15sp" />
 
     </com.google.android.material.card.MaterialCardView>
@@ -36,6 +36,6 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="2dp"
         android:textSize="11sp"
-        android:textColor="#9E9E9E" />
+        android:textColor="#456882" />
 
 </LinearLayout>

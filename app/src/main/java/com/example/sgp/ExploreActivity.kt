@@ -2,15 +2,20 @@ package com.example.sgp
 
 import android.content.Intent
 import android.graphics.Color
+import android.graphics.Typeface
+import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
 import android.util.Log
+import android.util.TypedValue
+import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.EditText
 import android.widget.ImageView
+import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
@@ -106,7 +111,7 @@ class ExploreActivity : BaseActivity() {
             displayedSkills,
             onItemClick = { skill -> openSkill(skill) },
             onReportClick = { skill -> showReportDialog(skill) },
-            onChatClick = { skill -> openChat(skill) }
+            onUserClick = { skill -> openUserProfile(skill) }
         )
         recyclerView.adapter = adapter
 
@@ -310,6 +315,8 @@ class ExploreActivity : BaseActivity() {
         }
     }
 
+    // ---------- Report dialog (themed to match app: navy/cream card, pill Cancel) ----------
+
     private fun showReportDialog(skill: Skill) {
         val reporterEmail = FirebaseAuth.getInstance().currentUser?.email
         if (reporterEmail.isNullOrEmpty()) {
@@ -321,13 +328,62 @@ class ExploreActivity : BaseActivity() {
             return
         }
 
-        AlertDialog.Builder(this)
-            .setTitle("Report \"${skill.title}\"")
-            .setItems(reportReasons) { _, which ->
-                submitReport(skill, reportReasons[which], reporterEmail)
+        val root = dialogCard()
+
+        root.addView(dialogTitle("Report \"${skill.title}\""))
+
+        root.addView(TextView(this).apply {
+            text = "Help us understand what's wrong"
+            setTextColor(Color.parseColor("#456882"))
+            textSize = 13f
+            setPadding(0, dp(4), 0, dp(4))
+        })
+
+        root.addView(dividerLine())
+
+        val dialog = AlertDialog.Builder(this).setView(root).create()
+        dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
+
+        reportReasons.forEachIndexed { index, reason ->
+            root.addView(reportReasonRow(reason) {
+                dialog.dismiss()
+                submitReport(skill, reason, reporterEmail)
+            })
+            if (index != reportReasons.lastIndex) {
+                root.addView(dividerLine())
             }
-            .setNegativeButton("Cancel", null)
-            .show()
+        }
+
+        val btnCancel = pillButton("Cancel", Color.parseColor("#EAF1F5"), Color.parseColor("#456882")).apply {
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply {
+                topMargin = dp(16)
+                gravity = Gravity.END
+            }
+            setPadding(dp(28), dp(10), dp(28), dp(10))
+            setOnClickListener { dialog.dismiss() }
+        }
+        root.addView(btnCancel)
+
+        dialog.show()
+    }
+
+    /** A single tappable reason row, styled to match the app's navy/steel palette. */
+    private fun reportReasonRow(text: String, onClick: () -> Unit): TextView {
+        val outValue = TypedValue()
+        theme.resolveAttribute(android.R.attr.selectableItemBackground, outValue, true)
+        return TextView(this).apply {
+            this.text = text
+            setTextColor(Color.parseColor("#1B3C53"))
+            textSize = 15f
+            setPadding(dp(4), dp(8), dp(4), dp(8))
+            setBackgroundResource(outValue.resourceId)
+            isClickable = true
+            isFocusable = true
+            setOnClickListener { onClick() }
+        }
     }
 
     private fun submitReport(skill: Skill, reason: String, reporterEmail: String) {
@@ -351,21 +407,64 @@ class ExploreActivity : BaseActivity() {
             }
     }
 
-    private fun openChat(skill: Skill) {
-        val myEmail = FirebaseAuth.getInstance().currentUser?.email
-        if (myEmail.isNullOrEmpty()) {
-            Toast.makeText(this, "Please log in to chat", Toast.LENGTH_SHORT).show()
-            return
+    // ---------- Themed-dialog helpers (shared white/cream rounded card + pill buttons) ----------
+
+    private fun dp(value: Int): Int = (value * resources.displayMetrics.density).toInt()
+
+    private fun dialogCard(): LinearLayout {
+        return LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(20), dp(22), dp(20), dp(20))
+            background = GradientDrawable().apply {
+                cornerRadius = dp(20).toFloat()
+                setColor(Color.WHITE)
+            }
         }
-        if (myEmail == skill.userId) {
-            Toast.makeText(this, "You can't message yourself about your own skill", Toast.LENGTH_SHORT).show()
-            return
+    }
+
+    private fun dialogTitle(text: String): TextView {
+        return TextView(this).apply {
+            this.text = text
+            setTextColor(Color.parseColor("#1B3C53"))
+            textSize = 17f
+            setTypeface(typeface, Typeface.BOLD)
         }
-        val intent = Intent(this, ChatActivity::class.java)
-        intent.putExtra("otherUserEmail", skill.userId)
-        intent.putExtra("otherUserName", skill.userName)
-        intent.putExtra("skillId", skill.id)
-        intent.putExtra("skillTitle", skill.title)
+    }
+
+    private fun dividerLine(): View {
+        return View(this).apply {
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                dp(1)
+            ).apply {
+                topMargin = dp(12)
+                bottomMargin = dp(12)
+            }
+            setBackgroundColor(Color.parseColor("#EAF1F5"))
+        }
+    }
+
+    private fun pillButton(text: String, bgColor: Int, textColor: Int): TextView {
+        return TextView(this).apply {
+            this.text = text
+            setTextColor(textColor)
+            textSize = 14f
+            setTypeface(typeface, Typeface.BOLD)
+            gravity = Gravity.CENTER
+            setPadding(0, dp(12), 0, dp(12))
+            background = GradientDrawable().apply {
+                cornerRadius = dp(24).toFloat()
+                setColor(bgColor)
+            }
+            isClickable = true
+            isFocusable = true
+        }
+    }
+
+    private fun openUserProfile(skill: Skill) {
+        val intent = Intent(this, UserProfileActivity::class.java)
+        intent.putExtra("userId", skill.userId)
+        intent.putExtra("userName", skill.userName)
         startActivity(intent)
     }
 
@@ -375,7 +474,7 @@ class ExploreActivity : BaseActivity() {
         private val skills: List<Skill>,
         private val onItemClick: (Skill) -> Unit,
         private val onReportClick: (Skill) -> Unit,
-        private val onChatClick: (Skill) -> Unit
+        private val onUserClick: (Skill) -> Unit
     ) : RecyclerView.Adapter<SkillAdapter.ViewHolder>() {
 
         class ViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
@@ -385,7 +484,7 @@ class ExploreActivity : BaseActivity() {
             val tvUser: TextView = itemView.findViewById(R.id.tvUser)
             val tvCredits: TextView = itemView.findViewById(R.id.tvCredits)
             val btnReport: View = itemView.findViewById(R.id.btnReport)
-            val btnChat: View = itemView.findViewById(R.id.btnChat)
+            val btnViewProfile: View = itemView.findViewById(R.id.btnViewProfile)
         }
 
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
@@ -413,7 +512,8 @@ class ExploreActivity : BaseActivity() {
 
             holder.itemView.setOnClickListener { onItemClick(skill) }
             holder.btnReport.setOnClickListener { onReportClick(skill) }
-            holder.btnChat.setOnClickListener { onChatClick(skill) }
+            holder.tvUser.setOnClickListener { onUserClick(skill) }
+            holder.btnViewProfile.setOnClickListener { onUserClick(skill) }
         }
 
         override fun getItemCount() = skills.size

@@ -8,7 +8,7 @@
     app:cardElevation="0dp"
     app:strokeWidth="1dp"
     app:strokeColor="#D2C1B6"
-    app:cardBackgroundColor="#FFFFFF">
+    android:background="#EAF1F5">
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -117,19 +117,74 @@
             </com.google.android.material.card.MaterialCardView>
         </LinearLayout>
 
-        <!-- Posted by -->
-        <TextView
-            android:id="@+id/tvUser"
-            android:layout_width="wrap_content"
+        <!-- Posted by + View Profile chip -->
+        <LinearLayout
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
-            android:text="By User Name"
-            android:textColor="#2E9E63"
-            android:textSize="12.5sp"
-            android:fontFamily="sans-serif-medium"
-            android:textStyle="bold" />
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginTop="12dp">
 
-        <!-- Meta row: swaps count + request chat button -->
+            <TextView
+                android:id="@+id/tvUser"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="By User Name"
+                android:textColor="#2E9E63"
+                android:textSize="12.5sp"
+                android:fontFamily="sans-serif-medium"
+                android:textStyle="bold"
+                android:maxLines="1"
+                android:ellipsize="end" />
+
+            <!--
+              Small chip that makes it visually obvious this row links to
+              that specific user's profile (previously only the plain
+              username text was clickable, with no visual affordance).
+            -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/btnViewProfile"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                app:cardCornerRadius="12dp"
+                app:cardElevation="0dp"
+                app:cardBackgroundColor="#1B3C53"
+                android:clickable="true"
+                android:focusable="true"
+                android:foreground="?attr/selectableItemBackground">
+
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:paddingStart="8dp"
+                    android:paddingEnd="9dp"
+                    android:paddingTop="4dp"
+                    android:paddingBottom="4dp">
+
+                    <ImageView
+                        android:layout_width="10dp"
+                        android:layout_height="10dp"
+                        android:layout_marginEnd="4dp"
+                        android:src="@drawable/baseline_account_circle_24"
+                        app:tint="#F9F3EF" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Profile"
+                        android:textColor="#F9F3EF"
+                        android:textSize="9.5sp"
+                        android:fontFamily="sans-serif-medium"
+                        android:textStyle="bold" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+        </LinearLayout>
+
+        <!-- Meta row: swaps count (chat button removed) -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -152,24 +207,6 @@
                 android:text="0 swaps completed"
                 android:textColor="#456882"
                 android:textSize="11sp" />
-
-            <com.google.android.material.card.MaterialCardView
-                android:id="@+id/btnChat"
-                android:layout_width="36dp"
-                android:layout_height="36dp"
-                app:cardBackgroundColor="#456882"
-                app:cardCornerRadius="12dp"
-                app:cardElevation="0dp"
-                app:rippleColor="#1B3C53">
-
-                <ImageView
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:contentDescription="Request a swap / chat"
-                    android:padding="8dp"
-                    android:src="@drawable/baseline_chat_24"
-                    app:tint="#FFFFFF" />
-            </com.google.android.material.card.MaterialCardView>
         </LinearLayout>
     </LinearLayout>
 

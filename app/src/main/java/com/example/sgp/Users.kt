@@ -20,5 +20,8 @@ data class Users(
     var loginProvider: String = "",
     var createdAt: Long = System.currentTimeMillis(),
     var language: String = "",
-    val profileImagePath: String? = null
+    val profileImagePath: String? = null,
+
+    var followersCount: Int = 0,
+    var followingCount: Int = 0
 )

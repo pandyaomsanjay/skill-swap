@@ -91,6 +91,33 @@
                             android:layout_marginTop="3dp"
                             android:textStyle="bold"/>
                     </LinearLayout>
+
+                    <!-- NEW: top-right entry point into the Manage Videos
+                         screen — lets the admin browse every uploaded skill
+                         video (and its uploader's profile) across all users,
+                         from a single place. -->
+                    <com.google.android.material.card.MaterialCardView
+                        android:id="@+id/btnVideos"
+                        android:layout_width="44dp"
+                        android:layout_height="44dp"
+                        android:layout_marginStart="10dp"
+                        app:cardCornerRadius="14dp"
+                        app:cardElevation="0dp"
+                        app:strokeWidth="1dp"
+                        app:strokeColor="#456882"
+                        app:cardBackgroundColor="#456882"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:foreground="?attr/selectableItemBackground">
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:gravity="center"
+                            android:text="🎬"
+                            android:textColor="#F9F3EF"
+                            android:textSize="18sp"/>
+                    </com.google.android.material.card.MaterialCardView>
                 </LinearLayout>
 
             </LinearLayout>

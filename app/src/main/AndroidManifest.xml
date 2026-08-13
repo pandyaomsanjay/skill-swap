@@ -194,6 +194,10 @@
             android:supportsPictureInPicture="true"
             android:resizeableActivity="true" />
 
+        <activity android:name=".UserProfileActivity" android:exported="false" />
+
+        <activity android:name=".AdminVideosActivity" android:exported="false"/>
+
     </application>
 
 </manifest>

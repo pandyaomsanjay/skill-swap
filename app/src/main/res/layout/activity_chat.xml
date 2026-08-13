@@ -4,15 +4,16 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:background="#F5F5F5">
+    android:background="#EAF1F5">
 
+    <!-- Navy toolbar, matches the app's header color used across screens -->
     <androidx.appcompat.widget.Toolbar
         android:id="@+id/toolbarChat"
         android:layout_width="match_parent"
         android:layout_height="?attr/actionBarSize"
-        android:background="?attr/colorPrimary"
-        app:titleTextColor="@android:color/white"
-        app:navigationIconTint="@android:color/white">
+        android:background="#1B3C53"
+        app:titleTextColor="#F9F3EF"
+        app:navigationIconTint="#F9F3EF">
 
         <LinearLayout
             android:layout_width="wrap_content"
@@ -24,15 +25,16 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:textSize="17sp"
+                android:fontFamily="sans-serif-medium"
                 android:textStyle="bold"
-                android:textColor="@android:color/white" />
+                android:textColor="#F9F3EF" />
 
             <TextView
                 android:id="@+id/tvChatContext"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:textSize="12sp"
-                android:textColor="#E0E0E0"
+                android:textColor="#D2C1B6"
                 android:maxLines="1"
                 android:ellipsize="end"
                 android:visibility="gone" />
@@ -45,16 +47,19 @@
         android:layout_height="0dp"
         android:layout_weight="1"
         android:clipToPadding="false"
-        android:paddingTop="8dp"
-        android:paddingBottom="8dp" />
+        android:paddingStart="10dp"
+        android:paddingEnd="10dp"
+        android:paddingTop="10dp"
+        android:paddingBottom="10dp" />
 
+    <!-- Input bar: cream card look, matching the app's MaterialCardView-style surfaces -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:gravity="center_vertical"
-        android:padding="8dp"
-        android:background="@android:color/white"
+        android:padding="10dp"
+        android:background="#F9F3EF"
         android:elevation="8dp">
 
         <com.google.android.material.textfield.TextInputLayout
@@ -66,6 +71,9 @@
             app:boxCornerRadiusBottomStart="24dp"
             app:boxCornerRadiusBottomEnd="24dp"
             app:boxBackgroundMode="outline"
+            app:boxBackgroundColor="#EAF1F5"
+            app:boxStrokeColor="#D2C1B6"
+            app:boxStrokeWidth="1dp"
             app:hintEnabled="false">
 
             <com.google.android.material.textfield.TextInputEditText
@@ -73,6 +81,8 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:hint="Type a message..."
+                android:textColor="#1B3C53"
+                android:textColorHint="#456882"
                 android:maxLines="4"
                 android:inputType="textCapSentences|textMultiLine" />
 
@@ -85,7 +95,7 @@
             android:layout_marginStart="8dp"
             android:background="@drawable/circle_button_background"
             android:src="@drawable/baseline_send_24"
-            app:tint="@android:color/white"
+            app:tint="#F9F3EF"
             android:contentDescription="Send message"
             android:padding="12dp" />
 

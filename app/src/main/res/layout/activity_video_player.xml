@@ -151,48 +151,23 @@
                 android:textColor="#456882"
                 android:textSize="12.5sp" />
 
-            <!-- Message / Report row, right where the Explore list card puts its
-                 chat + report icons — same actions, just full-width buttons here. -->
-            <LinearLayout
+            <!-- Report row — full-width now that Message has been removed;
+                 same pill styling and tap target the Message button used. -->
+            <TextView
+                android:id="@+id/btnReport"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:layout_marginTop="16dp">
-
-                <TextView
-                    android:id="@+id/btnMessage"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:layout_marginEnd="8dp"
-                    android:gravity="center"
-                    android:paddingTop="11dp"
-                    android:paddingBottom="11dp"
-                    android:text="💬 Message"
-                    android:textColor="#FFFFFF"
-                    android:textSize="13sp"
-                    android:textStyle="bold"
-                    android:background="@drawable/bg_pill_navy"
-                    android:clickable="true"
-                    android:focusable="true" />
-
-                <TextView
-                    android:id="@+id/btnReport"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:gravity="center"
-                    android:paddingTop="11dp"
-                    android:paddingBottom="11dp"
-                    android:text="🚩 Report"
-                    android:textColor="#1B3C53"
-                    android:textSize="13sp"
-                    android:textStyle="bold"
-                    android:background="@drawable/bg_pill_outline"
-                    android:clickable="true"
-                    android:focusable="true" />
-
-            </LinearLayout>
+                android:layout_marginTop="16dp"
+                android:gravity="center"
+                android:paddingTop="11dp"
+                android:paddingBottom="11dp"
+                android:text="🚩 Report"
+                android:textColor="#FFFFFF"
+                android:textSize="13sp"
+                android:textStyle="bold"
+                android:background="@drawable/bg_pill_navy"
+                android:clickable="true"
+                android:focusable="true" />
 
             <View
                 android:layout_width="match_parent"

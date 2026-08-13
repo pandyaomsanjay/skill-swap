@@ -1,8 +1,7 @@
-// Skill.kt
 package com.example.sgp
 
 data class Skill(
-    val id: String = "",
+    var id: String = "",
     val userId: String = "",
     val userName: String = "",
     val title: String = "",
