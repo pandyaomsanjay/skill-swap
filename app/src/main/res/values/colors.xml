@@ -12,6 +12,8 @@
     <color name="brand_navy_dark">#132B3E</color>
     <color name="brand_tan">#D2C1B6</color>
     <color name="brand_cream">#F9F3EF</color>
+    <color name="brand_steel">#456882</color>
+    <color name="brand_steel_hint">#9AA7B0</color>
 
     <!-- ================= BRAND (User-side — blue palette) ================= -->
     <color name="brand_blue">#96B6C5</color>

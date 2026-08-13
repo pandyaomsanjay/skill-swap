@@ -2,22 +2,30 @@ package com.example.sgp
 
 import android.content.Context
 import android.content.Intent
+import android.content.res.ColorStateList
+import android.graphics.Color
+import android.graphics.Typeface
+import android.graphics.drawable.GradientDrawable
 import android.net.Uri
 import android.os.Bundle
 import android.util.Log
+import android.util.TypedValue
+import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
+import android.view.ViewGroup
 import android.widget.*
 import androidx.activity.result.contract.ActivityResultContracts
+import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.button.MaterialButtonToggleGroup
 import com.google.android.material.textfield.MaterialAutoCompleteTextView
 import com.google.android.material.textfield.TextInputEditText
+import com.google.firebase.Firebase
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.firestore
-import kotlinx.coroutines.*
 import io.github.jan.supabase.storage.storage
-import com.google.firebase.Firebase
+import kotlinx.coroutines.*
 
 class AddSkillActivity : BaseActivity() {
 
@@ -32,6 +40,24 @@ class AddSkillActivity : BaseActivity() {
     private lateinit var videoPickerLauncher: androidx.activity.result.ActivityResultLauncher<String>
     private lateinit var db: FirebaseFirestore
 
+    // Theme color palette matching AdminUsersActivity
+    private val sheetBg = Color.parseColor("#16263A")
+    private val sheetDivider = Color.parseColor("#28405A")
+    private val sheetPrimaryText = Color.parseColor("#F5EDE4")
+
+    // Bottom sheet picker palette — matches ExploreActivity's report dialog theme exactly
+    private val pickerBg = Color.WHITE
+    private val pickerTitleColor = Color.parseColor("#1B3C53")
+    private val pickerSubtitleColor = Color.parseColor("#456882")
+    private val pickerDividerColor = Color.parseColor("#EAF1F5")
+    private val pickerCancelBg = Color.parseColor("#EAF1F5")
+    private val pickerCancelText = Color.parseColor("#456882")
+
+    // Helper method to convert DP to PX locally
+    private fun dp(value: Int): Int {
+        return (value * resources.displayMetrics.density).toInt()
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_add_skill)
@@ -45,6 +71,7 @@ class AddSkillActivity : BaseActivity() {
         val toolbar: androidx.appcompat.widget.Toolbar = findViewById(R.id.toolbar)
         setSupportActionBar(toolbar)
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
+        toolbar.setNavigationOnClickListener { onBackPressedDispatcher.onBackPressed() }
 
         val prefs = getSharedPreferences("SkillSwapPrefs", Context.MODE_PRIVATE)
         val currentUserEmail = prefs.getString("user_email", "") ?: ""
@@ -67,22 +94,37 @@ class AddSkillActivity : BaseActivity() {
         val btnPublish = findViewById<MaterialButton>(R.id.btnPublishSkill)
 
         val toggleGroup = findViewById<MaterialButtonToggleGroup>(R.id.toggleSkillType)
+        val btnSingleVideo = findViewById<MaterialButton>(R.id.btnSingleVideo)
+        val btnPlaylist = findViewById<MaterialButton>(R.id.btnPlaylist)
         val singleVideoSection = findViewById<LinearLayout>(R.id.singleVideoSection)
         val playlistSection = findViewById<LinearLayout>(R.id.playlistSection)
 
-        val btnAddVideo = findViewById<Button>(R.id.btnAddVideo)
+        val btnAddVideo = findViewById<TextView>(R.id.btnAddVideo)
         val playlistVideosContainer = findViewById<LinearLayout>(R.id.playlistVideosContainer)
 
-        val btnSelectVideo = findViewById<Button>(R.id.btnSelectVideo)
+        val btnSelectVideo = findViewById<TextView>(R.id.btnSelectVideo)
         val tvVideoFileName = findViewById<TextView>(R.id.tvVideoFileName)
         val ivVideoThumbnail = findViewById<ImageView>(R.id.ivVideoThumbnail)
         val btnCancelVideo = findViewById<ImageButton>(R.id.btnCancelVideo)
         val progressBar = findViewById<ProgressBar>(R.id.progressBarVideoUpload)
 
-        // Category Dropdown
+        // Category picker (bottom sheet, styled like the report dialog)
         val categories = resources.getStringArray(R.array.skill_categories)
-        val adapter = ArrayAdapter(this, android.R.layout.simple_dropdown_item_1line, categories)
-        actvCategory.setAdapter(adapter)
+
+        // Make the field behave like a button that opens the sheet instead of a text input
+        actvCategory.isFocusable = false
+        actvCategory.isFocusableInTouchMode = false
+        actvCategory.isClickable = true
+        actvCategory.isCursorVisible = false
+        actvCategory.keyListener = null
+        actvCategory.setOnClickListener {
+            showCategoryBottomSheet(actvCategory, categories)
+        }
+        actvCategory.setOnFocusChangeListener { _, hasFocus ->
+            if (hasFocus) {
+                showCategoryBottomSheet(actvCategory, categories)
+            }
+        }
 
         // Credits Logic
         tvCredits.text = credits.toString()
@@ -101,8 +143,11 @@ class AddSkillActivity : BaseActivity() {
             }
         }
 
-        // Toggle
-        toggleGroup.addOnButtonCheckedListener { _, checkedId, isChecked ->
+        // --- Skill Type Toggle Listener with Dynamic Colors ---
+        toggleGroup.addOnButtonCheckedListener { group, checkedId, isChecked ->
+            val checkedButton = group.findViewById<MaterialButton>(checkedId)
+            checkedButton?.let { updateToggleButtonTheme(it, isChecked) }
+
             if (isChecked) {
                 if (checkedId == R.id.btnSingleVideo) {
                     selectedType = "single"
@@ -115,6 +160,10 @@ class AddSkillActivity : BaseActivity() {
                 }
             }
         }
+
+        // Initialize default colors and check state
+        btnSingleVideo?.let { updateToggleButtonTheme(it, true) }
+        btnPlaylist?.let { updateToggleButtonTheme(it, false) }
         toggleGroup.check(R.id.btnSingleVideo)
 
         btnSelectVideo.setOnClickListener {
@@ -125,6 +174,7 @@ class AddSkillActivity : BaseActivity() {
             selectedVideoUri = null
             tvVideoFileName.text = "No video selected"
             ivVideoThumbnail.setImageResource(R.drawable.baseline_videocam_24)
+            ivVideoThumbnail.clearColorFilter()
             btnCancelVideo.visibility = View.GONE
         }
 
@@ -167,8 +217,159 @@ class AddSkillActivity : BaseActivity() {
         BottomNavHelper.setup(this, BottomNavItem.ADD_SKILL)
     }
 
+    /**
+     * Dynamically updates button styling according to state and theme palette:
+     * Checked: BG #1B3C53 | Text #EAF1F5 | Stroke #1B3C53
+     * Unchecked: BG #EAF1F5 | Text #456882 | Stroke #9AA7B0
+     */
+    private fun updateToggleButtonTheme(button: MaterialButton, isChecked: Boolean) {
+        if (isChecked) {
+            button.backgroundTintList = ColorStateList.valueOf(Color.parseColor("#1B3C53"))
+            button.setTextColor(Color.parseColor("#EAF1F5"))
+            button.strokeColor = ColorStateList.valueOf(Color.parseColor("#1B3C53"))
+        } else {
+            button.backgroundTintList = ColorStateList.valueOf(Color.parseColor("#EAF1F5"))
+            button.setTextColor(Color.parseColor("#456882"))
+            button.strokeColor = ColorStateList.valueOf(Color.parseColor("#9AA7B0"))
+        }
+        button.rippleColor = ColorStateList.valueOf(Color.parseColor("#D2C1B6"))
+    }
+
+    /**
+     * Shows a bottom sheet category picker styled like the app's "Report" dialog:
+     * white rounded sheet, title + subtitle, list of items with hairline dividers,
+     * and a pill-shaped Cancel button at the bottom.
+     */
+    private fun showCategoryBottomSheet(
+        actvCategory: MaterialAutoCompleteTextView,
+        categories: Array<String>
+    ) {
+        val dialog = BottomSheetDialog(this)
+
+        val scrollView = android.widget.ScrollView(this).apply {
+            layoutParams = ViewGroup.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT
+            )
+        }
+
+        val rootLayout = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(20), dp(22), dp(20), dp(20))
+            background = GradientDrawable().apply {
+                setColor(pickerBg)
+                cornerRadii = floatArrayOf(
+                    dp(20).toFloat(), dp(20).toFloat(),
+                    dp(20).toFloat(), dp(20).toFloat(),
+                    0f, 0f, 0f, 0f
+                )
+            }
+        }
+
+        // Title
+        rootLayout.addView(TextView(this).apply {
+            text = "Select Category"
+            setTextColor(pickerTitleColor)
+            textSize = 17f
+            setTypeface(typeface, Typeface.BOLD)
+        })
+
+        // Subtitle
+        rootLayout.addView(TextView(this).apply {
+            text = "Choose the category that best fits your skill"
+            setTextColor(pickerSubtitleColor)
+            textSize = 13f
+            setPadding(0, dp(4), 0, dp(4))
+        })
+
+        rootLayout.addView(pickerDivider())
+
+        val currentSelection = actvCategory.text.toString()
+
+        categories.forEachIndexed { index, category ->
+            rootLayout.addView(pickerCategoryRow(category, category == currentSelection) {
+                actvCategory.setText(category, false)
+                dialog.dismiss()
+            })
+            if (index != categories.lastIndex) {
+                rootLayout.addView(pickerDivider())
+            }
+        }
+
+        // Cancel pill button
+        val btnCancel = pillButton("Cancel", pickerCancelBg, pickerCancelText).apply {
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply {
+                topMargin = dp(16)
+                gravity = Gravity.END
+            }
+            setPadding(dp(28), dp(10), dp(28), dp(10))
+            setOnClickListener { dialog.dismiss() }
+        }
+        rootLayout.addView(btnCancel)
+
+        scrollView.addView(rootLayout)
+        dialog.setContentView(scrollView)
+
+        dialog.setOnDismissListener {
+            actvCategory.clearFocus()
+        }
+
+        dialog.show()
+    }
+
+    /** A single tappable category row */
+    private fun pickerCategoryRow(text: String, isSelected: Boolean, onClick: () -> Unit): TextView {
+        val outValue = TypedValue()
+        theme.resolveAttribute(android.R.attr.selectableItemBackground, outValue, true)
+        return TextView(this).apply {
+            this.text = text
+            setTextColor(pickerTitleColor)
+            setTypeface(typeface, if (isSelected) Typeface.BOLD else Typeface.NORMAL)
+            textSize = 15f
+            setPadding(dp(4), dp(8), dp(4), dp(8))
+            setBackgroundResource(outValue.resourceId)
+            isClickable = true
+            isFocusable = true
+            setOnClickListener { onClick() }
+        }
+    }
+
+    /** Hairline divider */
+    private fun pickerDivider(): View {
+        return View(this).apply {
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                dp(1)
+            ).apply {
+                topMargin = dp(12)
+                bottomMargin = dp(12)
+            }
+            setBackgroundColor(pickerDividerColor)
+        }
+    }
+
+    /** Pill-shaped text "button" */
+    private fun pillButton(text: String, bgColor: Int, textColor: Int): TextView {
+        return TextView(this).apply {
+            this.text = text
+            setTextColor(textColor)
+            textSize = 14f
+            setTypeface(typeface, Typeface.BOLD)
+            gravity = Gravity.CENTER
+            setPadding(0, dp(12), 0, dp(12))
+            background = GradientDrawable().apply {
+                cornerRadius = dp(24).toFloat()
+                setColor(bgColor)
+            }
+            isClickable = true
+            isFocusable = true
+        }
+    }
+
     private fun handleSingleVideoSelected(uri: Uri) {
-        // ... (unchanged)
         val cursor = contentResolver.query(uri, null, null, null, null)
         val sizeIndex = cursor?.getColumnIndex(android.provider.OpenableColumns.SIZE)
         cursor?.moveToFirst()
@@ -188,12 +389,11 @@ class AddSkillActivity : BaseActivity() {
 
         tvVideoFileName.text = uri.lastPathSegment ?: "Selected video"
         ivVideoThumbnail.setImageResource(R.drawable.baseline_check_circle_24)
-        ivVideoThumbnail.setColorFilter(getColor(R.color.primary_green))
+        ivVideoThumbnail.setColorFilter(Color.parseColor("#1B3C53"))
         btnCancelVideo.visibility = View.VISIBLE
     }
 
     private fun addPlaylistVideoItem(container: LinearLayout) {
-        // ... (unchanged)
         val inflater = LayoutInflater.from(this)
         val itemView = inflater.inflate(R.layout.item_playlist_video, container, false)
 
@@ -257,7 +457,6 @@ class AddSkillActivity : BaseActivity() {
     }
 
     private suspend fun uploadToSupabase(uri: Uri, fileName: String): String? {
-        // ... (unchanged)
         return try {
             val bucket = SupabaseClient.client.storage.from(STORAGE_BUCKET)
 
@@ -312,7 +511,7 @@ class AddSkillActivity : BaseActivity() {
                 return@launch
             }
 
-            val userId = userEmail // we'll store email as userId; Firestore doc ID will be separate
+            val userId = userEmail
             val skill = Skill(
                 id = skillId,
                 userId = userId,

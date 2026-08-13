@@ -5,16 +5,17 @@
     android:layout_height="match_parent"
     android:orientation="vertical"
     android:fitsSystemWindows="true"
-    android:background="#00FFFFFF">
+    android:background="#EAF1F5">
 
     <com.google.android.material.appbar.MaterialToolbar
         android:id="@+id/toolbar"
         android:layout_width="match_parent"
         android:layout_height="?attr/actionBarSize"
-        android:background="#4CAF50"
+        android:background="#1B3C53"
         app:title="Offer a Skill"
         app:titleTextColor="@android:color/white"
-        app:navigationIcon="@drawable/outline_arrow_back_24"/>
+        app:navigationIcon="@drawable/outline_arrow_back_24"
+        app:navigationIconTint="@android:color/white" />
 
     <ScrollView
         android:layout_width="match_parent"
@@ -33,7 +34,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Skill Type"
-                android:textColor="#212121"
+                android:textColor="#1B3C53"
                 android:textSize="16sp"
                 android:textStyle="bold"
                 android:layout_marginBottom="8dp" />
@@ -42,49 +43,65 @@
                 android:id="@+id/toggleSkillType"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="16dp"
+                android:layout_marginBottom="20dp"
                 app:singleSelection="true"
-                app:selectionRequired="true">
+                app:selectionRequired="true"
+                app:checkedButton="@id/btnSingleVideo">
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/btnSingleVideo"
-                    style="@style/Widget.Material3.Button.TonalButton"
+                    style="@style/Widget.Material3.Button.OutlinedButton"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:text="Single Video" />
+                    android:text="Single Video"
+                    android:textColor="#1B3C53"
+                    app:backgroundTint="#EAF1F5"
+                    app:strokeColor="#9AA7B0"
+                    app:rippleColor="#D2C1B6" />
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/btnPlaylist"
-                    style="@style/Widget.Material3.Button.TonalButton"
+                    style="@style/Widget.Material3.Button.OutlinedButton"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:text="Playlist" />
-            </com.google.android.material.button.MaterialButtonToggleGroup>
+                    android:text="Playlist"
+                    android:textColor="#1B3C53"
+                    app:backgroundTint="#EAF1F5"
+                    app:strokeColor="#9AA7B0"
+                    app:rippleColor="#D2C1B6" />
 
+            </com.google.android.material.button.MaterialButtonToggleGroup>
             <!-- Header note -->
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Share what you can do and earn credits"
-                android:textColor="#757575"
+                android:textColor="#456882"
                 android:textSize="14sp"
                 android:layout_marginBottom="24dp" />
 
-            <!-- Common fields: Title, Category, Description, Duration, Credits -->
+            <!-- Skill Title -->
             <com.google.android.material.textfield.TextInputLayout
                 android:id="@+id/titleLayout"
                 style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="16dp"
-                android:hint="Skill Title">
+                android:hint="Skill Title"
+                app:boxStrokeColor="#456882"
+                app:hintTextColor="#1B3C53"
+                app:boxCornerRadiusTopStart="12dp"
+                app:boxCornerRadiusTopEnd="12dp"
+                app:boxCornerRadiusBottomStart="12dp"
+                app:boxCornerRadiusBottomEnd="12dp">
 
                 <com.google.android.material.textfield.TextInputEditText
                     android:id="@+id/etTitle"
                     android:layout_width="match_parent"
-                    android:layout_height="wrap_content" />
+                    android:layout_height="wrap_content"
+                    android:textColor="#1B3C53" />
             </com.google.android.material.textfield.TextInputLayout>
 
             <!-- Category Dropdown -->
@@ -95,7 +112,14 @@
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="16dp"
                 android:hint="Category"
-                app:endIconMode="dropdown_menu">
+                app:endIconMode="dropdown_menu"
+                app:endIconTint="#456882"
+                app:boxStrokeColor="#456882"
+                app:hintTextColor="#1B3C53"
+                app:boxCornerRadiusTopStart="12dp"
+                app:boxCornerRadiusTopEnd="12dp"
+                app:boxCornerRadiusBottomStart="12dp"
+                app:boxCornerRadiusBottomEnd="12dp">
 
                 <com.google.android.material.textfield.MaterialAutoCompleteTextView
                     android:id="@+id/actvCategory"
@@ -104,6 +128,7 @@
                     android:inputType="none"
                     android:focusable="false"
                     android:clickable="true"
+                    android:textColor="#1B3C53"
                     android:maxLines="1" />
             </com.google.android.material.textfield.TextInputLayout>
 
@@ -114,12 +139,19 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="16dp"
-                android:hint="Description">
+                android:hint="Description"
+                app:boxStrokeColor="#456882"
+                app:hintTextColor="#1B3C53"
+                app:boxCornerRadiusTopStart="12dp"
+                app:boxCornerRadiusTopEnd="12dp"
+                app:boxCornerRadiusBottomStart="12dp"
+                app:boxCornerRadiusBottomEnd="12dp">
 
                 <com.google.android.material.textfield.TextInputEditText
                     android:id="@+id/etDescription"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:textColor="#1B3C53"
                     android:minLines="3"
                     android:inputType="textMultiLine" />
             </com.google.android.material.textfield.TextInputLayout>
@@ -130,16 +162,23 @@
                 style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="16dp"
-                android:hint="Duration">
+                android:layout_marginBottom="8dp"
+                android:hint="Duration"
+                app:boxStrokeColor="#456882"
+                app:hintTextColor="#1B3C53"
+                app:boxCornerRadiusTopStart="12dp"
+                app:boxCornerRadiusTopEnd="12dp"
+                app:boxCornerRadiusBottomStart="12dp"
+                app:boxCornerRadiusBottomEnd="12dp">
 
                 <com.google.android.material.textfield.TextInputEditText
                     android:id="@+id/etDuration"
                     android:layout_width="match_parent"
-                    android:layout_height="wrap_content" />
+                    android:layout_height="wrap_content"
+                    android:textColor="#1B3C53" />
             </com.google.android.material.textfield.TextInputLayout>
 
-            <!-- Single Video Section (initially visible) -->
+            <!-- Single Video Section -->
             <LinearLayout
                 android:id="@+id/singleVideoSection"
                 android:layout_width="match_parent"
@@ -151,60 +190,76 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="Demo Video (5-10 min)"
-                    android:textColor="#212121"
+                    android:textColor="#1B3C53"
                     android:textSize="16sp"
                     android:textStyle="bold"
                     android:layout_marginTop="16dp"
                     android:layout_marginBottom="8dp" />
 
-                <LinearLayout
+                <com.google.android.material.card.MaterialCardView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:gravity="center_vertical"
-                    android:layout_margin="15dp"
-                    android:background="@drawable/border_rounded"
-                    android:padding="12dp"
+                    app:cardCornerRadius="14dp"
+                    app:cardElevation="0dp"
+                    app:strokeWidth="1dp"
+                    app:strokeColor="#D2C1B6"
+                    app:cardBackgroundColor="@android:color/white"
                     android:layout_marginBottom="16dp">
 
-                    <ImageView
-                        android:id="@+id/ivVideoThumbnail"
-                        android:layout_width="48dp"
-                        android:layout_height="48dp"
-                        android:src="@drawable/baseline_videocam_24"
-                        android:hint="#4CAF50"
-                        android:contentDescription="Video thumbnail" />
-
-                    <TextView
-                        android:id="@+id/tvVideoFileName"
-                        android:layout_width="0dp"
+                    <LinearLayout
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:layout_marginStart="12dp"
-                        android:text="No video selected"
-                        android:textColor="#757575"
-                        android:textSize="14sp"
-                        android:maxLines="2"
-                        android:ellipsize="end" />
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
+                        android:padding="12dp">
 
-                    <ImageButton
-                        android:id="@+id/btnCancelVideo"
-                        android:layout_width="32dp"
-                        android:layout_height="32dp"
-                        android:src="@drawable/baseline_close_24"
-                        android:background="?attr/selectableItemBackgroundBorderless"
-                        android:visibility="gone"
-                        android:contentDescription="Remove video" />
+                        <ImageView
+                            android:id="@+id/ivVideoThumbnail"
+                            android:layout_width="48dp"
+                            android:layout_height="48dp"
+                            android:src="@drawable/baseline_videocam_24"
+                            app:tint="#456882"
+                            android:contentDescription="Video thumbnail" />
 
-                    <Button
-                        android:id="@+id/btnSelectVideo"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Select"
-                        android:backgroundTint="#4CAF50"
-                        android:textColor="@android:color/white"
-                        style="@style/Widget.MaterialComponents.Button.TextButton" />
-                </LinearLayout>
+                        <TextView
+                            android:id="@+id/tvVideoFileName"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:layout_marginStart="12dp"
+                            android:text="No video selected"
+                            android:textColor="#757575"
+                            android:textSize="14sp"
+                            android:maxLines="2"
+                            android:ellipsize="end" />
+
+                        <ImageButton
+                            android:id="@+id/btnCancelVideo"
+                            android:layout_width="32dp"
+                            android:layout_height="32dp"
+                            android:src="@drawable/baseline_close_24"
+                            app:tint="#DC2626"
+                            android:background="?attr/selectableItemBackgroundBorderless"
+                            android:visibility="gone"
+                            android:contentDescription="Remove video" />
+
+                        <TextView
+                            android:id="@+id/btnSelectVideo"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Select"
+                            android:textColor="@android:color/white"
+                            android:textSize="13sp"
+                            android:textStyle="bold"
+                            android:gravity="center"
+                            android:paddingHorizontal="18dp"
+                            android:paddingVertical="9dp"
+                            android:layout_marginStart="8dp"
+                            android:background="@drawable/pill_navy_bg"
+                            android:clickable="true"
+                            android:focusable="true" />
+                    </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
 
                 <ProgressBar
                     android:id="@+id/progressBarVideoUpload"
@@ -212,13 +267,11 @@
                     android:layout_width="match_parent"
                     android:layout_height="4dp"
                     android:visibility="gone"
+                    android:progressTint="#1B3C53"
                     android:layout_marginBottom="16dp" />
             </LinearLayout>
 
-            <!-- Playlist Section (initially gone) -->
-            <!-- Inside activity_add_skill.xml, after the single video section -->
-
-            <!-- Playlist Section (initially gone) -->
+            <!-- Playlist Section -->
             <LinearLayout
                 android:id="@+id/playlistSection"
                 android:layout_width="match_parent"
@@ -230,19 +283,25 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="Playlist Videos"
-                    android:textColor="#212121"
+                    android:textColor="#1B3C53"
                     android:textSize="16sp"
                     android:textStyle="bold"
                     android:layout_marginTop="16dp"
                     android:layout_marginBottom="8dp" />
 
-                <Button
+                <TextView
                     android:id="@+id/btnAddVideo"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="+ Add Video"
-                    style="@style/Widget.MaterialComponents.Button.TextButton"
-                    android:layout_marginBottom="16dp" />
+                    android:textColor="#1B3C53"
+                    android:textSize="14sp"
+                    android:textStyle="bold"
+                    android:padding="8dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:layout_marginBottom="12dp"
+                    android:clickable="true"
+                    android:focusable="true" />
 
                 <LinearLayout
                     android:id="@+id/playlistVideosContainer"
@@ -254,7 +313,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="Playlist skills appear only in Explore (not tradeable)"
-                    android:textColor="#9E9E9E"
+                    android:textColor="#9AA7B0"
                     android:textSize="12sp"
                     android:layout_marginBottom="16dp" />
             </LinearLayout>
@@ -264,63 +323,64 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Credits Required"
-                android:textColor="#212121"
+                android:textColor="#1B3C53"
                 android:textSize="16sp"
                 android:textStyle="bold"
-                android:layout_marginBottom="8dp" />
+                android:layout_marginBottom="10dp" />
 
-            <LinearLayout
-                android:layout_width="match_parent"
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:gravity="center_vertical"
+                app:cardCornerRadius="28dp"
+                app:cardElevation="0dp"
+                app:cardBackgroundColor="#EAF1F5"
                 android:layout_marginBottom="8dp">
 
-                <ImageButton
-                    android:id="@+id/btnDecrement"
-                    android:layout_width="48dp"
-                    android:layout_height="48dp"
-                    android:background="?attr/selectableItemBackgroundBorderless"
-                    android:contentDescription="Decrease credits"
-                    android:hint="#4CAF50"
-                    android:src="@drawable/baseline_remove_24" />
-
-                <TextView
-                    android:id="@+id/tvCredits"
+                <LinearLayout
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="5"
-                    android:textColor="#212121"
-                    android:textSize="24sp"
-                    android:textStyle="bold"
-                    android:paddingHorizontal="24dp" />
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:paddingHorizontal="8dp">
 
-                <ImageButton
-                    android:id="@+id/btnIncrement"
-                    android:layout_width="48dp"
-                    android:layout_height="48dp"
-                    android:src="@drawable/outline_add_24"
-                    android:background="?attr/selectableItemBackgroundBorderless"
-                    android:contentDescription="Increase credits"
-                    android:hint="#4CAF50" />
+                    <ImageButton
+                        android:id="@+id/btnDecrement"
+                        android:layout_width="44dp"
+                        android:layout_height="44dp"
+                        android:background="?attr/selectableItemBackgroundBorderless"
+                        android:contentDescription="Decrease credits"
+                        app:tint="#1B3C53"
+                        android:src="@drawable/baseline_remove_24" />
 
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="per session"
-                    android:textColor="#757575"
-                    android:textSize="14sp"
-                    android:layout_marginStart="8dp" />
-            </LinearLayout>
+                    <TextView
+                        android:id="@+id/tvCredits"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="0"
+                        android:textColor="#1B3C53"
+                        android:textSize="22sp"
+                        android:textStyle="bold"
+                        android:paddingHorizontal="20dp" />
+
+                    <ImageButton
+                        android:id="@+id/btnIncrement"
+                        android:layout_width="44dp"
+                        android:layout_height="44dp"
+                        android:src="@drawable/outline_add_24"
+                        android:background="?attr/selectableItemBackgroundBorderless"
+                        android:contentDescription="Increase credits"
+                        app:tint="#1B3C53" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Suggested: 3-10 credits for 1-hour sessions"
-                android:textColor="#9E9E9E"
+                android:textColor="#9AA7B0"
                 android:textSize="12sp"
                 android:layout_marginBottom="24dp"
-                android:layout_marginStart="8dp" />
+                android:layout_marginStart="4dp" />
 
             <!-- Publish Button -->
             <com.google.android.material.button.MaterialButton
@@ -332,8 +392,9 @@
                 android:textColor="@android:color/white"
                 android:textSize="16sp"
                 android:textStyle="bold"
-                app:cornerRadius="12dp"
-                app:backgroundTint="#4CAF50"
+                app:cornerRadius="14dp"
+                app:backgroundTint="#1B3C53"
+                app:rippleColor="#456882"
                 android:layout_marginTop="16dp"
                 android:layout_marginBottom="24dp" />
 
