@@ -4,20 +4,27 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:background="#EAF1F5">
+    android:background="@color/admin_bg_light_blue">
 
-    <!-- Navy toolbar, matches the app's header color used across screens -->
+    <!-- Toolbar: extra top padding pushes the back icon + name down slightly
+         without clipping, since a plain actionBarSize height keeps everything
+         pinned to vertical-center. -->
     <androidx.appcompat.widget.Toolbar
         android:id="@+id/toolbarChat"
         android:layout_width="match_parent"
-        android:layout_height="?attr/actionBarSize"
-        android:background="#1B3C53"
-        app:titleTextColor="#F9F3EF"
-        app:navigationIconTint="#F9F3EF">
+        android:layout_height="wrap_content"
+        android:minHeight="?attr/actionBarSize"
+        android:paddingTop="14dp"
+        android:paddingBottom="8dp"
+        android:background="@color/brand_final_primary"
+        app:navigationIcon="@drawable/baseline_arrow_back_24"
+        app:navigationIconTint="@color/black"
+        app:titleTextColor="@color/brand_final_on_primary">
 
         <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
             android:orientation="vertical">
 
             <TextView
@@ -27,14 +34,14 @@
                 android:textSize="17sp"
                 android:fontFamily="sans-serif-medium"
                 android:textStyle="bold"
-                android:textColor="#F9F3EF" />
+                android:textColor="@color/brand_final_on_primary" />
 
             <TextView
                 android:id="@+id/tvChatContext"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:textSize="12sp"
-                android:textColor="#D2C1B6"
+                android:textColor="@color/brand_final_primary_container"
                 android:maxLines="1"
                 android:ellipsize="end"
                 android:visibility="gone" />
@@ -47,19 +54,21 @@
         android:layout_height="0dp"
         android:layout_weight="1"
         android:clipToPadding="false"
+        android:background="@color/admin_bg_light_blue"
         android:paddingStart="10dp"
         android:paddingEnd="10dp"
         android:paddingTop="10dp"
         android:paddingBottom="10dp" />
 
-    <!-- Input bar: cream card look, matching the app's MaterialCardView-style surfaces -->
+    <!-- Input bar sits on the same EAF1F5 background; a subtle stroke on the
+         field itself provides separation instead of a contrasting bar color. -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:gravity="center_vertical"
         android:padding="10dp"
-        android:background="#F9F3EF"
+        android:background="@color/admin_bg_light_blue"
         android:elevation="8dp">
 
         <com.google.android.material.textfield.TextInputLayout
@@ -71,8 +80,8 @@
             app:boxCornerRadiusBottomStart="24dp"
             app:boxCornerRadiusBottomEnd="24dp"
             app:boxBackgroundMode="outline"
-            app:boxBackgroundColor="#EAF1F5"
-            app:boxStrokeColor="#D2C1B6"
+            app:boxBackgroundColor="@color/brand_final_surface"
+            app:boxStrokeColor="@color/brand_final_outline_variant"
             app:boxStrokeWidth="1dp"
             app:hintEnabled="false">
 
@@ -81,8 +90,8 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:hint="Type a message..."
-                android:textColor="#1B3C53"
-                android:textColorHint="#456882"
+                android:textColor="@color/brand_final_on_surface"
+                android:textColorHint="@color/brand_final_on_surface_variant"
                 android:maxLines="4"
                 android:inputType="textCapSentences|textMultiLine" />
 
@@ -94,8 +103,9 @@
             android:layout_height="48dp"
             android:layout_marginStart="8dp"
             android:background="@drawable/circle_button_background"
+            android:backgroundTint="@color/brand_final_primary"
             android:src="@drawable/baseline_send_24"
-            app:tint="#F9F3EF"
+            app:tint="@color/brand_final_on_primary"
             android:contentDescription="Send message"
             android:padding="12dp" />
 

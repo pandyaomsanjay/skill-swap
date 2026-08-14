@@ -12,18 +12,19 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:orientation="vertical"
-        android:background="?android:colorBackground">
+        android:background="@color/admin_bg_light_blue">
 
+        <!-- ===================== Header (matches admin screens) ===================== -->
         <com.google.android.material.appbar.MaterialToolbar
             android:id="@+id/toolbar"
             android:layout_width="match_parent"
             android:layout_height="?attr/actionBarSize"
-            android:background="?attr/colorPrimary"
+            android:background="#1B3C53"
             android:elevation="0dp"
             app:navigationIcon="@drawable/outline_menu_24"
-            app:navigationIconTint="?attr/colorOnPrimary"
+            app:navigationIconTint="#F9F3EF"
             app:title="SkillSwap"
-            app:titleTextColor="?attr/colorOnPrimary"
+            app:titleTextColor="#F9F3EF"
             app:titleTextAppearance="@style/TextAppearance.Material3.TitleLarge" />
 
         <ScrollView
@@ -38,89 +39,100 @@
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
                 android:paddingHorizontal="16dp"
-                android:paddingTop="20dp"
+                android:paddingTop="16dp"
                 android:paddingBottom="24dp">
 
-                <LinearLayout
+                <!-- ===================== Profile / Points card ===================== -->
+                <com.google.android.material.card.MaterialCardView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:padding="4dp"
-                    android:gravity="center_vertical"
-                    android:layout_marginBottom="28dp">
-
-                    <ImageView
-                        android:id="@+id/ivProfilePicture"
-                        android:layout_width="54dp"
-                        android:layout_height="54dp"
-                        android:scaleType="centerCrop"
-                        android:src="@drawable/ic_default_profile"
-                        android:contentDescription="Profile picture" />
+                    app:cardCornerRadius="16dp"
+                    app:cardElevation="0dp"
+                    app:strokeWidth="1dp"
+                    app:strokeColor="#D2C1B6"
+                    app:cardBackgroundColor="#FFFFFF"
+                    android:layout_marginBottom="20dp">
 
                     <LinearLayout
-                        android:layout_width="0dp"
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:orientation="vertical"
-                        android:layout_marginStart="14dp">
+                        android:orientation="horizontal"
+                        android:padding="14dp"
+                        android:gravity="center_vertical">
 
-                        <TextView
-                            android:id="@+id/tvGreeting"
+                        <ImageView
+                            android:id="@+id/ivProfilePicture"
+                            android:layout_width="54dp"
+                            android:layout_height="54dp"
+                            android:scaleType="centerCrop"
+                            android:src="@drawable/ic_default_profile"
+                            android:contentDescription="Profile picture" />
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:orientation="vertical"
+                            android:layout_marginStart="14dp">
+
+                            <TextView
+                                android:id="@+id/tvGreeting"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Welcome back,"
+                                android:textColor="#456882"
+                                android:textSize="13sp" />
+
+                            <TextView
+                                android:id="@+id/tvUserName"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Alex Johnson"
+                                android:textColor="#1B3C53"
+                                android:textSize="20sp"
+                                android:textStyle="bold"
+                                android:layout_marginTop="2dp" />
+
+                            <TextView
+                                android:id="@+id/tvUserId"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="nadiaid"
+                                android:textColor="#456882"
+                                android:textSize="12sp"
+                                android:visibility="gone" />
+                        </LinearLayout>
+
+                        <LinearLayout
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Welcome back,"
-                            android:textColor="?attr/colorOnSurfaceVariant"
-                            android:textSize="13sp" />
+                            android:orientation="vertical"
+                            android:gravity="center_horizontal">
 
-                        <TextView
-                            android:id="@+id/tvUserName"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="Alex Johnson"
-                            android:textColor="?attr/colorOnSurface"
-                            android:textSize="20sp"
-                            android:textStyle="bold"
-                            android:layout_marginTop="2dp" />
+                            <TextView
+                                android:id="@+id/tvPoints"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="250"
+                                android:textColor="#1B3C53"
+                                android:textSize="20sp"
+                                android:textStyle="bold" />
 
-                        <TextView
-                            android:id="@+id/tvUserId"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="nadiaid"
-                            android:textColor="?attr/colorOnSurfaceVariant"
-                            android:textSize="12sp"
-                            android:visibility="gone" />
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Points"
+                                android:textColor="#456882"
+                                android:textSize="11sp" />
+                        </LinearLayout>
                     </LinearLayout>
-
-                    <LinearLayout
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:orientation="vertical"
-                        android:gravity="center_horizontal">
-
-                        <TextView
-                            android:id="@+id/tvPoints"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="250"
-                            android:textColor="?attr/colorPrimary"
-                            android:textSize="20sp"
-                            android:textStyle="bold" />
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="Points"
-                            android:textColor="?attr/colorOnSurfaceVariant"
-                            android:textSize="11sp" />
-                    </LinearLayout>
-                </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="Quick actions"
-                    android:textColor="?attr/colorOnSurfaceVariant"
+                    android:textColor="#456882"
                     android:textSize="13sp"
                     android:textStyle="bold"
                     android:letterSpacing="0.03"
@@ -131,7 +143,7 @@
                     android:layout_height="wrap_content"
                     android:orientation="horizontal"
                     android:gravity="center_vertical"
-                    android:layout_marginBottom="24dp">
+                    android:layout_marginBottom="20dp">
 
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/btnNearby"
@@ -143,9 +155,9 @@
                         style="@style/Widget.Material3.Button.TonalButton"
                         app:icon="@drawable/outline_location_on_24"
                         app:iconGravity="textStart"
-                        app:iconTint="?attr/colorOnPrimaryContainer"
-                        app:backgroundTint="?attr/colorPrimaryContainer"
-                        android:textColor="?attr/colorOnPrimaryContainer"
+                        app:iconTint="#F9F3EF"
+                        app:backgroundTint="#1B3C53"
+                        android:textColor="#F9F3EF"
                         app:cornerRadius="20dp" />
 
                     <com.google.android.material.button.MaterialButton
@@ -154,12 +166,13 @@
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
                         android:text="Filters"
-                        style="@style/Widget.Material3.Button.TonalButton"
+                        style="@style/Widget.Material3.Button.OutlinedButton"
                         app:icon="@drawable/baseline_filter_24"
                         app:iconGravity="textStart"
-                        app:iconTint="?attr/colorOnPrimaryContainer"
-                        app:backgroundTint="?attr/colorPrimaryContainer"
-                        android:textColor="?attr/colorOnPrimaryContainer"
+                        app:iconTint="#456882"
+                        app:strokeColor="#D2C1B6"
+                        app:strokeWidth="1dp"
+                        android:textColor="#456882"
                         app:cornerRadius="20dp" />
                 </LinearLayout>
 
@@ -167,124 +180,155 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="horizontal"
-                    android:layout_marginBottom="28dp">
+                    android:layout_marginBottom="24dp">
 
-                    <LinearLayout
-                        android:id="@+id/cardFindSkills"
+                    <com.google.android.material.card.MaterialCardView
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
                         android:layout_marginEnd="8dp"
-                        android:orientation="vertical"
-                        android:gravity="center"
-                        android:paddingVertical="10dp"
-                        android:foreground="?attr/selectableItemBackground"
-                        android:clickable="true"
-                        android:focusable="true">
+                        app:cardCornerRadius="16dp"
+                        app:cardElevation="0dp"
+                        app:strokeWidth="1dp"
+                        app:strokeColor="#D2C1B6"
+                        app:cardBackgroundColor="#FFFFFF"
+                        android:foreground="?attr/selectableItemBackground">
 
-                        <ImageView
-                            android:layout_width="24dp"
-                            android:layout_height="24dp"
-                            android:src="@drawable/outline_search_24"
-                            app:tint="?attr/colorPrimary"
-                            android:contentDescription="Find Skills" />
-
-                        <TextView
-                            android:layout_width="wrap_content"
+                        <LinearLayout
+                            android:id="@+id/cardFindSkills"
+                            android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:text="Find"
-                            android:textColor="?attr/colorOnSurface"
-                            android:textSize="14sp"
-                            android:textStyle="bold"
-                            android:layout_marginTop="10dp" />
+                            android:orientation="vertical"
+                            android:gravity="center"
+                            android:paddingVertical="14dp"
+                            android:clickable="true"
+                            android:focusable="true">
 
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="Skills"
-                            android:textColor="?attr/colorOnSurfaceVariant"
-                            android:textSize="11sp" />
-                    </LinearLayout>
+                            <ImageView
+                                android:layout_width="24dp"
+                                android:layout_height="24dp"
+                                android:src="@drawable/outline_search_24"
+                                app:tint="#1B3C53"
+                                android:contentDescription="Find Skills" />
 
-                    <LinearLayout
-                        android:id="@+id/cardTeachSkills"
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Find"
+                                android:textColor="#1B3C53"
+                                android:textSize="14sp"
+                                android:textStyle="bold"
+                                android:layout_marginTop="10dp" />
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Skills"
+                                android:textColor="#456882"
+                                android:textSize="11sp" />
+                        </LinearLayout>
+                    </com.google.android.material.card.MaterialCardView>
+
+                    <com.google.android.material.card.MaterialCardView
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
                         android:layout_marginEnd="8dp"
-                        android:orientation="vertical"
-                        android:gravity="center"
-                        android:paddingVertical="10dp"
-                        android:foreground="?attr/selectableItemBackground"
-                        android:clickable="true"
-                        android:focusable="true">
+                        app:cardCornerRadius="16dp"
+                        app:cardElevation="0dp"
+                        app:strokeWidth="1dp"
+                        app:strokeColor="#D2C1B6"
+                        app:cardBackgroundColor="#FFFFFF"
+                        android:foreground="?attr/selectableItemBackground">
 
-                        <ImageView
-                            android:layout_width="24dp"
-                            android:layout_height="24dp"
-                            android:src="@drawable/outline_school_24"
-                            app:tint="?attr/colorSecondary"
-                            android:contentDescription="Teach Skills" />
-
-                        <TextView
-                            android:layout_width="wrap_content"
+                        <LinearLayout
+                            android:id="@+id/cardTeachSkills"
+                            android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:text="Teach"
-                            android:textColor="?attr/colorOnSurface"
-                            android:textSize="14sp"
-                            android:textStyle="bold"
-                            android:layout_marginTop="10dp" />
+                            android:orientation="vertical"
+                            android:gravity="center"
+                            android:paddingVertical="14dp"
+                            android:clickable="true"
+                            android:focusable="true">
 
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="Skills"
-                            android:textColor="?attr/colorOnSurfaceVariant"
-                            android:textSize="11sp" />
-                    </LinearLayout>
+                            <ImageView
+                                android:layout_width="24dp"
+                                android:layout_height="24dp"
+                                android:src="@drawable/outline_school_24"
+                                app:tint="#456882"
+                                android:contentDescription="Teach Skills" />
 
-                    <LinearLayout
-                        android:id="@+id/cardCreateTrade"
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Teach"
+                                android:textColor="#1B3C53"
+                                android:textSize="14sp"
+                                android:textStyle="bold"
+                                android:layout_marginTop="10dp" />
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Skills"
+                                android:textColor="#456882"
+                                android:textSize="11sp" />
+                        </LinearLayout>
+                    </com.google.android.material.card.MaterialCardView>
+
+                    <com.google.android.material.card.MaterialCardView
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
-                        android:orientation="vertical"
-                        android:gravity="center"
-                        android:paddingVertical="10dp"
-                        android:foreground="?attr/selectableItemBackground"
-                        android:clickable="true"
-                        android:focusable="true">
+                        app:cardCornerRadius="16dp"
+                        app:cardElevation="0dp"
+                        app:strokeWidth="1dp"
+                        app:strokeColor="#D2C1B6"
+                        app:cardBackgroundColor="#FFFFFF"
+                        android:foreground="?attr/selectableItemBackground">
 
-                        <ImageView
-                            android:layout_width="24dp"
-                            android:layout_height="24dp"
-                            android:src="@drawable/outline_handshake_24"
-                            app:tint="?attr/colorTertiary"
-                            android:contentDescription="Create Trade" />
-
-                        <TextView
-                            android:layout_width="wrap_content"
+                        <LinearLayout
+                            android:id="@+id/cardCreateTrade"
+                            android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:text="Create"
-                            android:textColor="?attr/colorOnSurface"
-                            android:textSize="14sp"
-                            android:textStyle="bold"
-                            android:layout_marginTop="10dp" />
+                            android:orientation="vertical"
+                            android:gravity="center"
+                            android:paddingVertical="14dp"
+                            android:clickable="true"
+                            android:focusable="true">
 
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="Trade"
-                            android:textColor="?attr/colorOnSurfaceVariant"
-                            android:textSize="11sp" />
-                    </LinearLayout>
+                            <ImageView
+                                android:layout_width="24dp"
+                                android:layout_height="24dp"
+                                android:src="@drawable/outline_handshake_24"
+                                app:tint="#1B3C53"
+                                android:contentDescription="Create Swap" />
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Create"
+                                android:textColor="#1B3C53"
+                                android:textSize="14sp"
+                                android:textStyle="bold"
+                                android:layout_marginTop="10dp" />
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Swap"
+                                android:textColor="#456882"
+                                android:textSize="11sp" />
+                        </LinearLayout>
+                    </com.google.android.material.card.MaterialCardView>
                 </LinearLayout>
 
+                <!-- ===================== Popular skills (realtime category counts) ===================== -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="vertical"
-                    android:layout_marginBottom="28dp">
+                    android:layout_marginBottom="24dp">
 
                     <LinearLayout
                         android:layout_width="match_parent"
@@ -297,7 +341,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="Popular skills"
-                            android:textColor="?attr/colorOnSurface"
+                            android:textColor="#1B3C53"
                             android:textSize="18sp"
                             android:textStyle="bold" />
 
@@ -311,7 +355,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="See all"
-                            android:textColor="?attr/colorPrimary"
+                            android:textColor="#1B3C53"
                             android:textSize="14sp"
                             android:textStyle="bold"
                             android:padding="8dp"
@@ -327,120 +371,18 @@
                         android:paddingBottom="2dp"
                         android:scrollbars="none">
 
+                        <!-- Populated at runtime via Firestore realtime listener -->
                         <LinearLayout
                             android:id="@+id/popularSkillsLayout"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:orientation="horizontal"
-                            android:gravity="center_vertical">
+                            android:gravity="center_vertical" />
 
-                            <LinearLayout
-                                android:layout_width="128dp"
-                                android:layout_height="wrap_content"
-                                android:layout_marginEnd="20dp"
-                                android:orientation="vertical"
-                                android:gravity="center_horizontal"
-                                android:foreground="?attr/selectableItemBackground"
-                                android:clickable="true"
-                                android:focusable="true">
-
-                                <ImageView
-                                    android:layout_width="28dp"
-                                    android:layout_height="28dp"
-                                    android:src="@drawable/outline_code_24"
-                                    app:tint="?attr/colorPrimary"
-                                    android:contentDescription="Programming" />
-
-                                <TextView
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content"
-                                    android:text="Programming"
-                                    android:textColor="?attr/colorOnSurface"
-                                    android:textSize="15sp"
-                                    android:textStyle="bold"
-                                    android:layout_marginTop="10dp" />
-
-                                <TextView
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content"
-                                    android:text="25 experts"
-                                    android:textColor="?attr/colorOnSurfaceVariant"
-                                    android:textSize="12sp"
-                                    android:layout_marginTop="2dp" />
-                            </LinearLayout>
-
-                            <LinearLayout
-                                android:layout_width="128dp"
-                                android:layout_height="wrap_content"
-                                android:layout_marginEnd="20dp"
-                                android:orientation="vertical"
-                                android:gravity="center_horizontal"
-                                android:foreground="?attr/selectableItemBackground"
-                                android:clickable="true"
-                                android:focusable="true">
-
-                                <ImageView
-                                    android:layout_width="28dp"
-                                    android:layout_height="28dp"
-                                    android:src="@drawable/outline_design_services_24"
-                                    app:tint="?attr/colorSecondary"
-                                    android:contentDescription="Design" />
-
-                                <TextView
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content"
-                                    android:text="Design"
-                                    android:textColor="?attr/colorOnSurface"
-                                    android:textSize="15sp"
-                                    android:textStyle="bold"
-                                    android:layout_marginTop="10dp" />
-
-                                <TextView
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content"
-                                    android:text="18 experts"
-                                    android:textColor="?attr/colorOnSurfaceVariant"
-                                    android:textSize="12sp"
-                                    android:layout_marginTop="2dp" />
-                            </LinearLayout>
-
-                            <LinearLayout
-                                android:layout_width="128dp"
-                                android:layout_height="wrap_content"
-                                android:orientation="vertical"
-                                android:gravity="center_horizontal"
-                                android:foreground="?attr/selectableItemBackground"
-                                android:clickable="true"
-                                android:focusable="true">
-
-                                <ImageView
-                                    android:layout_width="28dp"
-                                    android:layout_height="28dp"
-                                    android:src="@drawable/outline_music_note_24"
-                                    app:tint="?attr/colorTertiary"
-                                    android:contentDescription="Music" />
-
-                                <TextView
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content"
-                                    android:text="Music"
-                                    android:textColor="?attr/colorOnSurface"
-                                    android:textSize="15sp"
-                                    android:textStyle="bold"
-                                    android:layout_marginTop="10dp" />
-
-                                <TextView
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content"
-                                    android:text="12 experts"
-                                    android:textColor="?attr/colorOnSurfaceVariant"
-                                    android:textSize="12sp"
-                                    android:layout_marginTop="2dp" />
-                            </LinearLayout>
-                        </LinearLayout>
                     </HorizontalScrollView>
                 </LinearLayout>
 
+                <!-- ===================== Recent swaps (realtime, current user only) ===================== -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
@@ -456,8 +398,8 @@
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Recent trades"
-                            android:textColor="?attr/colorOnSurface"
+                            android:text="Recent swaps"
+                            android:textColor="#1B3C53"
                             android:textSize="18sp"
                             android:textStyle="bold" />
 
@@ -471,7 +413,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="View all"
-                            android:textColor="?attr/colorPrimary"
+                            android:textColor="#1B3C53"
                             android:textSize="14sp"
                             android:textStyle="bold"
                             android:padding="8dp"
@@ -480,95 +422,24 @@
                             android:background="?attr/selectableItemBackgroundBorderless" />
                     </LinearLayout>
 
+                    <!-- Populated at runtime via Firestore realtime listener, current user's swaps only -->
                     <LinearLayout
+                        android:id="@+id/recentSwapsContainer"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:orientation="vertical"
-                        android:paddingVertical="14dp"
-                        android:foreground="?attr/selectableItemBackground"
-                        android:clickable="true"
-                        android:focusable="true">
+                        android:orientation="vertical" />
 
-                        <LinearLayout
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:orientation="horizontal"
-                            android:gravity="center_vertical"
-                            android:layout_marginBottom="12dp">
+                    <TextView
+                        android:id="@+id/tvNoSwaps"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="No swaps yet — create one to get started!"
+                        android:textColor="#456882"
+                        android:textSize="13sp"
+                        android:gravity="center"
+                        android:paddingVertical="20dp"
+                        android:visibility="gone" />
 
-                            <ImageView
-                                android:layout_width="42dp"
-                                android:layout_height="42dp"
-                                android:src="@drawable/outline_person_24"
-                                app:tint="?attr/colorOnSurfaceVariant"
-                                android:scaleType="center"
-                                android:contentDescription="User" />
-
-                            <LinearLayout
-                                android:layout_width="0dp"
-                                android:layout_height="wrap_content"
-                                android:layout_weight="1"
-                                android:orientation="vertical"
-                                android:layout_marginStart="12dp">
-
-                                <TextView
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content"
-                                    android:text="Sarah Miller"
-                                    android:textColor="?attr/colorOnSurface"
-                                    android:textSize="16sp"
-                                    android:textStyle="bold" />
-
-                                <TextView
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content"
-                                    android:text="Web Dev ↔ Guitar"
-                                    android:textColor="?attr/colorOnSurfaceVariant"
-                                    android:textSize="13sp" />
-                            </LinearLayout>
-
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="2h ago"
-                                android:textColor="?attr/colorOnSurfaceVariant"
-                                android:textSize="12sp" />
-                        </LinearLayout>
-
-                        <LinearLayout
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:orientation="horizontal"
-                            android:gravity="center_vertical">
-
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="In progress"
-                                android:textColor="?attr/colorPrimary"
-                                android:textSize="12sp"
-                                android:textStyle="bold" />
-
-                            <View
-                                android:layout_width="0dp"
-                                android:layout_height="1dp"
-                                android:layout_weight="1" />
-
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="★ 4.8"
-                                android:textColor="?attr/colorTertiary"
-                                android:textSize="13sp"
-                                android:textStyle="bold" />
-                        </LinearLayout>
-
-                        <View
-                            android:layout_width="match_parent"
-                            android:layout_height="1dp"
-                            android:layout_marginTop="14dp"
-                            android:background="?attr/colorOutlineVariant" />
-                    </LinearLayout>
                 </LinearLayout>
             </LinearLayout>
         </ScrollView>
@@ -587,6 +458,7 @@
         android:layout_height="match_parent"
         android:layout_gravity="start"
         android:fitsSystemWindows="true"
+        android:background="#EAF1F5"
         app:headerLayout="@layout/nav_header"
         app:menu="@menu/nav_drawer_menu"
         app:itemIconTint="@drawable/drawer_icon_colors"

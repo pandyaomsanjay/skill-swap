@@ -1,10 +1,15 @@
 package com.example.sgp
 
 import android.content.Intent
+import android.graphics.Color
+import android.graphics.Typeface
+import android.graphics.drawable.GradientDrawable
 import android.net.Uri
 import android.os.Bundle
 import android.provider.MediaStore
+import android.view.Gravity
 import android.view.View
+import android.view.ViewGroup
 import android.widget.GridLayout
 import android.widget.ImageButton
 import android.widget.ImageView
@@ -41,6 +46,15 @@ class Profile : BaseActivity() {
     private lateinit var skillsContainer: LinearLayout
     private lateinit var achievementsGrid: GridLayout
 
+    // ---- Theme palette (matches AdminTradesActivity) ----
+    private val navyDark = Color.parseColor("#1B3C53")
+    private val navyMed = Color.parseColor("#456882")
+    private val cream = Color.parseColor("#F9F3EF")
+    private val lightBg = Color.parseColor("#EAF1F5")
+    private val tan = Color.parseColor("#D2C1B6")
+    private val destructive = Color.parseColor("#DC2626")
+    private val cardBorder = Color.parseColor("#DCE7ED")
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_profile)
@@ -48,7 +62,6 @@ class Profile : BaseActivity() {
         db = Firebase.firestore
 
         initViews()
-        setupToolbar()
 
         BottomNavHelper.setup(this, BottomNavItem.PROFILE)
 
@@ -108,15 +121,9 @@ class Profile : BaseActivity() {
         findViewById<LinearLayout>(R.id.layoutLogout).setOnClickListener {
             showLogoutConfirmation()
         }
-    }
 
-    private fun setupToolbar() {
-        val toolbar = findViewById<com.google.android.material.appbar.MaterialToolbar>(R.id.profileToolbar)
-        setSupportActionBar(toolbar)
-        supportActionBar?.setDisplayHomeAsUpEnabled(true)
-        supportActionBar?.title = getString(R.string.my_profile)
-        toolbar.setNavigationOnClickListener {
-            finish()
+        findViewById<ImageView>(R.id.btnProfileSettings).setOnClickListener {
+            startActivity(Intent(this, SettingsActivity::class.java))
         }
     }
 
@@ -188,6 +195,25 @@ class Profile : BaseActivity() {
         tvTitle.text = skill.title
         tvCredits.text = "${skill.credits} credits"
 
+        // Give each skill row its own bordered white card + spacing below it,
+        // so "Cricket" and "Car driving" read as two distinct tiles instead of
+        // one continuous list. Applied here in code so item_profile_skill.xml
+        // doesn't need to change.
+        view.background = skillCardBackground()
+        val vertPad = dp(12)
+        view.setPadding(vertPad, vertPad, vertPad, vertPad)
+        (view.layoutParams as? ViewGroup.MarginLayoutParams)?.let { lp ->
+            lp.bottomMargin = dp(14)
+            view.layoutParams = lp
+        } ?: run {
+            view.layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply { bottomMargin = dp(14) }
+        }
+        view.elevation = dp(1).toFloat()
+        view.clipToOutline = true
+
         if (!skill.videoUrl.isNullOrEmpty()) {
             Glide.with(this)
                 .load(skill.videoUrl)
@@ -198,32 +224,103 @@ class Profile : BaseActivity() {
             ivThumbnail.setImageResource(R.drawable.baseline_videocam_24)
         }
 
-        val clickListener = View.OnClickListener {
-            if (!skill.videoUrl.isNullOrEmpty()) {
-                playVideo(skill.videoUrl)
-            } else if (skill.skillType == "playlist" && !skill.videos.isNullOrEmpty()) {
-                playVideo(skill.videos!![0].videoUrl)
-            } else {
-                Toast.makeText(this, "No video available", Toast.LENGTH_SHORT).show()
-            }
-        }
+        // Same open logic as ExploreActivity.openSkill(): single-video skills
+        // launch VideoPlayerActivity with full context, playlists launch
+        // PlaylistActivity, so each skill opens its own dedicated video.
+        val clickListener = View.OnClickListener { openSkill(skill) }
         view.setOnClickListener(clickListener)
         ivPlay.setOnClickListener(clickListener)
 
         skillsContainer.addView(view)
     }
 
+    // ---------- Open skill video (mirrors ExploreActivity.openSkill) ----------
+
+    private fun openSkill(skill: Skill) {
+        if (skill.skillType == "single" && !skill.videoUrl.isNullOrEmpty()) {
+            val intent = Intent(this, VideoPlayerActivity::class.java)
+            intent.putExtra("videoUrl", skill.videoUrl)
+            intent.putExtra("skillId", skill.id)
+            intent.putExtra("skillTitle", skill.title)
+            intent.putExtra("skillCategory", skill.category)
+            intent.putExtra("skillUserId", skill.userId)
+            intent.putExtra("skillUserName", skill.userName)
+            intent.putExtra("skillCredits", skill.credits)
+            intent.putExtra("skillDescription", skill.description)
+            startActivity(intent)
+        } else if (skill.skillType == "playlist") {
+            val intent = Intent(this, PlaylistActivity::class.java)
+            intent.putExtra("skillId", skill.id)
+            startActivity(intent)
+        } else {
+            Toast.makeText(this, "No video available", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    // ---------- Themed image picker (replaces default list-style AlertDialog) ----------
+
     private fun showImagePickerDialog() {
-        val options = arrayOf("Upload from Gallery", "Take Photo")
-        AlertDialog.Builder(this)
-            .setTitle("Change Profile Picture")
-            .setItems(options) { _, which ->
-                when (which) {
-                    0 -> galleryLauncher.launch("image/*")
-                    1 -> cameraLauncher.launch(null)
+        val root = dialogCard()
+
+        root.addView(dialogTitle("Change Profile Picture"))
+        root.addView(TextView(this).apply {
+            text = "Choose how you'd like to update your photo"
+            setTextColor(navyMed)
+            textSize = 12.5f
+            setPadding(0, dp(4), 0, dp(4))
+        })
+        root.addView(dialogDivider())
+
+        val dialog = AlertDialog.Builder(this).setView(root).create()
+        dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
+
+        fun addOptionRow(emoji: String, label: String, action: () -> Unit) {
+            val outValue = android.util.TypedValue()
+            theme.resolveAttribute(android.R.attr.selectableItemBackground, outValue, true)
+            val row = LinearLayout(this).apply {
+                orientation = LinearLayout.HORIZONTAL
+                gravity = Gravity.CENTER_VERTICAL
+                isClickable = true
+                isFocusable = true
+                setPadding(dp(4), dp(14), dp(4), dp(14))
+                setBackgroundResource(outValue.resourceId)
+                setOnClickListener {
+                    dialog.dismiss()
+                    action()
                 }
             }
-            .show()
+            row.addView(TextView(this).apply {
+                text = emoji
+                textSize = 18f
+                layoutParams = LinearLayout.LayoutParams(dp(28), LinearLayout.LayoutParams.WRAP_CONTENT)
+            })
+            row.addView(TextView(this).apply {
+                text = label
+                textSize = 15f
+                setTextColor(navyDark)
+                setTypeface(typeface, Typeface.BOLD)
+                layoutParams = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.WRAP_CONTENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+                ).apply { marginStart = dp(12) }
+            })
+            root.addView(row)
+        }
+
+        addOptionRow("🖼️", "Upload from Gallery") { galleryLauncher.launch("image/*") }
+        addOptionRow("📷", "Take Photo") { cameraLauncher.launch(null) }
+
+        root.addView(dialogDivider())
+
+        root.addView(pillButton("Cancel", lightBg, navyDark).apply {
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply { topMargin = dp(4) }
+            setOnClickListener { dialog.dismiss() }
+        })
+
+        dialog.show()
     }
 
     private val galleryLauncher =
@@ -298,13 +395,62 @@ class Profile : BaseActivity() {
         }
     }
 
+    // ---------- Themed logout confirmation ----------
+
     private fun showLogoutConfirmation() {
-        AlertDialog.Builder(this)
-            .setTitle("Logout")
-            .setMessage("Are you sure you want to logout?")
-            .setPositiveButton("Logout") { _, _ -> logoutUser() }
-            .setNegativeButton("Cancel", null)
-            .show()
+        val root = dialogCard()
+
+        root.addView(TextView(this).apply {
+            text = "👋"
+            textSize = 30f
+            gravity = Gravity.CENTER
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply { bottomMargin = dp(8) }
+        })
+        root.addView(TextView(this).apply {
+            text = "Log Out"
+            setTextColor(navyDark)
+            textSize = 17f
+            setTypeface(typeface, Typeface.BOLD)
+            gravity = Gravity.CENTER
+        })
+        root.addView(TextView(this).apply {
+            text = "Are you sure you want to logout?"
+            setTextColor(navyMed)
+            textSize = 13f
+            gravity = Gravity.CENTER
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply {
+                topMargin = dp(8)
+                bottomMargin = dp(18)
+            }
+        })
+
+        val dialog = AlertDialog.Builder(this).setView(root).create()
+        dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
+
+        val buttonRow = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+        val btnCancel = pillButton("Cancel", lightBg, navyMed).apply {
+            setOnClickListener { dialog.dismiss() }
+        }
+        val btnLogout = pillButton("Logout", destructive, cream).apply {
+            setOnClickListener {
+                dialog.dismiss()
+                logoutUser()
+            }
+        }
+        buttonRow.addView(
+            btnCancel,
+            LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply { marginEnd = dp(8) }
+        )
+        buttonRow.addView(btnLogout, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
+        root.addView(buttonRow)
+
+        dialog.show()
     }
 
     private fun logoutUser() {
@@ -324,13 +470,67 @@ class Profile : BaseActivity() {
         loadUserProfile()
     }
 
-    private fun playVideo(videoUrl: String) {
-        try {
-            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(videoUrl))
-            intent.setDataAndType(Uri.parse(videoUrl), "video/*")
-            startActivity(Intent.createChooser(intent, "Play video with"))
-        } catch (e: Exception) {
-            Toast.makeText(this, "Cannot play video: ${e.message}", Toast.LENGTH_SHORT).show()
+    // ---------- Themed-dialog helpers (shared white rounded card + pill buttons) ----------
+
+    private fun dp(value: Int): Int = (value * resources.displayMetrics.density).toInt()
+
+    private fun dialogCard(): LinearLayout {
+        return LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(20), dp(22), dp(20), dp(20))
+            background = GradientDrawable().apply {
+                cornerRadius = dp(20).toFloat()
+                setColor(Color.WHITE)
+            }
+        }
+    }
+
+    private fun dialogTitle(text: String): TextView {
+        return TextView(this).apply {
+            this.text = text
+            setTextColor(navyDark)
+            textSize = 17f
+            setTypeface(typeface, Typeface.BOLD)
+        }
+    }
+
+    private fun dialogDivider(): View {
+        return View(this).apply {
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                dp(1)
+            ).apply {
+                topMargin = dp(10)
+                bottomMargin = dp(10)
+            }
+            setBackgroundColor(lightBg)
+        }
+    }
+
+    private fun pillButton(text: String, bgColor: Int, textColor: Int): TextView {
+        return TextView(this).apply {
+            this.text = text
+            setTextColor(textColor)
+            textSize = 14f
+            setTypeface(typeface, Typeface.BOLD)
+            gravity = Gravity.CENTER
+            setPadding(0, dp(12), 0, dp(12))
+            background = GradientDrawable().apply {
+                cornerRadius = dp(24).toFloat()
+                setColor(bgColor)
+            }
+            isClickable = true
+            isFocusable = true
+        }
+    }
+
+    // White rounded card with a light border — gives each skill row its own
+    // visible boundary so different videos don't blur into one list.
+    private fun skillCardBackground(): GradientDrawable {
+        return GradientDrawable().apply {
+            cornerRadius = dp(16).toFloat()
+            setColor(Color.WHITE)
+            setStroke(dp(1), cardBorder)
         }
     }
 }

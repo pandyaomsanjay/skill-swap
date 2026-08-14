@@ -3,8 +3,9 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="horizontal"
+    android:gravity="center_vertical"
     android:padding="12dp"
-    android:background="?attr/selectableItemBackground"
+    android:foreground="?attr/selectableItemBackground"
     android:clickable="true"
     android:focusable="true">
 
@@ -21,7 +22,7 @@
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_weight="1"
-        android:layout_marginStart="12dp"
+        android:layout_marginStart="14dp"
         android:orientation="vertical">
 
         <TextView
@@ -30,24 +31,24 @@
             android:layout_height="wrap_content"
             android:textSize="16sp"
             android:textStyle="bold"
-            android:textColor="@android:color/black"/>
+            android:textColor="#1B3C53"/>
 
         <TextView
             android:id="@+id/tvSkillCredits"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:textSize="14sp"
-            android:textColor="@color/primary_green"
+            android:textColor="#456882"
             android:layout_marginTop="4dp"/>
 
     </LinearLayout>
 
     <ImageView
         android:id="@+id/ivPlayIcon"
-        android:layout_width="32dp"
-        android:layout_height="32dp"
+        android:layout_width="34dp"
+        android:layout_height="34dp"
         android:src="@drawable/baseline_play_circle_24"
         android:layout_gravity="center"
-        android:tint="@color/primary_green"/>
+        android:tint="#456882"/>
 
 </LinearLayout>

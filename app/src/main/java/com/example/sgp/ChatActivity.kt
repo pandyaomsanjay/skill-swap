@@ -76,6 +76,9 @@ class ChatActivity : BaseActivity() {
         setSupportActionBar(toolbar)
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
         supportActionBar?.setDisplayShowTitleEnabled(false)
+
+        toolbar.navigationIcon?.setTint(android.graphics.Color.WHITE)
+
         findViewById<TextView>(R.id.tvChatWithName).text = otherName
         findViewById<TextView>(R.id.tvChatContext).apply {
             if (!skillTitle.isNullOrEmpty()) {

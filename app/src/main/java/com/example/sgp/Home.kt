@@ -3,7 +3,9 @@ package com.example.sgp
 import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
+import android.graphics.Color
 import android.os.Bundle
+import android.view.LayoutInflater
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
@@ -14,6 +16,7 @@ import android.widget.TextView
 import androidx.appcompat.app.ActionBarDrawerToggle
 import androidx.appcompat.app.AlertDialog
 import androidx.core.view.GravityCompat
+import androidx.core.view.WindowCompat
 import androidx.drawerlayout.widget.DrawerLayout
 import com.bumptech.glide.Glide
 import com.google.android.material.button.MaterialButton
@@ -21,7 +24,8 @@ import com.google.android.material.navigation.NavigationView
 import com.google.android.material.snackbar.Snackbar
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
-import java.util.Calendar
+import com.google.firebase.firestore.ListenerRegistration
+import com.google.firebase.firestore.Query
 
 class Home : BaseActivity(), NavigationView.OnNavigationItemSelectedListener {
 
@@ -30,6 +34,20 @@ class Home : BaseActivity(), NavigationView.OnNavigationItemSelectedListener {
     private lateinit var sharedPreferences: SharedPreferences
     private lateinit var ivProfilePicture: ImageView
     private val db: FirebaseFirestore by lazy { FirebaseFirestore.getInstance() }
+
+    // Realtime listeners for the current user's swaps — must be removed in onDestroy
+    private var requesterSwapsListener: ListenerRegistration? = null
+    private var receiverSwapsListener: ListenerRegistration? = null
+    private var skillsCategoryListener: ListenerRegistration? = null
+
+    // Buffers so we can merge both queries (Firestore can't OR two different fields)
+    private var requesterSwaps: List<Trade> = emptyList()
+    private var receiverSwaps: List<Trade> = emptyList()
+    private var currentUserIdForSwaps: String = ""
+
+    private val skillCategories = listOf(
+        "TECHNOLOGY", "ARTS", "SPORTS", "HOME", "EDUCATION", "LIFESTYLE"
+    )
 
     companion object {
         const val SHARED_PREFS_NAME = "SkillSwapPrefs"
@@ -41,11 +59,20 @@ class Home : BaseActivity(), NavigationView.OnNavigationItemSelectedListener {
         const val KEY_USER_RATING = "user_rating"
         const val KEY_USER_TOTAL_SKILLS = "user_total_skills"
         const val KEY_USER_PROFILE_IMAGE = "user_profile_image"
+
+        // Theme palette — matches AdminSkillsActivity / the rest of the admin screens
+        private const val THEME_DARK_NAVY = "#1B3C53"
+        private const val THEME_STEEL_BLUE = "#456882"
+        private const val THEME_CREAM = "#F9F3EF"
+        private const val THEME_BACKGROUND = "#EAF1F5"
+        private const val THEME_STROKE = "#D2C1B6"
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_home)
+
+        applyThemeSystemBars()
 
         sharedPreferences = getSharedPreferences(SHARED_PREFS_NAME, Context.MODE_PRIVATE)
 
@@ -66,6 +93,8 @@ class Home : BaseActivity(), NavigationView.OnNavigationItemSelectedListener {
         )
         drawerLayout.addDrawerListener(toggle)
         toggle.syncState()
+        // Keep the hamburger/back icon cream-colored on the navy toolbar
+        toggle.drawerArrowDrawable.color = Color.parseColor(THEME_CREAM)
 
         navigationView.setNavigationItemSelectedListener(this)
 
@@ -74,11 +103,20 @@ class Home : BaseActivity(), NavigationView.OnNavigationItemSelectedListener {
         }
 
         setupQuickActions()
-        setupPopularSkills()
+        listenForPopularSkillCategories()   // was: setupPopularSkills()
         updateGreetingMessage()
         loadUserData()
 
         BottomNavHelper.setup(this, BottomNavItem.HOME)
+    }
+
+    /** Colors the status bar to match the navy header used across the app's admin screens. */
+    private fun applyThemeSystemBars() {
+        window.statusBarColor = Color.parseColor(THEME_DARK_NAVY)
+        window.navigationBarColor = Color.parseColor(THEME_BACKGROUND)
+        val insetsController = WindowCompat.getInsetsController(window, window.decorView)
+        insetsController.isAppearanceLightStatusBars = false
+        insetsController.isAppearanceLightNavigationBars = true
     }
 
     private fun setupQuickActions() {
@@ -91,7 +129,7 @@ class Home : BaseActivity(), NavigationView.OnNavigationItemSelectedListener {
             showMessage("Open filters")
         }
 
-        // LinearLayout cards (not MaterialCardView)
+        // Quick action cards
         findViewById<LinearLayout>(R.id.cardFindSkills).setOnClickListener {
             startActivity(Intent(this, ExploreActivity::class.java))
         }
@@ -114,19 +152,73 @@ class Home : BaseActivity(), NavigationView.OnNavigationItemSelectedListener {
         }
     }
 
-    private fun setupPopularSkills() {
-        val popularSkillsLayout = findViewById<ViewGroup>(R.id.popularSkillsLayout)
-        for (i in 0 until popularSkillsLayout.childCount) {
-            val child = popularSkillsLayout.getChildAt(i)
-            child.setOnClickListener {
-                when (i) {
-                    0 -> showMessage("Programming skills selected")
-                    1 -> showMessage("Design skills selected")
-                    2 -> showMessage("Music skills selected")
+    /**
+     * Realtime listener on the "skills" collection. Every skill document should have a
+     * "category" field matching one of [skillCategories]. Counts are recomputed and the
+     * cards re-rendered on every change — add/edit/delete a skill anywhere and this updates
+     * live for every user looking at Home.
+     */
+    private fun listenForPopularSkillCategories() {
+        skillsCategoryListener?.remove()
+
+        skillsCategoryListener = db.collection("skills")
+            .addSnapshotListener { snapshot, error ->
+                if (error != null || snapshot == null) return@addSnapshotListener
+
+                val counts = skillCategories.associateWith { 0 }.toMutableMap()
+                for (doc in snapshot.documents) {
+                    val category = doc.getString("category")?.trim()?.uppercase() ?: continue
+                    if (counts.containsKey(category)) {
+                        counts[category] = counts.getValue(category) + 1
+                    }
                 }
+                renderPopularSkillCategories(counts)
+            }
+    }
+
+    private fun renderPopularSkillCategories(counts: Map<String, Int>) {
+        val container = findViewById<LinearLayout>(R.id.popularSkillsLayout)
+        container.removeAllViews()
+
+        val inflater = LayoutInflater.from(this)
+        for ((index, category) in skillCategories.withIndex()) {
+            val card = inflater.inflate(R.layout.item_popular_skill_category, container, false)
+            val count = counts[category] ?: 0
+
+            card.findViewById<ImageView>(R.id.ivCategoryIcon).setImageResource(iconForCategory(category))
+            card.findViewById<TextView>(R.id.tvCategoryName).text = formatCategoryName(category)
+            card.findViewById<TextView>(R.id.tvCategoryCount).text =
+                "$count expert${if (count == 1) "" else "s"}"
+
+            card.setOnClickListener {
+                val exploreIntent = Intent(this, ExploreActivity::class.java)
+                exploreIntent.putExtra("categoryFilter", category)
+                startActivity(exploreIntent)
+            }
+
+            container.addView(card)
+
+            // Spacing between cards (skip after the last one)
+            if (index != skillCategories.lastIndex) {
+                val spacer = View(this)
+                spacer.layoutParams = LinearLayout.LayoutParams(12, LinearLayout.LayoutParams.MATCH_PARENT)
+                container.addView(spacer)
             }
         }
     }
+
+    private fun iconForCategory(category: String): Int = when (category) {
+        "TECHNOLOGY" -> R.drawable.outline_code_24
+        "ARTS" -> R.drawable.outline_design_services_24
+        "SPORTS" -> R.drawable.outline_sports_soccer_24
+        "HOME" -> R.drawable.outline_home_24
+        "EDUCATION" -> R.drawable.outline_school_24
+        "LIFESTYLE" -> R.drawable.outline_favorite_24
+        else -> R.drawable.outline_search_24
+    }
+
+    private fun formatCategoryName(category: String): String =
+        category.lowercase().replaceFirstChar { it.uppercase() }
 
     private fun loadUserData() {
         val userName = sharedPreferences.getString(KEY_USER_NAME, "Guest User") ?: "Guest User"
@@ -157,10 +249,12 @@ class Home : BaseActivity(), NavigationView.OnNavigationItemSelectedListener {
             updateUI(intentName, intentLocation ?: "New York, USA", 1250)
             updateNavigationHeader(intentName, intentEmail, 1250, 0, 0.0f, 0)
             loadProfileImage(userProfileImage)
+            listenForRecentSwaps(intentEmail)
         } else {
             updateUI(userName, userLocation, userPoints)
             updateNavigationHeader(userName, userEmail, userPoints, userTotalTrades, userRating, userTotalSkills)
             loadProfileImage(userProfileImage)
+            listenForRecentSwaps(userEmail)
         }
 
         refreshFromFirestore(userEmail)
@@ -247,7 +341,7 @@ class Home : BaseActivity(), NavigationView.OnNavigationItemSelectedListener {
 
     private fun updateGreetingMessage() {
         val greetingTextView = findViewById<TextView>(R.id.tvGreeting)
-        val currentHour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
+        val currentHour = java.util.Calendar.getInstance().get(java.util.Calendar.HOUR_OF_DAY)
         val greeting = when {
             currentHour < 12 -> "Good Morning,"
             currentHour < 17 -> "Good Afternoon,"
@@ -255,6 +349,122 @@ class Home : BaseActivity(), NavigationView.OnNavigationItemSelectedListener {
         }
         greetingTextView.text = greeting
     }
+
+    // ===================== Realtime "Recent swaps" (current user only) =====================
+
+    /**
+     * Sets up two realtime Firestore listeners scoped to [userId] — one for trades where
+     * this user is the requester, one where they're the receiver — since Firestore can't
+     * OR-query two different fields in a single query. Results are merged and re-rendered
+     * on every snapshot from either listener.
+     */
+    private fun listenForRecentSwaps(userId: String) {
+        // Tear down any previous listeners (e.g. on user switch / re-login / onResume)
+        requesterSwapsListener?.remove()
+        receiverSwapsListener?.remove()
+        requesterSwaps = emptyList()
+        receiverSwaps = emptyList()
+        currentUserIdForSwaps = userId
+
+        if (userId.isBlank() || userId == "user@example.com") {
+            renderRecentSwaps(emptyList())
+            return
+        }
+
+        requesterSwapsListener = db.collection("trades")
+            .whereEqualTo("requesterId", userId)
+            .orderBy("timestamp", Query.Direction.DESCENDING)
+            .limit(5)
+            .addSnapshotListener { snapshot, error ->
+                if (error != null || snapshot == null) return@addSnapshotListener
+                requesterSwaps = snapshot.documents.mapNotNull { doc ->
+                    doc.toObject(Trade::class.java)?.copy(id = doc.id)
+                }
+                mergeAndRenderSwaps()
+            }
+
+        receiverSwapsListener = db.collection("trades")
+            .whereEqualTo("receiverId", userId)
+            .orderBy("timestamp", Query.Direction.DESCENDING)
+            .limit(5)
+            .addSnapshotListener { snapshot, error ->
+                if (error != null || snapshot == null) return@addSnapshotListener
+                receiverSwaps = snapshot.documents.mapNotNull { doc ->
+                    doc.toObject(Trade::class.java)?.copy(id = doc.id)
+                }
+                mergeAndRenderSwaps()
+            }
+    }
+
+    private fun mergeAndRenderSwaps() {
+        val merged = (requesterSwaps + receiverSwaps)
+            .distinctBy { it.id }
+            .sortedByDescending { it.timestamp }
+            .take(5)
+        renderRecentSwaps(merged)
+    }
+
+    private fun renderRecentSwaps(swaps: List<Trade>) {
+        val container = findViewById<LinearLayout>(R.id.recentSwapsContainer)
+        val emptyView = findViewById<TextView>(R.id.tvNoSwaps)
+        container.removeAllViews()
+
+        if (swaps.isEmpty()) {
+            emptyView.visibility = View.VISIBLE
+            container.visibility = View.GONE
+            return
+        }
+
+        emptyView.visibility = View.GONE
+        container.visibility = View.VISIBLE
+
+        val inflater = LayoutInflater.from(this)
+        for (swap in swaps) {
+            val card = inflater.inflate(R.layout.item_recent_swap, container, false)
+
+            // Show the *other* participant relative to the signed-in user
+            val isCurrentUserRequester = swap.requesterId == currentUserIdForSwaps
+            val otherName = if (isCurrentUserRequester) swap.receiverName else swap.requesterName
+            val mySkill = if (isCurrentUserRequester) swap.requesterSkill else swap.receiverSkill
+            val theirSkill = if (isCurrentUserRequester) swap.receiverSkill else swap.requesterSkill
+
+            card.findViewById<TextView>(R.id.tvSwapPartner).text = otherName.ifBlank { "Unknown user" }
+            card.findViewById<TextView>(R.id.tvSwapDetail).text = "$mySkill ↔ $theirSkill"
+            card.findViewById<TextView>(R.id.tvSwapStatus).text = swap.status.ifBlank { "Pending" }
+            card.findViewById<TextView>(R.id.tvSwapRating).text =
+                if (swap.rating > 0f) "★ ${String.format("%.1f", swap.rating)}" else "—"
+            card.findViewById<TextView>(R.id.tvSwapTime).text = timeAgo(swap.timestamp)
+
+            card.setOnClickListener {
+                val tradeIntent = Intent(this, MyTradesActivity::class.java)
+                tradeIntent.putExtra("tradeId", swap.id)
+                startActivity(tradeIntent)
+            }
+
+            container.addView(card)
+
+            // Small spacer between cards
+            val spacer = View(this)
+            spacer.layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, 12
+            )
+            container.addView(spacer)
+        }
+    }
+
+    private fun timeAgo(timestampMillis: Long): String {
+        if (timestampMillis <= 0) return ""
+        val diff = System.currentTimeMillis() - timestampMillis
+        val minutes = diff / 60000
+        return when {
+            minutes < 1 -> "just now"
+            minutes < 60 -> "${minutes}m ago"
+            minutes < 1440 -> "${minutes / 60}h ago"
+            else -> "${minutes / 1440}d ago"
+        }
+    }
+
+    // ===================== Nav drawer / menu / logout =====================
 
     override fun onNavigationItemSelected(item: MenuItem): Boolean {
         when (item.itemId) {
@@ -276,6 +486,10 @@ class Home : BaseActivity(), NavigationView.OnNavigationItemSelectedListener {
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
         menuInflater.inflate(R.menu.home_toolbar_menu, menu)
+        // Tint the toolbar's action icons cream so they read clearly on the navy background
+        for (i in 0 until menu.size()) {
+            menu.getItem(i)?.icon?.setTint(Color.parseColor(THEME_CREAM))
+        }
         return true
     }
 
@@ -298,6 +512,9 @@ class Home : BaseActivity(), NavigationView.OnNavigationItemSelectedListener {
             .setTitle("Logout")
             .setMessage("Are you sure you want to logout?")
             .setPositiveButton("Logout") { _, _ ->
+                requesterSwapsListener?.remove()
+                receiverSwapsListener?.remove()
+                skillsCategoryListener?.remove()
                 FirebaseAuth.getInstance().signOut()
                 sharedPreferences.edit().clear().apply()
                 showMessage("Logged out successfully")
@@ -327,5 +544,12 @@ class Home : BaseActivity(), NavigationView.OnNavigationItemSelectedListener {
     override fun onResume() {
         super.onResume()
         loadUserData()
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        requesterSwapsListener?.remove()
+        receiverSwapsListener?.remove()
+        skillsCategoryListener?.remove()
     }
 }

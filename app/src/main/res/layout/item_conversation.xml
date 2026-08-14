@@ -1,92 +1,185 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:orientation="horizontal"
-    android:gravity="center_vertical"
-    android:paddingStart="16dp"
-    android:paddingEnd="16dp"
-    android:paddingTop="12dp"
-    android:paddingBottom="12dp"
-    android:background="?attr/selectableItemBackground"
+    android:layout_marginStart="12dp"
+    android:layout_marginEnd="12dp"
+    android:layout_marginBottom="8dp"
+    app:cardCornerRadius="16dp"
+    app:cardElevation="0dp"
+    app:cardBackgroundColor="@color/brand_final_surface"
+    app:strokeWidth="1dp"
+    app:strokeColor="@color/brand_final_outline_variant"
+    app:rippleColor="@color/brand_final_primary_container"
     android:clickable="true"
-    android:focusable="true">
+    android:focusable="true"
+    android:foreground="?attr/selectableItemBackground">
 
-    <com.google.android.material.card.MaterialCardView
-        android:layout_width="50dp"
-        android:layout_height="50dp"
-        app:cardCornerRadius="25dp"
-        app:cardElevation="0dp"
-        app:cardBackgroundColor="?attr/colorPrimary"
-        app:cardPreventCornerOverlap="true">
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:padding="12dp">
 
         <FrameLayout
-            android:layout_width="match_parent"
-            android:layout_height="match_parent">
+            android:layout_width="52dp"
+            android:layout_height="52dp">
 
-            <TextView
-                android:id="@+id/tvConvoInitial"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:gravity="center"
-                android:textColor="@android:color/white"
-                android:textSize="19sp"
-                android:textStyle="bold"
-                tools:text="A" />
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="52dp"
+                android:layout_height="52dp"
+                app:cardCornerRadius="26dp"
+                app:cardElevation="0dp"
+                app:cardBackgroundColor="@color/brand_final_primary"
+                app:cardPreventCornerOverlap="true">
 
-            <ImageView
-                android:id="@+id/ivConvoAvatar"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:scaleType="centerCrop"
-                android:visibility="gone"
-                android:contentDescription="Profile photo" />
+                <FrameLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent">
+
+                    <TextView
+                        android:id="@+id/tvConvoInitial"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:gravity="center"
+                        android:textColor="@color/brand_final_on_primary"
+                        android:textSize="19sp"
+                        android:textStyle="bold"
+                        tools:text="A" />
+
+                    <ImageView
+                        android:id="@+id/ivConvoAvatar"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:scaleType="centerCrop"
+                        android:visibility="gone"
+                        android:contentDescription="Profile photo" />
+
+                </FrameLayout>
+
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- Online status dot; toggle visibility from code when you track presence -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/viewOnlineDot"
+                android:layout_width="14dp"
+                android:layout_height="14dp"
+                android:layout_gravity="bottom|end"
+                app:cardCornerRadius="7dp"
+                app:cardElevation="0dp"
+                app:cardBackgroundColor="@color/success"
+                app:strokeWidth="2dp"
+                app:strokeColor="@color/brand_final_surface"
+                android:visibility="gone" />
 
         </FrameLayout>
 
-    </com.google.android.material.card.MaterialCardView>
-
-    <LinearLayout
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_weight="1"
-        android:layout_marginStart="14dp"
-        android:orientation="vertical">
-
         <LinearLayout
-            android:layout_width="match_parent"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:orientation="horizontal">
+            android:layout_weight="1"
+            android:layout_marginStart="14dp"
+            android:orientation="vertical">
 
-            <TextView
-                android:id="@+id/tvConvoName"
-                android:layout_width="0dp"
+            <LinearLayout
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:textSize="16sp"
-                android:textColor="@android:color/black" />
+                android:orientation="horizontal">
 
-            <TextView
-                android:id="@+id/tvConvoTime"
+                <TextView
+                    android:id="@+id/tvConvoName"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:maxLines="1"
+                    android:ellipsize="end"
+                    android:textSize="16sp"
+                    android:textColor="@color/brand_final_on_surface"
+                    tools:text="Maria Chen" />
+
+                <TextView
+                    android:id="@+id/tvConvoTime"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="6dp"
+                    android:textSize="12sp"
+                    android:textColor="@color/brand_final_on_surface_variant"
+                    tools:text="Aug 14, 3:45 PM" />
+
+            </LinearLayout>
+
+            <!-- Skill tag: shows convo.skillTitle so it's clear what the chat is about -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/cardSkillTag"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:textSize="12sp"
-                android:textColor="#9E9E9E" />
+                android:layout_marginTop="5dp"
+                app:cardCornerRadius="8dp"
+                app:cardElevation="0dp"
+                app:cardBackgroundColor="@color/brand_final_primary_container"
+                android:visibility="gone"
+                tools:visibility="visible">
+
+                <TextView
+                    android:id="@+id/tvSkillTag"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:paddingStart="8dp"
+                    android:paddingEnd="8dp"
+                    android:paddingTop="2dp"
+                    android:paddingBottom="2dp"
+                    android:textColor="@color/brand_final_on_primary_container"
+                    android:textSize="11sp"
+                    android:textStyle="bold"
+                    tools:text="Guitar Lessons" />
+
+            </com.google.android.material.card.MaterialCardView>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="5dp"
+                android:orientation="horizontal"
+                android:gravity="center_vertical">
+
+                <TextView
+                    android:id="@+id/tvConvoLastMessage"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:textSize="14sp"
+                    android:textColor="@color/brand_final_on_surface_variant"
+                    android:maxLines="1"
+                    android:ellipsize="end"
+                    tools:text="Sounds great, see you Thursday!" />
+
+                <!-- Unread indicator dot -->
+                <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/viewUnreadDot"
+                    android:layout_width="10dp"
+                    android:layout_height="10dp"
+                    android:layout_marginStart="8dp"
+                    app:cardCornerRadius="5dp"
+                    app:cardElevation="0dp"
+                    app:cardBackgroundColor="@color/brand_final_accent"
+                    android:visibility="gone"
+                    tools:visibility="visible" />
+
+            </LinearLayout>
 
         </LinearLayout>
 
-        <TextView
-            android:id="@+id/tvConvoLastMessage"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:textSize="14sp"
-            android:textColor="#757575"
-            android:maxLines="1"
-            android:ellipsize="end" />
+        <ImageView
+            android:layout_width="18dp"
+            android:layout_height="18dp"
+            android:layout_marginStart="6dp"
+            android:src="@drawable/ic_chevron_right"
+            app:tint="@color/brand_final_on_surface_variant"
+            android:contentDescription="@null" />
 
     </LinearLayout>
 
-</LinearLayout>
+</com.google.android.material.card.MaterialCardView>
