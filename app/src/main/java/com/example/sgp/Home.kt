@@ -16,7 +16,9 @@ import android.widget.TextView
 import androidx.appcompat.app.ActionBarDrawerToggle
 import androidx.appcompat.app.AlertDialog
 import androidx.core.view.GravityCompat
+import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
 import androidx.drawerlayout.widget.DrawerLayout
 import com.bumptech.glide.Glide
 import com.google.android.material.button.MaterialButton
@@ -84,6 +86,14 @@ class Home : BaseActivity(), NavigationView.OnNavigationItemSelectedListener {
         setSupportActionBar(toolbar)
         supportActionBar?.setDisplayShowTitleEnabled(false)
 
+        // Push the toolbar's own top padding down by the status bar height, so its navy
+        // background visually fills the status bar strip instead of relying on the OS.
+        ViewCompat.setOnApplyWindowInsetsListener(toolbar) { view, insets ->
+            val statusBarInsets = insets.getInsets(WindowInsetsCompat.Type.statusBars())
+            view.setPadding(view.paddingLeft, statusBarInsets.top, view.paddingRight, view.paddingBottom)
+            insets
+        }
+
         val toggle = ActionBarDrawerToggle(
             this,
             drawerLayout,
@@ -110,10 +120,14 @@ class Home : BaseActivity(), NavigationView.OnNavigationItemSelectedListener {
         BottomNavHelper.setup(this, BottomNavItem.HOME)
     }
 
-    /** Colors the status bar to match the navy header used across the app's admin screens. */
+    /** Extends the navy toolbar behind the status bar so its color is always correct,
+     *  regardless of whether the OS honors window.statusBarColor (ignored on API 35+ edge-to-edge). */
     private fun applyThemeSystemBars() {
+        WindowCompat.setDecorFitsSystemWindows(window, false)
+
         window.statusBarColor = Color.parseColor(THEME_DARK_NAVY)
         window.navigationBarColor = Color.parseColor(THEME_BACKGROUND)
+
         val insetsController = WindowCompat.getInsetsController(window, window.decorView)
         insetsController.isAppearanceLightStatusBars = false
         insetsController.isAppearanceLightNavigationBars = true
@@ -152,12 +166,6 @@ class Home : BaseActivity(), NavigationView.OnNavigationItemSelectedListener {
         }
     }
 
-    /**
-     * Realtime listener on the "skills" collection. Every skill document should have a
-     * "category" field matching one of [skillCategories]. Counts are recomputed and the
-     * cards re-rendered on every change — add/edit/delete a skill anywhere and this updates
-     * live for every user looking at Home.
-     */
     private fun listenForPopularSkillCategories() {
         skillsCategoryListener?.remove()
 

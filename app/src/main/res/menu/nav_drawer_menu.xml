@@ -46,7 +46,6 @@
             android:icon="@drawable/outline_settings_24"
             android:title="Settings" />
 
-        <!-- Fixed: Changed "Help Support" to "Help & Support" -->
         <item
             android:id="@+id/nav_help"
             android:icon="@drawable/outline_help_24"

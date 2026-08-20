@@ -461,7 +461,7 @@
         android:background="#EAF1F5"
         app:headerLayout="@layout/nav_header"
         app:menu="@menu/nav_drawer_menu"
-        app:itemIconTint="@drawable/drawer_icon_colors"
-        app:itemTextColor="@drawable/drawer_text_colors"
+        app:itemIconTint="@color/drawer_icon_colors"
+        app:itemTextColor="@color/drawer_text_colors"
         app:itemBackground="@drawable/drawer_item_background" />
 </androidx.drawerlayout.widget.DrawerLayout>

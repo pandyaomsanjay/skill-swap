@@ -1,30 +1,30 @@
 <?xml version="1.0" encoding="utf-8"?>
 <ripple xmlns:android="http://schemas.android.com/apk/res/android"
-    android:color="#1E88E5">
+    android:color="@color/admin_bg_light_blue">
 
     <item>
         <selector>
             <!-- Checked state -->
             <item android:state_checked="true">
                 <shape android:shape="rectangle">
-                    <solid android:color="#E8F5E8" />
-                    <corners android:radius="4dp" />
+                    <solid android:color="@color/admin_bg_light_blue" />
+                    <corners android:radius="24dp" />
                 </shape>
             </item>
 
             <!-- Pressed state -->
             <item android:state_pressed="true">
                 <shape android:shape="rectangle">
-                    <solid android:color="#F5F5F5" />
-                    <corners android:radius="4dp" />
+                    <solid android:color="@color/admin_bg_light_blue" />
+                    <corners android:radius="24dp" />
                 </shape>
             </item>
 
             <!-- Selected state -->
             <item android:state_selected="true">
                 <shape android:shape="rectangle">
-                    <solid android:color="#F5F5F5" />
-                    <corners android:radius="4dp" />
+                    <solid android:color="@color/admin_bg_light_blue" />
+                    <corners android:radius="24dp" />
                 </shape>
             </item>
 
