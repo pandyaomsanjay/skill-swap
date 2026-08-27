@@ -23,7 +23,9 @@ import com.google.firebase.auth.GoogleAuthProvider
 import com.google.firebase.Firebase
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.firestore
+import com.onesignal.OneSignal
 import kotlinx.coroutines.launch
+import android.os.CountDownTimer
 
 class Login : BaseActivity() {
 
@@ -148,16 +150,18 @@ class Login : BaseActivity() {
 
     // ---------- Email/password login — now via Supabase ----------
 
+    private var lockCountDownTimer: CountDownTimer? = null
+
     private fun loginUser(email: String, password: String) {
         showLoading(true)
         lifecycleScope.launch {
             try {
                 val result = AuthRepository.loginWithPassword(email, password)
-                if (result.success) {
-                    loadUserByEmailAndNavigate(result.email ?: email)
-                } else {
-                    showLoading(false)
-                    showError(result.message)
+                showLoading(false)
+                when {
+                    result.success -> loadUserByEmailAndNavigate(result.email ?: email)
+                    result.isLocked -> handleAccountLocked(result.secondsRemaining, result.message)
+                    else -> showError(result.message)
                 }
             } catch (e: Exception) {
                 showLoading(false)
@@ -166,12 +170,42 @@ class Login : BaseActivity() {
         }
     }
 
+    private fun handleAccountLocked(secondsRemaining: Int, message: String) {
+        showError(message)
+        val btnLogin = findViewById<Button>(R.id.btnLogin)
+        btnLogin.isEnabled = false
+
+        lockCountDownTimer?.cancel()
+        lockCountDownTimer = object : CountDownTimer(secondsRemaining * 1000L, 1000L) {
+            override fun onTick(millisUntilFinished: Long) {
+                btnLogin.text = "Try again in ${formatCountdown((millisUntilFinished / 1000).toInt())}"
+            }
+
+            override fun onFinish() {
+                btnLogin.isEnabled = true
+                btnLogin.text = "Sign In"
+            }
+        }.start()
+    }
+
+    private fun formatCountdown(totalSeconds: Int): String {
+        val minutes = totalSeconds / 60
+        val seconds = totalSeconds % 60
+        return if (minutes > 0) String.format("%d:%02d", minutes, seconds) else "${seconds}s"
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        lockCountDownTimer?.cancel()
+    }
+
     /** Looks up the Firestore profile by email (used for Supabase-authenticated logins). */
     private fun loadUserByEmailAndNavigate(email: String) {
         db.collection("users").whereEqualTo("email", email).limit(1).get()
             .addOnSuccessListener { snapshot ->
                 showLoading(false)
-                val userData = snapshot.documents.firstOrNull()?.toObject(Users::class.java)
+                val document = snapshot.documents.firstOrNull()
+                val userData = document?.toObject(Users::class.java)
                 if (userData != null) {
                     val prefs = getSharedPreferences("SkillSwapPrefs", MODE_PRIVATE)
                     prefs.edit()
@@ -180,6 +214,9 @@ class Login : BaseActivity() {
                         .putString("user_location", userData.location)
                         .putString("user_type", userData.userType)
                         .apply()
+
+                    // Tie this device's push subscription to the logged-in user
+                    document.id.let { uid -> OneSignal.login(uid) }
 
                     Toast.makeText(this@Login, "Login successful", Toast.LENGTH_SHORT).show()
 
@@ -236,6 +273,9 @@ class Login : BaseActivity() {
                         .putString("user_location", userData.location)
                         .putString("user_type", userData.userType)
                         .apply()
+
+                    // Tie this device's push subscription to the logged-in user
+                    OneSignal.login(uid)
 
                     Toast.makeText(this@Login, "Login successful", Toast.LENGTH_SHORT).show()
 

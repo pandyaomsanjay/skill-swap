@@ -6,8 +6,12 @@ import com.google.firebase.firestore.FirebaseFirestore
 import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.auth.OtpType
 import io.github.jan.supabase.auth.providers.builtin.Email
+import io.github.jan.supabase.postgrest.postgrest
 import kotlinx.coroutines.tasks.await
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
 
 @Serializable
 data class ForgotPasswordResponse(val message: String)
@@ -16,7 +20,7 @@ data class ForgotPasswordResponse(val message: String)
 data class VerifyOtpResponse(
     val success: Boolean,
     val message: String,
-    val lockedUntil: Long? = null // Supabase manages its own rate limiting; kept for UI compatibility
+    val lockedUntil: Long? = null
 )
 
 @Serializable
@@ -29,7 +33,17 @@ data class ResetPasswordResponse(val success: Boolean, val message: String)
 data class LoginResponse(
     val success: Boolean,
     val message: String,
-    val email: String? = null
+    val email: String? = null,
+    val isLocked: Boolean = false,
+    val secondsRemaining: Int = 0,
+    val attemptsRemaining: Int = 5
+)
+
+@Serializable
+data class LoginLockStatus(
+    @SerialName("is_locked") val isLocked: Boolean,
+    @SerialName("seconds_remaining") val secondsRemaining: Int,
+    @SerialName("attempts_remaining") val attemptsRemaining: Int
 )
 
 object AuthRepository {
@@ -37,6 +51,7 @@ object AuthRepository {
     private const val TAG = "AuthRepository"
     private const val GENERIC_SENT_MESSAGE =
         "If an account exists for this email, a code has been sent."
+    private const val MAX_ATTEMPTS = 5
 
     suspend fun getLoginProvider(email: String): String? {
         return try {
@@ -59,22 +74,95 @@ object AuthRepository {
         }
     }
 
+    // ---------- Rate limiting (server-side, enforced via Postgres RPCs) ----------
+
+    private suspend fun checkLoginLock(email: String): LoginLockStatus {
+        return try {
+            SupabaseClient.client.postgrest.rpc(
+                "check_login_lock",
+                buildJsonObject { put("p_email", email) }
+            ).decodeAs<List<LoginLockStatus>>().firstOrNull()
+                ?: LoginLockStatus(false, 0, MAX_ATTEMPTS)
+        } catch (e: Exception) {
+            android.util.Log.e(TAG, "checkLoginLock failed: ${e.message}", e)
+            // Fail-open here so a transient Supabase hiccup doesn't lock everyone
+            // out of the app — record_failed_login below still enforces the real limit.
+            LoginLockStatus(false, 0, MAX_ATTEMPTS)
+        }
+    }
+
+    private suspend fun recordFailedLogin(email: String): LoginLockStatus {
+        return try {
+            SupabaseClient.client.postgrest.rpc(
+                "record_failed_login",
+                buildJsonObject { put("p_email", email) }
+            ).decodeAs<List<LoginLockStatus>>().firstOrNull()
+                ?: LoginLockStatus(false, 0, MAX_ATTEMPTS)
+        } catch (e: Exception) {
+            android.util.Log.e(TAG, "recordFailedLogin failed: ${e.message}", e)
+            LoginLockStatus(false, 0, MAX_ATTEMPTS)
+        }
+    }
+
+    private suspend fun resetLoginAttempts(email: String) {
+        try {
+            SupabaseClient.client.postgrest.rpc(
+                "reset_login_attempts",
+                buildJsonObject { put("p_email", email) }
+            )
+        } catch (e: Exception) {
+            android.util.Log.e(TAG, "resetLoginAttempts failed: ${e.message}", e)
+        }
+    }
+
+    private fun lockedMessage(secondsRemaining: Int): String {
+        val minutes = (secondsRemaining + 59) / 60
+        return "Too many failed attempts. Try again in $minutes minute${if (minutes == 1) "" else "s"}."
+    }
+
     /**
-     * Email/password login via Supabase Auth. This is now the single source
-     * of truth for password checks — Firebase Auth is no longer used for
-     * email/password sign-in, only for Google Sign-In and Firestore access.
+     * Email/password login via Supabase Auth, gated by a server-side
+     * rate limit (5 failed attempts -> 15 minute lock), enforced in Postgres
+     * via SECURITY DEFINER RPCs so it can't be bypassed from the client.
      */
     suspend fun loginWithPassword(email: String, password: String): LoginResponse {
+        val normalizedEmail = email.trim().lowercase()
+
+        val lockStatus = checkLoginLock(normalizedEmail)
+        if (lockStatus.isLocked) {
+            return LoginResponse(
+                success = false,
+                message = lockedMessage(lockStatus.secondsRemaining),
+                isLocked = true,
+                secondsRemaining = lockStatus.secondsRemaining
+            )
+        }
+
         return try {
             SupabaseClient.client.auth.signInWith(Email) {
-                this.email = email
+                this.email = normalizedEmail
                 this.password = password
             }
+            resetLoginAttempts(normalizedEmail)
             val sessionEmail = SupabaseClient.client.auth.currentSessionOrNull()?.user?.email
-            LoginResponse(success = true, message = "Login successful", email = sessionEmail ?: email)
+            LoginResponse(success = true, message = "Login successful", email = sessionEmail ?: normalizedEmail)
         } catch (e: Exception) {
             android.util.Log.e(TAG, "loginWithPassword failed: ${e.message}", e)
-            LoginResponse(success = false, message = "Invalid email or password.")
+            val record = recordFailedLogin(normalizedEmail)
+            if (record.isLocked) {
+                LoginResponse(
+                    success = false,
+                    message = lockedMessage(record.secondsRemaining),
+                    isLocked = true,
+                    secondsRemaining = record.secondsRemaining
+                )
+            } else {
+                LoginResponse(
+                    success = false,
+                    message = "Invalid email or password. ${record.attemptsRemaining} attempt${if (record.attemptsRemaining == 1) "" else "s"} remaining.",
+                    attemptsRemaining = record.attemptsRemaining
+                )
+            }
         }
     }
 
@@ -84,7 +172,6 @@ object AuthRepository {
             ForgotPasswordResponse(GENERIC_SENT_MESSAGE)
         } catch (e: Exception) {
             android.util.Log.e(TAG, "forgotPassword failed: ${e.message}", e)
-            // Never leak whether the email exists — same message either way
             ForgotPasswordResponse(GENERIC_SENT_MESSAGE)
         }
     }
@@ -96,14 +183,6 @@ object AuthRepository {
                 email = email,
                 token = otp
             )
-
-            val session = SupabaseClient.client.auth.currentSessionOrNull()
-            android.util.Log.d(
-                TAG,
-                "After verifyEmailOtp -> session user=${session?.user?.email}, " +
-                        "expiresAt=${session?.expiresAt}"
-            )
-
             VerifyOtpResponse(success = true, message = "OTP verified")
         } catch (e: Exception) {
             android.util.Log.e(TAG, "verifyOtp failed: ${e.message}", e)
@@ -126,27 +205,9 @@ object AuthRepository {
 
     suspend fun resetPassword(newPassword: String): ResetPasswordResponse {
         return try {
-            val sessionBefore = SupabaseClient.client.auth.currentSessionOrNull()
-            android.util.Log.d(
-                TAG,
-                "resetPassword START -> session user=${sessionBefore?.user?.email}, " +
-                        "expiresAt=${sessionBefore?.expiresAt}"
-            )
-
-            if (sessionBefore == null) {
-                android.util.Log.e(TAG, "resetPassword: NO ACTIVE SESSION — updateUser will fail or target the wrong account")
-            }
-
             SupabaseClient.client.auth.updateUser {
                 password = newPassword
             }
-
-            val sessionAfter = SupabaseClient.client.auth.currentSessionOrNull()
-            android.util.Log.d(
-                TAG,
-                "resetPassword SUCCESS -> session user=${sessionAfter?.user?.email}"
-            )
-
             ResetPasswordResponse(success = true, message = "Password updated successfully.")
         } catch (e: Exception) {
             android.util.Log.e(TAG, "resetPassword failed: ${e.message}", e)

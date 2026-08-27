@@ -21,6 +21,7 @@ import com.google.android.material.button.MaterialButton
 import com.google.android.material.card.MaterialCardView
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
+import com.onesignal.OneSignal
 import io.github.jan.supabase.auth.OtpType
 import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.auth.providers.builtin.OTP
@@ -482,6 +483,9 @@ class OtpActivity : BaseActivity() {
         db.collection("users").document(uid).set(buildUserMap(uid))
             .addOnSuccessListener {
                 saveToSupabase(uid)
+
+                // Tie this device's push subscription to the new user
+                OneSignal.login(uid)
 
                 val prefs = getSharedPreferences("SkillSwapPrefs", MODE_PRIVATE)
                 with(prefs.edit()) {

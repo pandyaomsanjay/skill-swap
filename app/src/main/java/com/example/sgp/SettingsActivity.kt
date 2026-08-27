@@ -23,6 +23,7 @@ import com.google.android.material.materialswitch.MaterialSwitch
 import com.google.firebase.auth.EmailAuthProvider
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
+import com.onesignal.OneSignal
 
 class SettingsActivity : BaseActivity() {
 
@@ -114,31 +115,6 @@ class SettingsActivity : BaseActivity() {
         findViewById<View>(R.id.layoutForgotPassword)?.alpha = alpha
     }
 
-
-
-
-
-
-
-
-
-
-    //    another popup
-
-
-//    private fun showProviderRestrictedDialog() {
-//        MaterialAlertDialogBuilder(this)
-//            .setTitle("Hands Off For Now 💦")
-//            .setMessage(
-//                "Patience, honey! You can't get this package while signed in via ${getSignInProviderLabel()} on SkillSwap. Give me the right access and I'll make it worth your while. 💋"
-//            )
-//            .setPositiveButton("Got it", null)
-//            .show()
-//    }
-
-
-
-
     private fun showProviderRestrictedDialog() {
         val provider = getSignInProviderLabel()
 
@@ -149,16 +125,6 @@ class SettingsActivity : BaseActivity() {
             .setPositiveButton("Got it", null)
             .show()
     }
-
-
-
-
-
-
-
-
-
-
 
     // ---------------------------------------------------------------------
     // Forgot password
@@ -438,6 +404,7 @@ class SettingsActivity : BaseActivity() {
             .setMessage("Are you sure you want to sign out?")
             .setPositiveButton("Sign Out") { _, _ ->
                 auth.signOut()
+                OneSignal.logout()
                 clearUserData()
                 navigateToLogin()
             }
