@@ -29,9 +29,9 @@ The application also includes a dedicated **Admin Panel** for managing users, sk
 
 ---
 
-# 📱 User Features
+## 📱 User Features
 
-## 🔐 Authentication
+### 🔐 Authentication
 
 Users can securely access the application through the authentication system.
 
@@ -49,7 +49,7 @@ Features include:
 
 ---
 
-# 👤 User Profile
+### 👤 User Profile
 
 Users can create and manage their personal profiles.
 
@@ -70,11 +70,11 @@ Users can also update their profile information whenever required.
 
 ---
 
-# 🎯 Skill Management
+### 🎯 Skill Management
 
 Users can add and manage the skills they want to teach or share.
 
-### Skill Features
+**Skill Features**
 
 * Add a new skill
 * View skills
@@ -84,7 +84,7 @@ Users can add and manage the skills they want to teach or share.
 * Upload skill videos
 * Discover skills offered by other users
 
-### Skill Categories
+**Skill Categories**
 
 The application includes categories such as:
 
@@ -97,7 +97,7 @@ The application includes categories such as:
 
 ---
 
-# 🔄 Skill Exchange / Trading
+### 🔄 Skill Exchange / Trading
 
 The core functionality of Skill Swap is exchanging knowledge between users.
 
@@ -108,7 +108,7 @@ A user can select:
 * Another user to exchange skills with
 * An optional message
 
-### Trade Process
+**Trade Process**
 
 ```text
 Find Skill
@@ -144,7 +144,7 @@ Trade information can include:
 
 ---
 
-# 💬 Real-Time Chat
+### 💬 Real-Time Chat
 
 Skill Swap provides communication between users through real-time chat.
 
@@ -159,7 +159,7 @@ Users can:
 
 Chat functionality is implemented using **Cloud Firestore**.
 
-### Chat Structure
+**Chat Structure**
 
 ```text
 chats
@@ -170,11 +170,11 @@ chats
 
 ---
 
-# 🎥 Skill Videos
+### 🎥 Skill Videos
 
 Users can share videos related to their skills.
 
-### Video Features
+**Video Features**
 
 * Upload skill videos
 * View videos
@@ -194,7 +194,7 @@ Resizablevideoview.kt
 
 ---
 
-# ⭐ Ratings & Feedback
+### ⭐ Ratings & Feedback
 
 Skill Swap allows users to provide feedback after interacting or completing skill exchanges.
 
@@ -210,7 +210,7 @@ The application contains dedicated feedback and rating components.
 
 ---
 
-# 🔔 OneSignal Push Notifications
+### 🔔 OneSignal Push Notifications
 
 Skill Swap uses **OneSignal** for push notifications.
 
@@ -222,7 +222,7 @@ Notifications can be used for important events such as:
 * ⭐ Feedback/rating events
 * 📢 Important application notifications
 
-### Notification Architecture
+**Notification Architecture**
 
 ```text
 Skill Swap Android App
@@ -244,13 +244,11 @@ OneSignal provides the notification management and delivery layer for the applic
 
 For Android push delivery, OneSignal uses Firebase Cloud Messaging (FCM) credentials configured through the OneSignal platform. **Firebase Cloud Functions are not required for the notification architecture.**
 
-Official OneSignal documentation:
-
-[OneSignal Android SDK Setup](https://documentation.onesignal.com/docs/en/android-sdk-setup?utm_source=chatgpt.com)
+Official OneSignal documentation: [OneSignal Android SDK Setup](https://documentation.onesignal.com/docs/en/android-sdk-setup)
 
 ---
 
-# 📍 Location Support
+### 📍 Location Support
 
 The application includes Google Places integration for location-related functionality.
 
@@ -262,19 +260,15 @@ This can be used to:
 
 ---
 
-# 🛡️ Admin Panel
+## 🛡️ Admin Panel
 
 Skill Swap includes a dedicated **Admin Panel** for administrators to monitor and manage the application.
 
-The Admin Panel contains multiple management sections.
-
----
-
-## 📊 Admin Dashboard
+### 📊 Admin Dashboard
 
 The Admin Dashboard provides an overview of the application's current activity.
 
-### Dashboard Statistics
+**Dashboard Statistics**
 
 Administrators can monitor:
 
@@ -284,7 +278,7 @@ Administrators can monitor:
 * 🚨 Pending Reports
 * 📈 Swap Activity
 
-### Statistics Filters
+**Statistics Filters**
 
 The dashboard supports different time periods:
 
@@ -296,110 +290,39 @@ Custom Range
 All Time
 ```
 
-This allows administrators to analyze application activity over different periods.
-
 ---
 
-# 👥 Admin User Management
+### 👥 Admin User Management
 
-The Admin Panel includes a dedicated user management section.
+The Admin Panel includes a dedicated user management section, accessible through `AdminUsersActivity.kt`, providing administrators with an overview of users registered on the platform.
 
-Administrators can access and manage registered users through:
+### 🎯 Admin Skill Management
 
-```text
-AdminUsersActivity.kt
-```
+Administrators can manage the skills available on the platform through `AdminSkillsActivity.kt`, allowing them to monitor skill-related information and maintain the skill database.
 
-The user management area provides administrators with an overview of users registered on the platform.
+### 🔄 Admin Trade Management
 
----
+Administrators can monitor skill exchange/trade activity through `AdminTradesActivity.kt`, reviewing trade-related information and the platform's exchange activity.
 
-# 🎯 Admin Skill Management
+### 🚨 Admin Report Management
 
-Administrators can manage the skills available on the platform.
+The application includes a reporting system where issues can be reported. Administrators can review reports through `AdminReportsActivity.kt`. The dashboard also tracks pending reports so administrators can identify issues requiring attention.
 
-The Admin Panel provides a dedicated skill management screen:
+### ⭐ Admin Feedback Management
 
-```text
-AdminSkillsActivity.kt
-```
+Administrators can manage user feedback through `AdminFeedbackActivity.kt`, monitoring feedback and ratings submitted by users.
 
-This allows administrators to monitor skill-related information and maintain the skill database.
+### 🎥 Admin Video Management
 
----
+The Admin Panel includes video management functionality through `AdminVideosActivity.kt` and `AdminVideoPlayerActivity.kt`, allowing administrators to access and play uploaded skill videos.
 
-# 🔄 Admin Trade Management
+### ⚙️ Admin Settings
 
-Administrators can monitor skill exchange/trade activity.
+The application includes an administration settings section through `AdminSettingsActivity.kt`, providing a dedicated area for administrator-level application settings.
 
-The dedicated activity is:
+### 🔐 Admin Access
 
-```text
-AdminTradesActivity.kt
-```
-
-The Admin Panel can be used to review trade-related information and monitor the platform's skill exchange activity.
-
----
-
-# 🚨 Admin Report Management
-
-The application includes a reporting system where issues can be reported.
-
-Administrators can review reports through:
-
-```text
-AdminReportsActivity.kt
-```
-
-The dashboard also tracks pending reports so administrators can identify issues requiring attention.
-
----
-
-# ⭐ Admin Feedback Management
-
-Administrators can manage user feedback through:
-
-```text
-AdminFeedbackActivity.kt
-```
-
-This allows the administration system to monitor feedback and ratings submitted by users.
-
----
-
-# 🎥 Admin Video Management
-
-The Admin Panel includes video management functionality.
-
-Relevant components include:
-
-```text
-AdminVideosActivity.kt
-AdminVideoPlayerActivity.kt
-```
-
-Administrators can access uploaded skill videos and play them through the admin interface.
-
----
-
-# ⚙️ Admin Settings
-
-The application includes an administration settings section:
-
-```text
-AdminSettingsActivity.kt
-```
-
-This provides a dedicated area for administrator-level application settings.
-
----
-
-# 🔐 Admin Access
-
-The application checks the user's account type before providing access to the Admin Dashboard.
-
-The application uses a `user_type` value to distinguish administrator access from normal user access.
+The application checks the user's account type before providing access to the Admin Dashboard, using a `user_type` value to distinguish administrator access from normal user access.
 
 ```text
 Normal User
@@ -415,10 +338,10 @@ Admin Dashboard
 
 ---
 
-# 🏗️ Technology Stack
+## 🏗️ Technology Stack
 
 | Technology                     | Purpose                           |
-| ------------------------------ | --------------------------------- |
+| ------------------------------- | ---------------------------------- |
 | **Kotlin**                     | Primary programming language      |
 | **Android SDK**                | Android application development   |
 | **AndroidX**                   | Android components                |
@@ -438,7 +361,7 @@ Admin Dashboard
 
 ---
 
-# ☁️ Backend Architecture
+## ☁️ Backend Architecture
 
 Skill Swap uses Firebase, Supabase, and OneSignal for different application requirements.
 
@@ -463,9 +386,7 @@ Skill Swap uses Firebase, Supabase, and OneSignal for different application requ
           Chat
 ```
 
----
-
-## 🔥 Firebase
+### 🔥 Firebase
 
 Firebase is used for:
 
@@ -476,13 +397,9 @@ Firebase is used for:
 
 Firebase Cloud Firestore is also used for real-time chat functionality.
 
----
-
-## 🟢 Supabase
+### 🟢 Supabase
 
 Supabase is integrated into the application for backend/storage-related functionality.
-
-The project contains:
 
 ```text
 SupabaseClient.kt
@@ -491,13 +408,9 @@ SupabaseImageUploader.kt
 
 Supabase can be used for application media/storage operations.
 
----
+### 🔔 OneSignal
 
-## 🔔 OneSignal
-
-OneSignal is responsible for the application's push notification functionality.
-
-It provides:
+OneSignal is responsible for the application's push notification functionality. It provides:
 
 * Push notifications
 * Notification targeting
@@ -507,7 +420,7 @@ It provides:
 
 ---
 
-# 🧩 Project Structure
+## 🧩 Project Structure
 
 ```text
 skill-swap/
@@ -523,23 +436,14 @@ skill-swap/
 │   │       ├── java/com/example/sgp/
 │   │       │   │
 │   │       │   ├── Authentication/
-│   │       │   │
 │   │       │   ├── User & Profile/
-│   │       │   │
 │   │       │   ├── Skills/
-│   │       │   │
 │   │       │   ├── Trades/
-│   │       │   │
 │   │       │   ├── Chat/
-│   │       │   │
 │   │       │   ├── Videos/
-│   │       │   │
 │   │       │   ├── Feedback/
-│   │       │   │
 │   │       │   ├── Admin/
-│   │       │   │
 │   │       │   ├── Supabase/
-│   │       │   │
 │   │       │   └── Other Components
 │   │       │
 │   │       └── res/
@@ -560,7 +464,7 @@ skill-swap/
 
 ---
 
-# 🗄️ Main Data Structure
+## 🗄️ Main Data Structure
 
 The application uses Firebase data collections for major application entities.
 
@@ -572,7 +476,7 @@ chats
 reports
 ```
 
-### Chat Data
+**Chat Data**
 
 ```text
 chats
@@ -586,7 +490,7 @@ chats
 
 ---
 
-# 🔄 Complete Application Workflow
+## 🔄 Complete Application Workflow
 
 ```text
                          ┌───────────────┐
@@ -640,7 +544,7 @@ Notifications are handled independently through OneSignal throughout relevant ap
 
 ---
 
-# ⚙️ Requirements
+## ⚙️ Requirements
 
 To build and run Skill Swap, you need:
 
@@ -652,7 +556,7 @@ To build and run Skill Swap, you need:
 * Supabase project
 * OneSignal account/application
 
-### Android Configuration
+**Android Configuration**
 
 ```text
 Minimum SDK : 27
@@ -664,35 +568,22 @@ Kotlin JVM  : 11
 
 ---
 
-# 🚀 Installation
+## 🚀 Installation
 
-## 1. Clone the Repository
+### 1. Clone the Repository
 
 ```bash
 git clone https://github.com/pandyaomsanjay/skill-swap.git
-```
-
-Move into the project directory:
-
-```bash
 cd skill-swap
 ```
 
----
+### 2. Open in Android Studio
 
-## 2. Open in Android Studio
+Open the cloned project using Android Studio. Allow Gradle to synchronize the project and download the required dependencies.
 
-Open the cloned project using Android Studio.
+### 3. Configure Firebase
 
-Allow Gradle to synchronize the project and download the required dependencies.
-
----
-
-## 3. Configure Firebase
-
-Create or configure a Firebase project.
-
-Enable the services required by the application:
+Create or configure a Firebase project. Enable the services required by the application:
 
 ```text
 Firebase Authentication
@@ -701,61 +592,34 @@ Realtime Database
 Firebase Storage
 ```
 
-Add the appropriate Android Firebase configuration.
+Add the appropriate Android Firebase configuration (`google-services.json`).
 
----
+### 4. Configure Google Sign-In
 
-## 4. Configure Google Sign-In
+Configure Google Sign-In through Firebase Authentication. Make sure the required SHA-1/SHA-256 fingerprints are configured for the Android application.
 
-Configure Google Sign-In through Firebase Authentication.
+### 5. Configure Supabase
 
-Make sure the required SHA-1/SHA-256 fingerprints are configured for the Android application.
+Create a Supabase project and configure the required storage/backend services. Update the application's Supabase configuration accordingly.
 
----
+### 6. Configure OneSignal
 
-## 5. Configure Supabase
+Create a OneSignal application. Configure Android push notifications and connect the required FCM credentials through OneSignal, then configure the OneSignal App ID in the Android application.
 
-Create a Supabase project and configure the required storage/backend services.
+Official documentation: [OneSignal Android SDK Setup](https://documentation.onesignal.com/docs/en/android-sdk-setup)
 
-Update the application's Supabase configuration accordingly.
-
----
-
-## 6. Configure OneSignal
-
-Create a OneSignal application.
-
-Configure Android push notifications and connect the required FCM credentials through OneSignal.
-
-Then configure the OneSignal App ID in the Android application.
-
-Official documentation:
-
-[OneSignal Android SDK Setup](https://documentation.onesignal.com/docs/en/android-sdk-setup?utm_source=chatgpt.com)
-
----
-
-## 7. Build the Application
+### 7. Build the Application
 
 In Android Studio:
 
 ```text
 File → Sync Project with Gradle Files
-```
-
-Then:
-
-```text
 Build → Make Project
 ```
 
----
+### 8. Run the Application
 
-## 8. Run the Application
-
-Connect an Android device or start an Android emulator.
-
-Then select:
+Connect an Android device or start an Android emulator, then select:
 
 ```text
 Run → Run 'app'
@@ -763,11 +627,11 @@ Run → Run 'app'
 
 ---
 
-# 🔐 Security
+## 🔐 Security
 
 Security should be considered carefully before deploying the application to production.
 
-### Recommended practices
+**Recommended practices**
 
 * Never expose private API keys.
 * Do not commit service-account credentials.
@@ -781,7 +645,7 @@ Security should be considered carefully before deploying the application to prod
 
 ---
 
-# 🧪 Testing
+## 🧪 Testing
 
 The project includes Android testing configuration.
 
@@ -795,7 +659,7 @@ Testing can be performed using Android Studio's built-in test and instrumentatio
 
 ---
 
-# 📊 Admin Panel Overview
+## 📊 Admin Panel Overview
 
 ```text
                      ADMIN PANEL
@@ -814,10 +678,10 @@ Testing can be performed using Android Studio's built-in test and instrumentatio
    Settings
 ```
 
-### Admin Modules
+**Admin Modules**
 
 | Module       | Purpose                 |
-| ------------ | ----------------------- |
+| ------------ | ------------------------ |
 | 📊 Dashboard | Application statistics  |
 | 👥 Users     | User management         |
 | 🎯 Skills    | Skill management        |
@@ -829,7 +693,7 @@ Testing can be performed using Android Studio's built-in test and instrumentatio
 
 ---
 
-# 📈 Admin Dashboard Statistics
+## 📈 Admin Dashboard Statistics
 
 The Admin Dashboard monitors:
 
@@ -853,48 +717,36 @@ All Time
 
 ---
 
-# 🔮 Future Improvements
+## 🔮 Future Improvements
 
-Possible future improvements include:
-
-* 🤖 AI-powered skill recommendations
-* 🎯 Intelligent skill matching
-* 🔍 Advanced search and filtering
-* 📅 Trade scheduling
-* 📹 Video calling
-* 🔔 Advanced OneSignal notification targeting
-* 💬 Improved chat functionality
-* 🔐 Stronger role-based access control
-* 🧪 Increased automated test coverage
-* 🚀 CI/CD integration
-* 📊 Advanced analytics
-* 🔒 Improved secret management
-* 🌐 Multi-language support
+* 💬 **Advanced Chat & User Channels** – LinkedIn-style chat with user video/channel pages.
+* 🔐 **Chat Security & Moderation** – Encrypted chats, inappropriate-content detection, warnings, and 24-hour chat restriction after 5 warnings.
+* 👨‍🏫 **Teaching Limit** – Limit each user to teaching a maximum of 10 users simultaneously.
+* 🎨 **UI Redesign** – Modern, attractive, and user-friendly redesign of the complete user interface.
+* 🌐 **Multi-Language Support** – Allow users to select their preferred language.
+* 💳 **Secure Payments** – Add a complete and secure payment system.
+* 🌙 **Dark Mode** – Add Light/Dark theme support for the user side.
+* 🔄 **Swap Animation** – Add interactive animations to the trade/swap experience.
+* ▶️ **Continue Learning** – Resume videos, playlists, courses, and learning activities from the last position.
+* 📜 **Certificates** – Generate certificates after completing skills, courses, or playlists.
+* 🔧 **Trade System Improvements** – Fix and optimize the complete trade/swap workflow.
+* 🎥 **Trade from Demo Videos** – Allow users to initiate trades directly from demo videos with a preferred schedule.
+* 📅 **Smart Trade Scheduling** – Support proposed schedules, one counter-schedule, and final mutual confirmation.
+* ⏰ **Meeting Reminders** – Send reminders before scheduled trades or learning sessions.
+* 📚 **Multiple Resource Types** – Support trading Notes, Videos, Live Sessions, PDFs, Courses, and other learning resources.
+* 📑 **Advanced Playlists** – Organize multiple videos and learning materials into playlists.
+* 🏆 **Points System Improvements** – Fix and improve points calculation, deduction, and display.
+* 🎬 **Playlist Preview Videos** – Add demo videos to showcase playlist content before access.
+* 💰 **Playlist Discount** – Provide playlists at a lower points cost than individual resources.
+* 🎁 **Completion Rewards** – Award a **500-point reward** after completing 2 full playlists.
 
 ---
 
-# 📸 Screenshots
+## 📸 Screenshots
 
 Add screenshots of the application here to showcase the main interfaces.
 
-Recommended screenshots:
-
-```text
-Login
-Home
-Explore Skills
-Skill Details
-Create Trade
-My Trades
-Chat
-Profile
-Videos
-Admin Dashboard
-Admin Users
-Admin Skills
-Admin Trades
-Admin Reports
-```
+Recommended screenshots: Login, Home, Explore Skills, Skill Details, Create Trade, My Trades, Chat, Profile, Videos, Admin Dashboard, Admin Users, Admin Skills, Admin Trades, Admin Reports.
 
 Example:
 
@@ -920,9 +772,9 @@ Example:
 
 ---
 
-# 📂 Important Application Components
+## 📂 Important Application Components
 
-### Authentication
+**Authentication**
 
 ```text
 AuthRepository.kt
@@ -934,7 +786,7 @@ ForgotPasswordEmailActivity.kt
 ResetPasswordActivity.kt
 ```
 
-### Skills
+**Skills**
 
 ```text
 Skill.kt
@@ -942,7 +794,7 @@ AddSkillActivity.kt
 ExploreActivity.kt
 ```
 
-### Trades
+**Trades**
 
 ```text
 Trade.kt
@@ -952,7 +804,7 @@ ActiveTradesFragment.kt
 CompletedTradesFragment.kt
 ```
 
-### Chat
+**Chat**
 
 ```text
 ChatActivity.kt
@@ -961,7 +813,7 @@ NewChatActivity.kt
 Chatmessage.kt
 ```
 
-### Videos
+**Videos**
 
 ```text
 UploadVideoActivity.kt
@@ -970,7 +822,7 @@ PlaylistActivity.kt
 Resizablevideoview.kt
 ```
 
-### Feedback
+**Feedback**
 
 ```text
 FeedbackModels.kt
@@ -979,7 +831,7 @@ SubmitFeedbackActivit.kt
 RateUsActivity.kt
 ```
 
-### Admin
+**Admin**
 
 ```text
 AdminDashboardActivity.kt
@@ -993,7 +845,7 @@ AdminVideosActivity.kt
 AdminVideoPlayerActivity.kt
 ```
 
-### Supabase
+**Supabase**
 
 ```text
 SupabaseClient.kt
@@ -1002,17 +854,15 @@ SupabaseImageUploader.kt
 
 ---
 
-# 🌐 Repository
+## 🌐 Repository
 
-**GitHub Repository:**
-
-[Skill Swap — GitHub Repository](https://github.com/pandyaomsanjay/skill-swap?utm_source=chatgpt.com)
+**GitHub Repository:** [Skill Swap — GitHub Repository](https://github.com/pandyaomsanjay/skill-swap)
 
 ---
 
-# 👨‍💻 Project
+## 👨‍💻 Project
 
-## Skill Swap
+### Skill Swap
 
 **Learn • Share • Exchange**
 
@@ -1020,7 +870,7 @@ A platform designed to make knowledge exchange easier by connecting people who w
 
 ---
 
-# 📄 License
+## 📄 License
 
 No explicit open-source license is currently included in the repository.
 
@@ -1028,7 +878,7 @@ If this project is intended for public distribution or open-source use, add an a
 
 ---
 
-# ⭐ Support
+## ⭐ Support
 
 If you find **Skill Swap** useful or interesting, consider giving the repository a ⭐ on GitHub.
 
