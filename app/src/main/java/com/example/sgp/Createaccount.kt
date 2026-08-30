@@ -78,7 +78,9 @@ class Createaccount : BaseActivity() {
                 try {
                     val account = task.getResult(ApiException::class.java)
                     val idToken = account?.idToken
-                    val email = account?.email
+                    // Normalized here so it matches the same casing used
+                    // everywhere else in the signup/login flow.
+                    val email = account?.email?.trim()?.lowercase()
 
                     if (idToken == null) {
                         Log.e("GoogleSignIn", "idToken is null — check default_web_client_id / SHA-1 config")
@@ -307,7 +309,12 @@ class Createaccount : BaseActivity() {
     }
 
     private fun signUpWithEmail() {
-        val email = etEmail.text.toString().trim()
+        // Normalized once, here, so the exact same string is used for the
+        // Firestore existence check, the Supabase OTP call, and everything
+        // passed on to OtpActivity — this must match what Login.kt normalizes
+        // to (trim + lowercase) or you get the same email-casing mismatch
+        // bug that broke login previously.
+        val email = etEmail.text.toString().trim().lowercase()
         val password = etPassword.text.toString()
 
         db.collection("users").whereEqualTo("email", email).get()
@@ -331,6 +338,7 @@ class Createaccount : BaseActivity() {
     }
 
     private fun checkIfAccountExistsThenProceed(email: String, idToken: String, name: String) {
+        // email is already normalized (trim + lowercase) by the caller.
         db.collection("users").whereEqualTo("email", email).get()
             .addOnSuccessListener { snapshot ->
                 if (!snapshot.isEmpty) {
@@ -367,6 +375,7 @@ class Createaccount : BaseActivity() {
     }
 
     private fun sendSupabaseOtp(email: String, password: String, isGoogle: Boolean) {
+        // email is already normalized (trim + lowercase) by the caller.
         btnCreateAccount.isEnabled = false
         lifecycleScope.launch {
             try {
@@ -386,6 +395,9 @@ class Createaccount : BaseActivity() {
     }
 
     private fun navigateToOtp(email: String, password: String, isGoogle: Boolean) {
+        // email is already normalized (trim + lowercase) — this is what
+        // OtpActivity will write into Firestore and use for the Supabase
+        // password-set call, so it stays consistent with Login.kt's lookup.
         val intent = Intent(this, OtpActivity::class.java).apply {
             putExtra("email", email)
             putExtra("password", password)

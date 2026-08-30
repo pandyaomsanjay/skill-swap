@@ -74,6 +74,11 @@ class OtpActivity : BaseActivity() {
         const val TIMER_AMBER = 1
         const val TIMER_RED   = 2
         const val TIMER_DURATION = 60000L // 60 seconds
+
+        // How many times to retry setting the Supabase password if the
+        // session hasn't propagated yet right after OTP verification.
+        private const val PASSWORD_SET_MAX_RETRIES = 3
+        private const val PASSWORD_SET_RETRY_DELAY_MS = 600L
     }
 
     private var currentTimerState = TIMER_GREEN
@@ -408,16 +413,25 @@ class OtpActivity : BaseActivity() {
                 )
 
                 if (!isGoogle && password.isNotEmpty()) {
-                    // Set the password on the Supabase auth user too —
-                    // verifyEmailOtp() above creates the Supabase user
-                    // passwordless, so without this, Supabase-based login
-                    // would never work for this account.
-                    try {
-                        SupabaseClient.client.auth.updateUser {
-                            this.password = password
-                        }
-                    } catch (e: Exception) {
-                        android.util.Log.e("OtpActivity", "Failed to set Supabase password: ${e.message}", e)
+                    // verifyEmailOtp() above creates/authenticates the Supabase
+                    // user passwordless. Without explicitly setting a password
+                    // here, email/password login will NEVER work for this
+                    // account — Supabase has no password on file to check
+                    // against. This step is therefore required, not optional:
+                    // if it fails, we must stop and let the user retry rather
+                    // than silently continuing into a half-created account.
+                    val passwordSet = setSupabasePasswordWithRetry(password)
+
+                    if (!passwordSet) {
+                        showLoading(false)
+                        showError(
+                            "We verified your code, but couldn't finish setting up " +
+                                    "your account password. Please try again."
+                        )
+                        // Let them re-trigger verification (session from the OTP
+                        // is still valid) instead of pushing them into Firebase
+                        // creation with a broken Supabase credential.
+                        return@launch
                     }
 
                     auth.createUserWithEmailAndPassword(email, password)
@@ -440,6 +454,46 @@ class OtpActivity : BaseActivity() {
                 otpBoxes[0].requestFocus()
             }
         }
+    }
+
+    /**
+     * Sets the password on the just-verified Supabase Auth user.
+     *
+     * Immediately after verifyEmailOtp() succeeds, the SDK's in-memory
+     * session can occasionally lag a beat before updateUser() is able to
+     * use it (session propagation race). We retry a few times with a short
+     * delay before giving up, and log every failure so it's visible instead
+     * of silently swallowed.
+     *
+     * @return true if the password was set successfully, false otherwise.
+     */
+    private suspend fun setSupabasePasswordWithRetry(newPassword: String): Boolean {
+        repeat(PASSWORD_SET_MAX_RETRIES) { attempt ->
+            val session = SupabaseClient.client.auth.currentSessionOrNull()
+            if (session == null) {
+                android.util.Log.w(
+                    "OtpActivity",
+                    "No active Supabase session yet (attempt ${attempt + 1}/$PASSWORD_SET_MAX_RETRIES) — retrying"
+                )
+            } else {
+                try {
+                    SupabaseClient.client.auth.updateUser {
+                        this.password = newPassword
+                    }
+                    return true
+                } catch (e: Exception) {
+                    android.util.Log.e(
+                        "OtpActivity",
+                        "Failed to set Supabase password (attempt ${attempt + 1}/$PASSWORD_SET_MAX_RETRIES): ${e.message}",
+                        e
+                    )
+                }
+            }
+            if (attempt < PASSWORD_SET_MAX_RETRIES - 1) {
+                delay(PASSWORD_SET_RETRY_DELAY_MS)
+            }
+        }
+        return false
     }
 
     private fun resendOtp() {

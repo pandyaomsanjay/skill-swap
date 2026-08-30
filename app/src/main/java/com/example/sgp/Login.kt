@@ -99,7 +99,14 @@ class Login : BaseActivity() {
         val passwordInput = findViewById<TextInputLayout>(R.id.password)
 
         btnLogin.setOnClickListener {
-            val email = emailInput.editText?.text.toString().trim()
+            // Normalized here (trim + lowercase) so the SAME string is used
+            // for both the Supabase auth call and the Firestore profile
+            // lookup below. Supabase matches email case-insensitively, but
+            // Firestore's whereEqualTo() is case-sensitive — if the email
+            // was stored with different casing at signup than what's typed
+            // here, Supabase login can succeed while the Firestore lookup
+            // silently returns nothing, which looks like "can't log in."
+            val email = emailInput.editText?.text.toString().trim().lowercase()
             val password = passwordInput.editText?.text.toString()
 
             if (validateForm(email, password)) {
@@ -158,6 +165,18 @@ class Login : BaseActivity() {
             try {
                 val result = AuthRepository.loginWithPassword(email, password)
                 showLoading(false)
+
+                // TEMP DIAGNOSTIC LOGGING — remove once login is confirmed
+                // working. This tells us exactly which branch is firing and
+                // what AuthRepository actually returned, without needing to
+                // guess from the UI alone. Check Logcat filtered on "LoginDebug".
+                Log.d(
+                    "LoginDebug",
+                    "loginWithPassword(email=$email) -> success=${result.success}, " +
+                            "isLocked=${result.isLocked}, message=${result.message}, " +
+                            "returnedEmail=${result.email}"
+                )
+
                 when {
                     result.success -> loadUserByEmailAndNavigate(result.email ?: email)
                     result.isLocked -> handleAccountLocked(result.secondsRemaining, result.message)
@@ -165,6 +184,7 @@ class Login : BaseActivity() {
                 }
             } catch (e: Exception) {
                 showLoading(false)
+                Log.e("LoginDebug", "loginWithPassword threw an exception", e)
                 showError("Login failed: ${e.message}")
             }
         }
@@ -201,10 +221,19 @@ class Login : BaseActivity() {
 
     /** Looks up the Firestore profile by email (used for Supabase-authenticated logins). */
     private fun loadUserByEmailAndNavigate(email: String) {
+        // email is already normalized (trim + lowercase) by the caller.
         db.collection("users").whereEqualTo("email", email).limit(1).get()
             .addOnSuccessListener { snapshot ->
                 showLoading(false)
                 val document = snapshot.documents.firstOrNull()
+
+                // TEMP DIAGNOSTIC LOGGING — remove once login is confirmed working.
+                Log.d(
+                    "LoginDebug",
+                    "Firestore lookup for email=$email -> found=${document != null}, " +
+                            "docCount=${snapshot.size()}"
+                )
+
                 val userData = document?.toObject(Users::class.java)
                 if (userData != null) {
                     val prefs = getSharedPreferences("SkillSwapPrefs", MODE_PRIVATE)
@@ -214,6 +243,8 @@ class Login : BaseActivity() {
                         .putString("user_location", userData.location)
                         .putString("user_type", userData.userType)
                         .apply()
+
+
 
                     // Tie this device's push subscription to the logged-in user
                     document.id.let { uid -> OneSignal.login(uid) }
@@ -229,11 +260,16 @@ class Login : BaseActivity() {
                     startActivity(intent)
                     finish()
                 } else {
-                    showError("User data not found")
+                    showError(
+                        "Your login was verified, but we couldn't find your profile. " +
+                                "This can happen if your account email doesn't exactly match " +
+                                "what's on file — please contact support."
+                    )
                 }
             }
             .addOnFailureListener { e ->
                 showLoading(false)
+                Log.e("LoginDebug", "Firestore lookup failed for email=$email", e)
                 showError("Error fetching user data: ${e.message}")
             }
     }

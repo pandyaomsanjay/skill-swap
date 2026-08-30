@@ -53,11 +53,20 @@ object AuthRepository {
         "If an account exists for this email, a code has been sent."
     private const val MAX_ATTEMPTS = 5
 
+    /**
+     * Single source of truth for email normalization across this repository.
+     * Every function here that takes an email runs it through this first,
+     * so a Firestore query written with one casing can never fail to match
+     * a Supabase call made with another.
+     */
+    private fun normalize(email: String): String = email.trim().lowercase()
+
     suspend fun getLoginProvider(email: String): String? {
+        val normalizedEmail = normalize(email)
         return try {
             val snapshot = FirebaseFirestore.getInstance()
                 .collection("users")
-                .whereEqualTo("email", email)
+                .whereEqualTo("email", normalizedEmail)
                 .limit(1)
                 .get()
                 .await()
@@ -66,7 +75,7 @@ object AuthRepository {
                 ?.toObject(User::class.java)
                 ?.loginProvider
 
-            android.util.Log.d(TAG, "getLoginProvider($email) -> $provider")
+            android.util.Log.d(TAG, "getLoginProvider($normalizedEmail) -> $provider")
             provider
         } catch (e: Exception) {
             android.util.Log.e(TAG, "getLoginProvider failed: ${e.message}", e)
@@ -126,7 +135,7 @@ object AuthRepository {
      * via SECURITY DEFINER RPCs so it can't be bypassed from the client.
      */
     suspend fun loginWithPassword(email: String, password: String): LoginResponse {
-        val normalizedEmail = email.trim().lowercase()
+        val normalizedEmail = normalize(email)
 
         val lockStatus = checkLoginLock(normalizedEmail)
         if (lockStatus.isLocked) {
@@ -167,8 +176,9 @@ object AuthRepository {
     }
 
     suspend fun forgotPassword(email: String): ForgotPasswordResponse {
+        val normalizedEmail = normalize(email)
         return try {
-            SupabaseClient.client.auth.resetPasswordForEmail(email)
+            SupabaseClient.client.auth.resetPasswordForEmail(normalizedEmail)
             ForgotPasswordResponse(GENERIC_SENT_MESSAGE)
         } catch (e: Exception) {
             android.util.Log.e(TAG, "forgotPassword failed: ${e.message}", e)
@@ -177,10 +187,11 @@ object AuthRepository {
     }
 
     suspend fun verifyOtp(email: String, otp: String): VerifyOtpResponse {
+        val normalizedEmail = normalize(email)
         return try {
             SupabaseClient.client.auth.verifyEmailOtp(
                 type = OtpType.Email.RECOVERY,
-                email = email,
+                email = normalizedEmail,
                 token = otp
             )
             VerifyOtpResponse(success = true, message = "OTP verified")
@@ -194,8 +205,9 @@ object AuthRepository {
     }
 
     suspend fun resendOtp(email: String): ResendOtpResponse {
+        val normalizedEmail = normalize(email)
         return try {
-            SupabaseClient.client.auth.resetPasswordForEmail(email)
+            SupabaseClient.client.auth.resetPasswordForEmail(normalizedEmail)
             ResendOtpResponse("A new code has been sent.")
         } catch (e: Exception) {
             android.util.Log.e(TAG, "resendOtp failed: ${e.message}", e)
