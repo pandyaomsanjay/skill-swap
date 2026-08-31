@@ -43,8 +43,12 @@ class VideoPlayerActivity : AppCompatActivity() {
     private var isFullscreen = false
     private var originalVideoContainerParams: ViewGroup.LayoutParams? = null
 
-    // Same five reasons used on the Explore list's report flow, kept in sync
-    // so reporting from inside the player matches reporting from the card.
+    // Playlist tracking
+    private var playlistId: String? = null
+    private var videoId: String? = null
+    private var totalVideos: Int = 0
+    private var progressMarked = false
+
     private val reportReasons = arrayOf(
         "Inappropriate or Offensive Content",
         "Spam or Misleading Information",
@@ -55,7 +59,7 @@ class VideoPlayerActivity : AppCompatActivity() {
 
     private var skillId: String = ""
     private var skillTitle: String = ""
-    private var skillUserId: String = ""   // uploader's email (matches Report/Skill model)
+    private var skillUserId: String = ""
     private var skillUserName: String = ""
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -89,6 +93,11 @@ class VideoPlayerActivity : AppCompatActivity() {
         val credits = intent.getIntExtra("skillCredits", 0)
         val description = intent.getStringExtra("skillDescription") ?: ""
 
+        // Playlist progress tracking extras
+        playlistId = intent.getStringExtra("playlistId")
+        videoId = intent.getStringExtra("videoId")
+        totalVideos = intent.getIntExtra("totalVideos", 0)
+
         tvTitle.text = skillTitle
         tvSubtitle.text = listOfNotNull(
             category.ifBlank { null },
@@ -119,15 +128,26 @@ class VideoPlayerActivity : AppCompatActivity() {
             videoView.setVideoSize(mp.videoWidth, mp.videoHeight)
             videoView.start()
         }
+
         videoView.setOnErrorListener { _, _, _ ->
             progressBar.visibility = View.GONE
             Toast.makeText(this, "Unable to play this video", Toast.LENGTH_SHORT).show()
             true
         }
+
+        // Track video completion for playlist progress
+        videoView.setOnCompletionListener {
+            if (!progressMarked && playlistId != null && videoId != null && totalVideos > 0) {
+                progressMarked = true
+                val uid = FirebaseAuth.getInstance().currentUser?.uid
+                if (uid != null) {
+                    PlaylistManager.updateProgress(uid, playlistId!!, videoId!!, totalVideos)
+                }
+            }
+        }
     }
 
-    // ---------------- Report (themed dialog — matches ExploreActivity) ----------------
-
+    // ---------------- Report (themed dialog) ----------------
     private fun showReportDialog() {
         val reporterEmail = FirebaseAuth.getInstance().currentUser?.email
         if (reporterEmail.isNullOrEmpty()) {
@@ -140,16 +160,13 @@ class VideoPlayerActivity : AppCompatActivity() {
         }
 
         val root = dialogCard()
-
         root.addView(dialogTitle("Report \"$skillTitle\""))
-
         root.addView(TextView(this).apply {
             text = "Help us understand what's wrong"
             setTextColor(Color.parseColor("#456882"))
             textSize = 13f
             setPadding(0, dp(4), 0, dp(4))
         })
-
         root.addView(dividerLine())
 
         val dialog = AlertDialog.Builder(this).setView(root).create()
@@ -181,7 +198,6 @@ class VideoPlayerActivity : AppCompatActivity() {
         dialog.show()
     }
 
-    /** A single tappable reason row, styled to match the app's navy/steel palette. */
     private fun reportReasonRow(text: String, onClick: () -> Unit): TextView {
         val outValue = TypedValue()
         theme.resolveAttribute(android.R.attr.selectableItemBackground, outValue, true)
@@ -218,8 +234,7 @@ class VideoPlayerActivity : AppCompatActivity() {
             }
     }
 
-    // ---------------- Themed-dialog helpers (shared white/cream rounded card + pill buttons) ----------------
-
+    // ---------------- Themed-dialog helpers ----------------
     private fun dp(value: Int): Int = (value * resources.displayMetrics.density).toInt()
 
     private fun dialogCard(): LinearLayout {
@@ -272,8 +287,7 @@ class VideoPlayerActivity : AppCompatActivity() {
         }
     }
 
-    // ---------------- Fullscreen (YouTube-style: rotate + expand the video, hide details) ----------------
-
+    // ---------------- Fullscreen ----------------
     private fun toggleFullscreen() {
         isFullscreen = !isFullscreen
         if (isFullscreen) {
@@ -323,7 +337,6 @@ class VideoPlayerActivity : AppCompatActivity() {
     }
 
     // ---------------- Picture-in-Picture ----------------
-
     private fun buildPipParams(): PictureInPictureParams {
         return PictureInPictureParams.Builder()
             .setAspectRatio(Rational(16, 9))

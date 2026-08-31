@@ -1,5 +1,9 @@
 package com.example.sgp
 
+import android.os.Parcelable
+import kotlinx.parcelize.Parcelize
+
+@Parcelize
 data class Skill(
     var id: String = "",
     val userId: String = "",
@@ -7,18 +11,28 @@ data class Skill(
     val title: String = "",
     val description: String = "",
     val category: String = "",
-    val duration: String = "",
-    val credits: Int = 0,               // For single video skills; for playlist, this is the total? Not used directly.
+    val duration: String = "",          // for single video; for playlist: total duration string
+    val credits: Int = 0,               // credits to access the whole playlist
     val timestamp: Long = 0,
-    val videoUrl: String? = null,       // Only for single video
+    val videoUrl: String? = null,       // only for single video
     val skillType: String = "single",   // "single" or "playlist"
-    val videos: List<PlaylistVideo>? = null // Only for playlist
-)
+    val videos: List<PlaylistVideo>? = null, // only for playlist
 
+    // ---- playlist specific fields ----
+    val thumbnailUrl: String? = null,   // cover image URL
+    val demoVideoUrl: String? = null,   // preview video (not part of paid videos)
+    val videoCount: Int = 0,            // number of videos in the playlist
+    val totalDuration: String? = null   // human‑readable total duration (e.g. "45 min")
+) : Parcelable
+
+@Parcelize
 data class PlaylistVideo(
     val id: String = "",
     val title: String = "",
     val description: String = "",
     val videoUrl: String = "",
-    val credits: Int = 0
-)
+    val credits: Int = 0,
+    val order: Int = 0,
+    val duration: String = "",        // NEW: human‑readable duration
+    val createdAt: Long = System.currentTimeMillis()
+) : Parcelable

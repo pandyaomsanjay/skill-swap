@@ -8,13 +8,13 @@
         android:required="false" />
 
     <uses-permission android:name="android.permission.CAMERA" />
-
     <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
     <uses-permission
         android:name="android.permission.READ_EXTERNAL_STORAGE"
         android:maxSdkVersion="32" />
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
     <queries>
         <package android:name="com.google.android.gms" />
         <package android:name="com.android.vending" />
@@ -129,76 +129,72 @@
             android:name=".CompleteProfileActivity"
             android:exported="false"
             android:windowSoftInputMode="adjustResize" />
-
         <activity
             android:name=".PrivacyPolicyActivity"
             android:exported="false" />
-
         <activity
             android:name=".TermsOfServiceActivity"
             android:label="Terms of Service"
             android:parentActivityName=".SettingsActivity" />
-
         <activity
             android:name=".RateUsActivity"
-            android:label="Rate Us"
+            android:exported="false"
+            android:label="Rate Us" />
+        <activity
+            android:name=".HelpSupportActivity"
             android:exported="false" />
-
-
-        <activity android:name=".HelpSupportActivity" android:exported="false" />
-        <activity android:name=".AboutActivity" android:exported="false" />
-
-
+        <activity
+            android:name=".AboutActivity"
+            android:exported="false" />
         <activity
             android:name=".ChangePasswordActivity"
             android:exported="false"
             android:label="Change Password" />
-
         <activity
             android:name=".AdminSettingsActivity"
             android:exported="false"
             android:theme="@style/Theme.SGP.Admin" />
-
         <activity
             android:name=".AdminFeedbackActivity"
             android:exported="false"
             android:theme="@style/Theme.SGP.Admin" />
-
         <activity android:name=".SubmitFeedbackActivity" />
-
-
         <activity
             android:name=".ChatActivity"
             android:exported="false" />
-
-
-        <activity android:name=".ChatListActivity" android:exported="false" />
-        <activity android:name=".NewChatActivity" android:exported="false" />
+        <activity
+            android:name=".ChatListActivity"
+            android:exported="false" />
+        <activity
+            android:name=".NewChatActivity"
+            android:exported="false" />
         <activity android:name=".ResetPasswordActivity" />
-
         <activity
             android:name=".OtpVerificationActivity"
             android:exported="false"
             android:windowSoftInputMode="adjustResize" />
-
         <activity
             android:name=".AdminVideoPlayerActivity"
+            android:configChanges="orientation|screenSize|screenLayout|keyboardHidden|smallestScreenSize|uiMode"
             android:exported="false"
-            android:supportsPictureInPicture="true"
-            android:configChanges="orientation|screenSize|screenLayout|keyboardHidden|smallestScreenSize|uiMode" />
-
+            android:supportsPictureInPicture="true" />
         <activity
             android:name=".VideoPlayerActivity"
-            android:exported="false"
-            android:screenOrientation="unspecified"
             android:configChanges="orientation|screenSize|screenLayout|keyboardHidden|smallestScreenSize"
-            android:supportsPictureInPicture="true"
-            android:resizeableActivity="true" />
-
-        <activity android:name=".UserProfileActivity" android:exported="false" />
-
-        <activity android:name=".AdminVideosActivity" android:exported="false"/>
-
+            android:exported="false"
+            android:resizeableActivity="true"
+            android:screenOrientation="unspecified"
+            android:supportsPictureInPicture="true" />
+        <activity
+            android:name=".UserProfileActivity"
+            android:exported="false" />
+        <activity
+            android:name=".AdminVideosActivity"
+            android:exported="false" />
+        <activity
+            android:name=".AddPlaylistVideoActivity"
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
     </application>
 
 </manifest>

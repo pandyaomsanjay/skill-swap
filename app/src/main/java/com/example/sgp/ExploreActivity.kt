@@ -69,9 +69,6 @@ class ExploreActivity : BaseActivity() {
     private lateinit var tvTabEducation: TextView
     private lateinit var tvTabLifestyle: TextView
 
-    // Selected segment vs. unselected text color inside the single rounded pill.
-    // Unselected segments use a transparent card background so the outer
-    // pill's own background color shows through.
     private val selectedTabBg = Color.parseColor("#F9F3EF")
     private val selectedTabText = Color.parseColor("#1B3C53")
     private val unselectedTabText = Color.parseColor("#D2C1B6")
@@ -100,7 +97,6 @@ class ExploreActivity : BaseActivity() {
     }
 
     // ---------- Binding ----------
-
     private fun bindViews() {
         recyclerView = findViewById(R.id.recyclerView)
         emptyState = findViewById(R.id.emptyState)
@@ -111,7 +107,9 @@ class ExploreActivity : BaseActivity() {
             displayedSkills,
             onItemClick = { skill -> openSkill(skill) },
             onReportClick = { skill -> showReportDialog(skill) },
-            onUserClick = { skill -> openUserProfile(skill) }
+            onUserClick = { skill -> openUserProfile(skill) },
+            onPreviewClick = { skill -> playDemoVideo(skill) },
+            onUnlockClick = { skill -> openPlaylist(skill) }
         )
         recyclerView.adapter = adapter
 
@@ -147,7 +145,6 @@ class ExploreActivity : BaseActivity() {
     }
 
     // ---------- Chat inbox / unread badge ----------
-
     private fun listenForUnreadChats() {
         val myEmail = FirebaseAuth.getInstance().currentUser?.email ?: return
         chatsListener = db.collection("chats")
@@ -164,14 +161,12 @@ class ExploreActivity : BaseActivity() {
                     } ?: false
                     unreadBadge.visibility = if (hasUnread) View.VISIBLE else View.GONE
                 } catch (e: Exception) {
-                    // Don't let one malformed chat doc take down the page.
                     Log.e("ExploreActivity", "Failed processing unread chats", e)
                 }
             }
     }
 
     // ---------- Tabs ----------
-
     private fun setupTabs() {
         tabAll.setOnClickListener { selectTab(SkillCategoryTab.ALL) }
         tabTechnology.setOnClickListener { selectTab(SkillCategoryTab.TECHNOLOGY) }
@@ -183,9 +178,6 @@ class ExploreActivity : BaseActivity() {
         selectTab(SkillCategoryTab.ALL)
     }
 
-    // Segmented-pill style: the outer MaterialCardView (in XML) supplies the
-    // pill's background color. Here we just move the "selected" highlight
-    // between segments — no per-segment stroke/border anymore.
     private fun selectTab(tab: SkillCategoryTab) {
         currentTab = tab
         val tabs = listOf(
@@ -219,7 +211,6 @@ class ExploreActivity : BaseActivity() {
     }
 
     // ---------- Search ----------
-
     private fun setupSearch() {
         etSearch.addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
@@ -232,7 +223,6 @@ class ExploreActivity : BaseActivity() {
     }
 
     // ---------- Filtering ----------
-
     private fun applyFilters() {
         val categoryFiltered = allSkills.filter { skill ->
             when (currentTab) {
@@ -263,7 +253,6 @@ class ExploreActivity : BaseActivity() {
     }
 
     // ---------- Data loading ----------
-
     private fun loadSkills() {
         listener = db.collection("skills")
             .addSnapshotListener { snapshot, error ->
@@ -276,9 +265,6 @@ class ExploreActivity : BaseActivity() {
                     try {
                         doc.toObject(Skill::class.java)?.let { allSkills.add(it) }
                     } catch (e: Exception) {
-                        // A single malformed document (bad type, missing field, etc.)
-                        // used to crash the whole page via an uncaught RuntimeException
-                        // from toObject(). Now we skip just that doc and log it.
                         Log.e("ExploreActivity", "Skipping malformed skill doc: ${doc.id}", e)
                     }
                 }
@@ -293,9 +279,10 @@ class ExploreActivity : BaseActivity() {
     }
 
     // ---------- Actions ----------
-
     private fun openSkill(skill: Skill) {
-        if (skill.skillType == "single" && !skill.videoUrl.isNullOrEmpty()) {
+        if (skill.skillType == "playlist") {
+            openPlaylist(skill)
+        } else if (skill.skillType == "single" && !skill.videoUrl.isNullOrEmpty()) {
             val intent = Intent(this, VideoPlayerActivity::class.java)
             intent.putExtra("videoUrl", skill.videoUrl)
             intent.putExtra("skillId", skill.id)
@@ -306,17 +293,33 @@ class ExploreActivity : BaseActivity() {
             intent.putExtra("skillCredits", skill.credits)
             intent.putExtra("skillDescription", skill.description)
             startActivity(intent)
-        } else if (skill.skillType == "playlist") {
-            val intent = Intent(this, PlaylistActivity::class.java)
-            intent.putExtra("skillId", skill.id)
-            startActivity(intent)
         } else {
             Toast.makeText(this, "No video available", Toast.LENGTH_SHORT).show()
         }
     }
 
-    // ---------- Report dialog (themed to match app: navy/cream card, pill Cancel) ----------
+    private fun openPlaylist(skill: Skill) {
+        PlaylistActivity.start(this, skill.id)
+    }
 
+    private fun playDemoVideo(skill: Skill) {
+        val demoUrl = skill.demoVideoUrl
+        if (demoUrl.isNullOrEmpty()) {
+            Toast.makeText(this, "No demo available", Toast.LENGTH_SHORT).show()
+            return
+        }
+        val intent = Intent(this, VideoPlayerActivity::class.java)
+        intent.putExtra("videoUrl", demoUrl)
+        intent.putExtra("skillTitle", "Preview: ${skill.title}")
+        intent.putExtra("skillCategory", skill.category)
+        intent.putExtra("skillUserId", skill.userId)
+        intent.putExtra("skillUserName", skill.userName)
+        intent.putExtra("skillCredits", 0)
+        intent.putExtra("skillDescription", "Demo video for playlist")
+        startActivity(intent)
+    }
+
+    // ---------- Report dialog ----------
     private fun showReportDialog(skill: Skill) {
         val reporterEmail = FirebaseAuth.getInstance().currentUser?.email
         if (reporterEmail.isNullOrEmpty()) {
@@ -329,16 +332,13 @@ class ExploreActivity : BaseActivity() {
         }
 
         val root = dialogCard()
-
         root.addView(dialogTitle("Report \"${skill.title}\""))
-
         root.addView(TextView(this).apply {
             text = "Help us understand what's wrong"
             setTextColor(Color.parseColor("#456882"))
             textSize = 13f
             setPadding(0, dp(4), 0, dp(4))
         })
-
         root.addView(dividerLine())
 
         val dialog = AlertDialog.Builder(this).setView(root).create()
@@ -370,7 +370,6 @@ class ExploreActivity : BaseActivity() {
         dialog.show()
     }
 
-    /** A single tappable reason row, styled to match the app's navy/steel palette. */
     private fun reportReasonRow(text: String, onClick: () -> Unit): TextView {
         val outValue = TypedValue()
         theme.resolveAttribute(android.R.attr.selectableItemBackground, outValue, true)
@@ -407,8 +406,7 @@ class ExploreActivity : BaseActivity() {
             }
     }
 
-    // ---------- Themed-dialog helpers (shared white/cream rounded card + pill buttons) ----------
-
+    // ---------- Themed-dialog helpers ----------
     private fun dp(value: Int): Int = (value * resources.displayMetrics.density).toInt()
 
     private fun dialogCard(): LinearLayout {
@@ -469,12 +467,13 @@ class ExploreActivity : BaseActivity() {
     }
 
     // ---------- Adapter ----------
-
     class SkillAdapter(
         private val skills: List<Skill>,
         private val onItemClick: (Skill) -> Unit,
         private val onReportClick: (Skill) -> Unit,
-        private val onUserClick: (Skill) -> Unit
+        private val onUserClick: (Skill) -> Unit,
+        private val onPreviewClick: (Skill) -> Unit,
+        private val onUnlockClick: (Skill) -> Unit
     ) : RecyclerView.Adapter<SkillAdapter.ViewHolder>() {
 
         class ViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
@@ -485,6 +484,14 @@ class ExploreActivity : BaseActivity() {
             val tvCredits: TextView = itemView.findViewById(R.id.tvCredits)
             val btnReport: View = itemView.findViewById(R.id.btnReport)
             val btnViewProfile: View = itemView.findViewById(R.id.btnViewProfile)
+            val tvSwapsCount: TextView = itemView.findViewById(R.id.tvSwapsCount)
+            val playlistInfoLayout: LinearLayout = itemView.findViewById(R.id.playlistInfoLayout)
+            val tvVideoCount: TextView = itemView.findViewById(R.id.tvVideoCount)
+            val tvTotalDuration: TextView = itemView.findViewById(R.id.tvTotalDuration)
+            val btnPreview: View = itemView.findViewById(R.id.btnPreview)
+            val btnUnlock: View = itemView.findViewById(R.id.btnUnlock)
+            val singleInfoLayout: LinearLayout = itemView.findViewById(R.id.singleInfoLayout)
+            val ivPlayIcon: ImageView = itemView.findViewById(R.id.ivPlayIcon)
         }
 
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
@@ -495,14 +502,21 @@ class ExploreActivity : BaseActivity() {
 
         override fun onBindViewHolder(holder: ViewHolder, position: Int) {
             val skill = skills[position]
+
+            // Common fields
             holder.tvTitle.text = skill.title
             holder.tvCategory.text = skill.category
             holder.tvUser.text = "by ${skill.userName.uppercase()}"
-            holder.tvCredits.text = "${skill.credits} swaps"
 
-            if (!skill.videoUrl.isNullOrEmpty()) {
+            // Load thumbnail
+            val thumbnailUrl = when {
+                skill.skillType == "playlist" && !skill.thumbnailUrl.isNullOrEmpty() -> skill.thumbnailUrl
+                else -> skill.videoUrl
+            }
+
+            if (!thumbnailUrl.isNullOrEmpty()) {
                 Glide.with(holder.itemView.context)
-                    .load(skill.videoUrl)
+                    .load(thumbnailUrl)
                     .placeholder(R.drawable.baseline_videocam_24)
                     .error(R.drawable.baseline_videocam_24)
                     .into(holder.ivThumbnail)
@@ -510,10 +524,41 @@ class ExploreActivity : BaseActivity() {
                 holder.ivThumbnail.setImageResource(R.drawable.baseline_videocam_24)
             }
 
-            holder.itemView.setOnClickListener { onItemClick(skill) }
+            // Play icon only for single videos
+            if (skill.skillType == "single") {
+                holder.ivPlayIcon.visibility = View.VISIBLE
+            } else {
+                holder.ivPlayIcon.visibility = View.GONE
+            }
+
+            // Report button only for single (playlists can be reported from detail)
+            holder.btnReport.visibility = if (skill.skillType == "single") View.VISIBLE else View.GONE
             holder.btnReport.setOnClickListener { onReportClick(skill) }
-            holder.tvUser.setOnClickListener { onUserClick(skill) }
+
+            // View Profile
             holder.btnViewProfile.setOnClickListener { onUserClick(skill) }
+
+            // Decide which info block to show
+            if (skill.skillType == "playlist") {
+                holder.playlistInfoLayout.visibility = View.VISIBLE
+                holder.singleInfoLayout.visibility = View.GONE
+
+                holder.tvCredits.text = "${skill.credits} credits"
+                holder.tvVideoCount.text = "${skill.videoCount} videos"
+                holder.tvTotalDuration.text = skill.totalDuration ?: "—"
+
+                holder.btnPreview.setOnClickListener { onPreviewClick(skill) }
+                holder.btnUnlock.setOnClickListener { onUnlockClick(skill) }
+            } else {
+                holder.playlistInfoLayout.visibility = View.GONE
+                holder.singleInfoLayout.visibility = View.VISIBLE
+
+                holder.tvCredits.text = "${skill.credits} swaps"
+                holder.tvSwapsCount.text = "${skill.credits} swaps completed" // placeholder
+            }
+
+            // Whole card click (for single, opens player; for playlist, opens detail)
+            holder.itemView.setOnClickListener { onItemClick(skill) }
         }
 
         override fun getItemCount() = skills.size

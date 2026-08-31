@@ -16,6 +16,7 @@
         android:orientation="vertical"
         android:padding="16dp">
 
+        <!-- Top row: Thumbnail + Title + Category + Credits + Report -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -37,17 +38,21 @@
 
                     <ImageView
                         android:id="@+id/ivThumbnail"
-                        android:layout_width="94dp"
-                        android:layout_height="79dp"
-                        android:scaleType="centerCrop" />
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:scaleType="centerCrop"
+                        android:contentDescription="Thumbnail" />
 
+                    <!-- Play icon overlay (visible only for single videos) -->
                     <ImageView
+                        android:id="@+id/ivPlayIcon"
                         android:layout_width="20dp"
                         android:layout_height="20dp"
                         android:layout_gravity="center"
                         android:alpha="0.9"
                         android:src="@drawable/baseline_play_circle_24"
-                        app:tint="#F9F3EF" />
+                        app:tint="#F9F3EF"
+                        android:visibility="gone" />
                 </FrameLayout>
             </com.google.android.material.card.MaterialCardView>
 
@@ -75,13 +80,14 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="2dp"
-                    android:text="Category · Level"
+                    android:text="Category"
                     android:textColor="#456882"
                     android:textSize="12sp"
                     android:maxLines="1"
                     android:ellipsize="end" />
             </LinearLayout>
 
+            <!-- Credits / Swaps -->
             <TextView
                 android:id="@+id/tvCredits"
                 android:layout_width="wrap_content"
@@ -96,6 +102,7 @@
                 android:paddingBottom="4dp"
                 android:layout_marginEnd="6dp" />
 
+            <!-- Report button (visible only for single videos) -->
             <com.google.android.material.card.MaterialCardView
                 android:id="@+id/btnReport"
                 android:layout_width="36dp"
@@ -105,7 +112,8 @@
                 app:cardBackgroundColor="#F9F3EF"
                 android:clickable="true"
                 android:focusable="true"
-                android:foreground="?attr/selectableItemBackground">
+                android:foreground="?attr/selectableItemBackground"
+                android:visibility="gone">
 
                 <ImageView
                     android:layout_width="16dp"
@@ -117,7 +125,7 @@
             </com.google.android.material.card.MaterialCardView>
         </LinearLayout>
 
-        <!-- Posted by + View Profile chip -->
+        <!-- Posted by + View Profile chip (visible for all skills) -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -138,11 +146,7 @@
                 android:maxLines="1"
                 android:ellipsize="end" />
 
-            <!--
-              Small chip that makes it visually obvious this row links to
-              that specific user's profile (previously only the plain
-              username text was clickable, with no visual affordance).
-            -->
+            <!-- View Profile chip -->
             <com.google.android.material.card.MaterialCardView
                 android:id="@+id/btnViewProfile"
                 android:layout_width="wrap_content"
@@ -184,8 +188,103 @@
             </com.google.android.material.card.MaterialCardView>
         </LinearLayout>
 
-        <!-- Meta row: swaps count (chat button removed) -->
+        <!-- ===================== PLAYLIST INFO (hidden by default) ===================== -->
         <LinearLayout
+            android:id="@+id/playlistInfoLayout"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:layout_marginTop="12dp"
+            android:visibility="gone">
+
+            <!-- Video count & Total duration -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical">
+
+                <TextView
+                    android:id="@+id/tvVideoCount"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="12 videos"
+                    android:textColor="#456882"
+                    android:textSize="12sp" />
+
+                <TextView
+                    android:id="@+id/tvTotalDuration"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="3h 20m"
+                    android:textColor="#456882"
+                    android:textSize="12sp" />
+            </LinearLayout>
+
+            <!-- Preview & Unlock buttons -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_marginTop="10dp"
+                android:gravity="center">
+
+                <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/btnPreview"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:layout_marginEnd="6dp"
+                    app:cardCornerRadius="12dp"
+                    app:cardElevation="0dp"
+                    app:cardBackgroundColor="#456882"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:foreground="?attr/selectableItemBackground">
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="center"
+                        android:paddingTop="8dp"
+                        android:paddingBottom="8dp"
+                        android:text="Preview"
+                        android:textColor="#F9F3EF"
+                        android:textSize="12sp"
+                        android:textStyle="bold" />
+                </com.google.android.material.card.MaterialCardView>
+
+                <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/btnUnlock"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:layout_marginStart="6dp"
+                    app:cardCornerRadius="12dp"
+                    app:cardElevation="0dp"
+                    app:cardBackgroundColor="#1B3C53"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:foreground="?attr/selectableItemBackground">
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="center"
+                        android:paddingTop="8dp"
+                        android:paddingBottom="8dp"
+                        android:text="Unlock"
+                        android:textColor="#F9F3EF"
+                        android:textSize="12sp"
+                        android:textStyle="bold" />
+                </com.google.android.material.card.MaterialCardView>
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- ===================== SINGLE VIDEO INFO (always visible for singles) ===================== -->
+        <LinearLayout
+            android:id="@+id/singleInfoLayout"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
@@ -208,6 +307,6 @@
                 android:textColor="#456882"
                 android:textSize="11sp" />
         </LinearLayout>
-    </LinearLayout>
 
+    </LinearLayout>
 </com.google.android.material.card.MaterialCardView>

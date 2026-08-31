@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:padding="8dp"
+    android:background="@drawable/border_rounded"
+    android:layout_marginBottom="8dp"
+    android:gravity="center_vertical">
+
+    <!-- Drag handle -->
+    <ImageView
+        android:id="@+id/ivDragHandle"
+        android:layout_width="24dp"
+        android:layout_height="24dp"
+        android:src="@drawable/outline_drag_indicator_24"
+        app:tint="#9AA7B0"
+        android:layout_marginEnd="8dp" />
+
+    <!-- Thumbnail -->
+    <ImageView
+        android:id="@+id/ivThumbnail"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:scaleType="centerCrop"
+        android:src="@drawable/baseline_videocam_24"
+        android:background="@drawable/rounded_corners" />
+
+    <!-- Details -->
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:orientation="vertical"
+        android:layout_marginStart="12dp">
+
+        <TextView
+            android:id="@+id/tvTitle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Video Title"
+            android:textColor="#1B3C53"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:maxLines="1"
+            android:ellipsize="end" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <TextView
+                android:id="@+id/tvDuration"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="10:30"
+                android:textColor="#456882"
+                android:textSize="12sp" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text=" • "
+                android:textColor="#456882"
+                android:textSize="12sp" />
+
+            <TextView
+                android:id="@+id/tvCredits"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="100 credits"
+                android:textColor="#E58A2A"
+                android:textSize="12sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <!-- Delete button -->
+    <ImageButton
+        android:id="@+id/btnDelete"
+        android:layout_width="32dp"
+        android:layout_height="32dp"
+        android:src="@drawable/baseline_delete_24"
+        app:tint="#DC2626"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:contentDescription="Remove video" />
+</LinearLayout>

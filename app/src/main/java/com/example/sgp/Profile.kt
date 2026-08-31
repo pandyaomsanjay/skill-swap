@@ -130,7 +130,7 @@ class Profile : BaseActivity() {
     private fun getUserFromPrefs() {
         val prefs = getSharedPreferences("SkillSwapPrefs", MODE_PRIVATE)
         currentUserEmail = prefs.getString("user_email", "") ?: ""
-        currentUserId = currentUserEmail // we'll use email as identifier; but Firestore doc uses UID; we'll query by email
+        currentUserId = currentUserEmail
         if (currentUserEmail.isEmpty()) {
             Toast.makeText(this, "User not found", Toast.LENGTH_SHORT).show()
             finish()
@@ -195,10 +195,25 @@ class Profile : BaseActivity() {
         tvTitle.text = skill.title
         tvCredits.text = "${skill.credits} credits"
 
-        // Give each skill row its own bordered white card + spacing below it,
-        // so "Cricket" and "Car driving" read as two distinct tiles instead of
-        // one continuous list. Applied here in code so item_profile_skill.xml
-        // doesn't need to change.
+        // --- FIX: Load the correct thumbnail ---
+        val thumbnailUrl = if (skill.skillType == "playlist") {
+            skill.thumbnailUrl  // playlists use thumbnailUrl
+        } else {
+            skill.videoUrl      // single videos use videoUrl
+        }
+
+        if (!thumbnailUrl.isNullOrEmpty()) {
+            Glide.with(this)
+                .load(thumbnailUrl)
+                .placeholder(R.drawable.baseline_videocam_24)
+                .error(R.drawable.baseline_videocam_24)
+                .into(ivThumbnail)
+        } else {
+            ivThumbnail.setImageResource(R.drawable.baseline_videocam_24)
+        }
+        // --------------------------
+
+        // Apply card styling
         view.background = skillCardBackground()
         val vertPad = dp(12)
         view.setPadding(vertPad, vertPad, vertPad, vertPad)
@@ -214,19 +229,6 @@ class Profile : BaseActivity() {
         view.elevation = dp(1).toFloat()
         view.clipToOutline = true
 
-        if (!skill.videoUrl.isNullOrEmpty()) {
-            Glide.with(this)
-                .load(skill.videoUrl)
-                .placeholder(R.drawable.baseline_videocam_24)
-                .error(R.drawable.baseline_videocam_24)
-                .into(ivThumbnail)
-        } else {
-            ivThumbnail.setImageResource(R.drawable.baseline_videocam_24)
-        }
-
-        // Same open logic as ExploreActivity.openSkill(): single-video skills
-        // launch VideoPlayerActivity with full context, playlists launch
-        // PlaylistActivity, so each skill opens its own dedicated video.
         val clickListener = View.OnClickListener { openSkill(skill) }
         view.setOnClickListener(clickListener)
         ivPlay.setOnClickListener(clickListener)
@@ -235,7 +237,6 @@ class Profile : BaseActivity() {
     }
 
     // ---------- Open skill video (mirrors ExploreActivity.openSkill) ----------
-
     private fun openSkill(skill: Skill) {
         if (skill.skillType == "single" && !skill.videoUrl.isNullOrEmpty()) {
             val intent = Intent(this, VideoPlayerActivity::class.java)
@@ -258,10 +259,8 @@ class Profile : BaseActivity() {
     }
 
     // ---------- Themed image picker (replaces default list-style AlertDialog) ----------
-
     private fun showImagePickerDialog() {
         val root = dialogCard()
-
         root.addView(dialogTitle("Change Profile Picture"))
         root.addView(TextView(this).apply {
             text = "Choose how you'd like to update your photo"
@@ -311,7 +310,6 @@ class Profile : BaseActivity() {
         addOptionRow("📷", "Take Photo") { cameraLauncher.launch(null) }
 
         root.addView(dialogDivider())
-
         root.addView(pillButton("Cancel", lightBg, navyDark).apply {
             layoutParams = LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
@@ -369,12 +367,10 @@ class Profile : BaseActivity() {
                                 )
                                 .addOnSuccessListener {
                                     currentProfileImagePath = newPath
-
                                     getSharedPreferences("SkillSwapPrefs", MODE_PRIVATE)
                                         .edit()
                                         .putString("user_profile_image", downloadUrl)
                                         .apply()
-
                                     Toast.makeText(
                                         this@Profile,
                                         "Profile picture updated",
@@ -396,10 +392,8 @@ class Profile : BaseActivity() {
     }
 
     // ---------- Themed logout confirmation ----------
-
     private fun showLogoutConfirmation() {
         val root = dialogCard()
-
         root.addView(TextView(this).apply {
             text = "👋"
             textSize = 30f
@@ -470,8 +464,7 @@ class Profile : BaseActivity() {
         loadUserProfile()
     }
 
-    // ---------- Themed-dialog helpers (shared white rounded card + pill buttons) ----------
-
+    // ---------- Themed-dialog helpers ----------
     private fun dp(value: Int): Int = (value * resources.displayMetrics.density).toInt()
 
     private fun dialogCard(): LinearLayout {
@@ -524,8 +517,6 @@ class Profile : BaseActivity() {
         }
     }
 
-    // White rounded card with a light border — gives each skill row its own
-    // visible boundary so different videos don't blur into one list.
     private fun skillCardBackground(): GradientDrawable {
         return GradientDrawable().apply {
             cornerRadius = dp(16).toFloat()

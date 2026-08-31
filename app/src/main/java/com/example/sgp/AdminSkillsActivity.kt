@@ -41,24 +41,18 @@ class AdminSkillsActivity : AppCompatActivity() {
     private lateinit var db: FirebaseFirestore
     private var listener: ListenerRegistration? = null
 
-    // Category chips shown above the list. "All" is always first; add/remove
-    // entries here to match whatever categories skills are posted under.
     private val categories = listOf(
         "All", "Technology", "Arts", "Sports", "Home", "Education", "Lifestyle"
     )
     private var selectedCategory: String = "All"
     private val categoryChipViews = mutableListOf<Pair<MaterialCardView, TextView>>()
 
-    // Same chip palette used on the Users/Trades/Feedback pages, so all admin
-    // screens feel identical.
     private val selectedChipBg = Color.parseColor("#F9F3EF")
     private val unselectedChipBg = Color.parseColor("#456882")
     private val selectedChipText = Color.parseColor("#1B3C53")
     private val unselectedChipText = Color.parseColor("#FFFFFF")
     private val unselectedChipStroke = Color.parseColor("#FFFFFF")
 
-    // Dark palette for the options bottom sheet, matching the navy app theme
-    // used by the Users/Trades/Feedback options menus.
     private val sheetBg = Color.parseColor("#16263A")
     private val sheetDivider = Color.parseColor("#28405A")
     private val sheetPrimaryText = Color.parseColor("#F5EDE4")
@@ -85,7 +79,12 @@ class AdminSkillsActivity : AppCompatActivity() {
         recyclerView = findViewById(R.id.recyclerView)
         recyclerView.layoutManager = LinearLayoutManager(this)
         adapter = SkillAdapter(displayedSkills) { skill ->
-            showSkillOptionsDialog(skill)
+            // If it's a playlist, open the full playlist detail view
+            if (skill.skillType == "playlist") {
+                PlaylistActivity.start(this, skill.id)
+            } else {
+                showSkillOptionsDialog(skill)
+            }
         }
         recyclerView.adapter = adapter
 
@@ -96,7 +95,6 @@ class AdminSkillsActivity : AppCompatActivity() {
 
     // ─────────────────────── Filtering ───────────────────────
 
-    /** Builds one chip per entry in `categories` and adds it to categoryTabsContainer. */
     private fun setupCategoryTabs() {
         categoryTabsContainer.removeAllViews()
         categoryChipViews.clear()
@@ -196,7 +194,7 @@ class AdminSkillsActivity : AppCompatActivity() {
         listener?.remove()
     }
 
-    /** Built in code, matching showUserOptionsMenu()/showTradeOptionsMenu() in the other admin screens. */
+    // ─────────────────────── Skill Options Dialog (for single skills) ───────────────────────
     private fun showSkillOptionsDialog(skill: Skill) {
         val dialog = BottomSheetDialog(this, R.style.DarkBottomSheetDialog)
 
@@ -276,7 +274,6 @@ class AdminSkillsActivity : AppCompatActivity() {
         dialog.show()
     }
 
-    /** Styled like AdminTradesActivity's viewTradeDetails(): white rounded card, label/value rows, pill Close button. */
     private fun viewSkillDetails(skill: Skill) {
         val root = dialogCard()
         root.addView(dialogTitle("Skill Details"))
@@ -336,8 +333,6 @@ class AdminSkillsActivity : AppCompatActivity() {
         dialog.show()
     }
 
-    /** ASSUMPTION: Skill.userId stores the poster's email, matching the pattern used by Feedback.userId.
-     *  If your Skill data class uses a different field name for this, swap it below. */
     private fun openUserProfile(skill: Skill) {
         if (skill.userId.isBlank()) {
             Toast.makeText(this, "No user ID on this skill", Toast.LENGTH_SHORT).show()
@@ -359,7 +354,6 @@ class AdminSkillsActivity : AppCompatActivity() {
             }
     }
 
-    /** Styled with the same dialogCard()/pillButton() helpers used across Users/Trades/Feedback. */
     private fun showUserProfileDialog(user: User) {
         val root = dialogCard()
 
@@ -458,7 +452,6 @@ class AdminSkillsActivity : AppCompatActivity() {
         dialog.show()
     }
 
-    /** Styled like AdminTradesActivity's confirmDeleteTrade(): white card, centered warning, Cancel/Delete pill row. */
     private fun deleteSkill(skill: Skill) {
         val root = dialogCard()
 
@@ -514,11 +507,10 @@ class AdminSkillsActivity : AppCompatActivity() {
         dialog.show()
     }
 
-    // ─────────────────────── Themed-dialog helpers (matches other admin screens' style) ───────────────────────
+    // ─────────────────────── Themed-dialog helpers ───────────────────────
 
     private fun dp(value: Int): Int = (value * resources.displayMetrics.density).toInt()
 
-    /** Simple ripple foreground for chip touch feedback, resolved from the current theme. */
     private fun rippleForeground(): android.graphics.drawable.Drawable? {
         val outValue = android.util.TypedValue()
         theme.resolveAttribute(android.R.attr.selectableItemBackground, outValue, true)
@@ -575,14 +567,18 @@ class AdminSkillsActivity : AppCompatActivity() {
         }
     }
 
+    // ─────────────────────── Adapter ───────────────────────
+
     class SkillAdapter(
         private val skills: List<Skill>,
         private val onItemClick: (Skill) -> Unit
     ) : RecyclerView.Adapter<SkillAdapter.ViewHolder>() {
+
         class ViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
             val tvTitle: TextView = itemView.findViewById(R.id.tvTitle)
             val tvCategory: TextView = itemView.findViewById(R.id.tvCategory)
             val tvUserName: TextView = itemView.findViewById(R.id.tvUserName)
+            val tvBadge: TextView = itemView.findViewById(R.id.tvBadge)
         }
 
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
@@ -596,6 +592,16 @@ class AdminSkillsActivity : AppCompatActivity() {
             holder.tvTitle.text = skill.title
             holder.tvCategory.text = skill.category
             holder.tvUserName.text = "By: ${skill.userName}"
+
+            if (skill.skillType == "playlist") {
+                holder.tvBadge.visibility = View.VISIBLE
+                holder.tvBadge.text = "📂 Playlist"
+                holder.tvBadge.backgroundTintList = android.content.res.ColorStateList.valueOf(Color.parseColor("#1B3C53"))
+                holder.tvBadge.setTextColor(Color.WHITE)
+            } else {
+                holder.tvBadge.visibility = View.GONE
+            }
+
             holder.itemView.setOnClickListener { onItemClick(skill) }
         }
 

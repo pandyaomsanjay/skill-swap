@@ -54,5 +54,10 @@ data class User(
     // "follows" collection just to show a number. Keep these in sync
     // whenever a follow/unfollow write succeeds (increment/decrement).
     var followersCount: Int = 0,
-    var followingCount: Int = 0
+    var followingCount: Int = 0,
+    // In User.kt, add:
+    var completedPlaylistCount: Int = 0,      // number of completed playlists
+    var lastRewardedCount: Int = 0            // the count at which last reward was given
+
+
 )
