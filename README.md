@@ -18,6 +18,7 @@ The application also includes a dedicated **Admin Panel** for managing users, sk
 * 🔄 Skill Exchange / Trade Requests
 * 💬 Real-Time Chat
 * 🎥 Skill Video Sharing
+* 📑 Skill Playlists
 * ⭐ Ratings & Feedback
 * 🔔 OneSignal Push Notifications
 * 📍 Location Support
@@ -194,6 +195,35 @@ Resizablevideoview.kt
 
 ---
 
+### 📑 Playlists
+
+Skill Swap supports **video playlists** — a bundled way to publish and unlock a set of related skill videos as one purchasable unit.
+
+**Implemented Playlist Features**
+
+* Create and publish playlists (a `Skill` with `skillType == "playlist"`)
+* Browse playlist details — thumbnail, category, creator, description, video count, and total duration
+* Preview a playlist via a **demo video** before purchasing
+* Unlock playlists using **credits**, with live balance checks and clear "not enough credits" state
+* Transactional purchase flow — credits are deducted, the purchase is recorded, and access is granted atomically, so a failed step can't double-charge or leave partial access
+* Per-user **progress tracking** — videos completed, percentage watched, and a progress bar that turns green at 100%
+* Free, automatic access for the playlist **owner** and for **admins**
+* **"People with Access"** view for playlist owners — everyone who purchased the playlist, with names and join dates
+* **500-credit reward**, granted automatically, after a user completes 2 full playlists
+* OneSignal push notifications on playlist purchase and playlist completion
+* One-time data-migration utility (`backfillPurchaseNames`) to backfill missing buyer names on existing purchase records
+
+Application components include:
+
+```text
+PlaylistActivity.kt
+PlaylistManager.kt
+PlaylistVideoAdapter.kt
+AddPlaylistVideoActivity.kt
+```
+
+---
+
 ### ⭐ Ratings & Feedback
 
 Skill Swap allows users to provide feedback after interacting or completing skill exchanges.
@@ -219,6 +249,7 @@ Notifications can be used for important events such as:
 * 🔄 New trade requests
 * ✅ Trade status updates
 * 💬 New chat messages
+* 📑 Playlist purchases & playlist completion
 * ⭐ Feedback/rating events
 * 📢 Important application notifications
 
@@ -719,26 +750,43 @@ All Time
 
 ## 🔮 Future Improvements
 
-* 💬 **Advanced Chat & User Channels** – LinkedIn-style chat with user video/channel pages.
-* 🔐 **Chat Security & Moderation** – Encrypted chats, inappropriate-content detection, warnings, and 24-hour chat restriction after 5 warnings.
-* 👨‍🏫 **Teaching Limit** – Limit each user to teaching a maximum of 10 users simultaneously.
-* 🎨 **UI Redesign** – Modern, attractive, and user-friendly redesign of the complete user interface.
-* 🌐 **Multi-Language Support** – Allow users to select their preferred language.
-* 💳 **Secure Payments** – Add a complete and secure payment system.
-* 🌙 **Dark Mode** – Add Light/Dark theme support for the user side.
-* 🔄 **Swap Animation** – Add interactive animations to the trade/swap experience.
-* ▶️ **Continue Learning** – Resume videos, playlists, courses, and learning activities from the last position.
-* 📜 **Certificates** – Generate certificates after completing skills, courses, or playlists.
-* 🔧 **Trade System Improvements** – Fix and optimize the complete trade/swap workflow.
-* 🎥 **Trade from Demo Videos** – Allow users to initiate trades directly from demo videos with a preferred schedule.
-* 📅 **Smart Trade Scheduling** – Support proposed schedules, one counter-schedule, and final mutual confirmation.
-* ⏰ **Meeting Reminders** – Send reminders before scheduled trades or learning sessions.
-* 📚 **Multiple Resource Types** – Support trading Notes, Videos, Live Sessions, PDFs, Courses, and other learning resources.
-* 📑 **Advanced Playlists** – Organize multiple videos and learning materials into playlists.
-* 🏆 **Points System Improvements** – Fix and improve points calculation, deduction, and display.
-* 🎬 **Playlist Preview Videos** – Add demo videos to showcase playlist content before access.
-* 💰 **Playlist Discount** – Provide playlists at a lower points cost than individual resources.
-* 🎁 **Completion Rewards** – Award a **500-point reward** after completing 2 full playlists.
+------------------------------------
+### 🔴 High Priority
+------------------------------------
+
+1. **Chat Encryption & Warning System** – Implement encryption for chats. The system should detect unnecessary or inappropriate chats and issue warnings. After 5 warnings, the user should be temporarily blocked from chatting for 24 hours.
+2. **Teaching Limit** – Each user can teach up to 10 other users at the same time.
+3. **Complete UI Redesign** – Change and improve the entire user-side UI to make the application modern, attractive, and user-friendly.
+4. **Multiple Languages** – Add support for different languages so users can select their preferred language.
+5. **Payment Module** – Implement a complete and secure payment system.
+6. **Dark Mode** – Add Dark Mode for the user side of the application.
+7. **Swap Animation** – Add an attractive animation on the swapping/trade page to make the swap process more interactive.
+8. **Continue Where You Left Off** – Users should be able to continue from where they previously stopped, such as continuing a video, playlist, course, or learning activity.
+9. **Certificate System** – Provide users with a certificate after successfully completing a skill/course/playlist.
+10. **Fix the Complete Trade/Swap System** – Review and fix the entire trade/swap functionality to make the process smooth and reliable.
+11. **Trade/Swap from Demo Video** – Add a Trade/Swap option directly on individual demo videos. When a user clicks it, they can send a trade request along with their preferred schedule.
+12. **Trade Request & Counter-Schedule System** – When another user receives a trade request, they can accept it if they are available at the proposed time. If they are not available, they can provide one counter-schedule. After that, both users must finalize one mutually agreed date and time for the trade.
+13. **Meeting Reminders** – Both users should receive a reminder before the scheduled trade/meeting.
+14. **Different Trade Options** – Users should be able to trade different types of learning resources, such as:
+    - Notes
+    - Videos
+    - Live teaching sessions
+    - Documents/PDFs
+    - Courses
+    - Other useful learning resources
+
+------------------------------------
+### 🟡 Low Priority
+------------------------------------
+
+1. **Playlist Purchase Expiry** – After some months, a user should no longer be able to purchase a given playlist (e.g. it expires or is retired).
+2. **Points Transaction History** – Maintain a log of all point credits and deductions with reason and timestamp, so users can review how their points were earned or spent.
+3. **Playlist Sharing Across Platforms** – Allow users to share a playlist link with others, with an option to keep it public or private.
+4. **Low-Points Warning** – Notify users when their point balance is insufficient to access a playlist, along with suggestions on how to earn more points.
+5. **Playlist Discount** – Offer playlists at a lower total points cost than purchasing the equivalent individual resources separately.
+6. **Advanced Chat & User Channels** – LinkedIn-style chat with user video/channel pages.
+
+> ℹ️ Items previously listed here that are now implemented — Multi-Language Support (via `LocaleHelper`), Dark Mode (via `SettingsActivity`/`BaseActivity`), Advanced Playlists, Playlist Preview Videos, Points/Completion Rewards — have been moved to their relevant feature sections above (see [📑 Playlists](#-playlists)) and removed from this roadmap.
 
 ---
 
@@ -813,12 +861,15 @@ NewChatActivity.kt
 Chatmessage.kt
 ```
 
-**Videos**
+**Videos & Playlists**
 
 ```text
 UploadVideoActivity.kt
 VideoPlayerActivity.kt
 PlaylistActivity.kt
+PlaylistManager.kt
+PlaylistVideoAdapter.kt
+AddPlaylistVideoActivity.kt
 Resizablevideoview.kt
 ```
 
