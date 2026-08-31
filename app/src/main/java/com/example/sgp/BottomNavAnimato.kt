@@ -7,7 +7,6 @@ import android.graphics.Color
 import android.view.HapticFeedbackConstants
 import android.view.View
 import android.view.animation.DecelerateInterpolator
-import android.view.animation.OvershootInterpolator
 import android.widget.ImageView
 import com.google.android.material.card.MaterialCardView
 
@@ -26,23 +25,27 @@ class BottomNavAnimator(
 
     private val activeBg = Color.parseColor("#F9F3EF")
     private val inactiveBg = Color.parseColor("#00000000")
-    private val activeTint = Color.parseColor("#1B3C53")
-    private val inactiveTint = Color.parseColor("#D2C1B6")
+    private val activeTint = Color.parseColor("#1B3C53")   // navy — selected icon
+    private val inactiveTint = Color.parseColor("#FFFFFF") // white — unselected icon
+
+    private val borderColor = Color.parseColor("#FFFFFF")
+    private val borderWidthPx: Int by lazy {
+        (tabs.firstOrNull()?.root?.resources?.displayMetrics?.density?.times(1f) ?: 1f).toInt()
+    }
 
     private val evaluator = ArgbEvaluator()
-    private val bounceInterpolator = OvershootInterpolator(3.5f)
-    private val smoothInterpolator = DecelerateInterpolator(1.5f)
-
-    private val hopDistancePx: Float by lazy {
-        tabs.firstOrNull()?.root?.resources?.displayMetrics?.density?.times(6f) ?: 6f
-    }
+    private val smoothInterpolator = DecelerateInterpolator(1.8f)
 
     fun setInitialSelection(tab: Tab) {
         current = tab
         tabs.forEach { t ->
             val isSelected = t === tab
             t.pill.setCardBackgroundColor(if (isSelected) activeBg else inactiveBg)
-            t.pill.cardElevation = if (isSelected) 6f else 0f
+            t.pill.cardElevation = if (isSelected) 4f else 0f
+            t.pill.strokeColor = borderColor
+            t.pill.strokeWidth = borderWidthPx
+            // Clear any XML-defined tint first, then force the correct one.
+            t.icon.imageTintList = null
             t.icon.imageTintList = ColorStateList.valueOf(if (isSelected) activeTint else inactiveTint)
         }
     }
@@ -51,9 +54,7 @@ class BottomNavAnimator(
         val previous = current
 
         if (target === previous) {
-            // Re-tapping the active tab: no navigation happens, but the tap
-            // should still feel acknowledged.
-            bounceOnly(target)
+            subtlePulse(target)
             onSelected?.invoke()
             return
         }
@@ -68,17 +69,17 @@ class BottomNavAnimator(
         onSelected?.invoke()
     }
 
-    // ---------- animations ----------
+    // ---------- animations (NO JUMPING) ----------
 
-    private fun bounceOnly(tab: Tab) {
+    private fun subtlePulse(tab: Tab) {
         tab.icon.animate().cancel()
-        tab.icon.scaleX = 0.85f
-        tab.icon.scaleY = 0.85f
+        tab.icon.scaleX = 0.92f
+        tab.icon.scaleY = 0.92f
         tab.icon.animate()
             .scaleX(1f)
             .scaleY(1f)
-            .setDuration(220)
-            .setInterpolator(bounceInterpolator)
+            .setDuration(180)
+            .setInterpolator(smoothInterpolator)
             .start()
     }
 
@@ -88,32 +89,20 @@ class BottomNavAnimator(
 
         tab.pill.animate().cancel()
         tab.pill.animate()
-            .translationZ(6f)
+            .translationZ(4f)
             .setDuration(220)
             .setInterpolator(smoothInterpolator)
             .start()
 
-        // The hop: icon shrinks + tilts, then snaps up and straight with an
-        // overshoot, then eases back down to rest — a tiny "jump for joy".
+        // Smooth "pop" in without moving position (NO JUMP)
         tab.icon.animate().cancel()
-        tab.icon.scaleX = 0.55f
-        tab.icon.scaleY = 0.55f
-        tab.icon.rotation = -18f
-        tab.icon.translationY = 0f
+        tab.icon.scaleX = 0.75f
+        tab.icon.scaleY = 0.75f
         tab.icon.animate()
             .scaleX(1f)
             .scaleY(1f)
-            .rotation(0f)
-            .translationY(-hopDistancePx)
-            .setDuration(280)
-            .setInterpolator(bounceInterpolator)
-            .withEndAction {
-                tab.icon.animate()
-                    .translationY(0f)
-                    .setDuration(160)
-                    .setInterpolator(smoothInterpolator)
-                    .start()
-            }
+            .setDuration(240)
+            .setInterpolator(smoothInterpolator)
             .start()
     }
 
@@ -128,11 +117,11 @@ class BottomNavAnimator(
             .setInterpolator(smoothInterpolator)
             .start()
 
-        // Quick squash-and-settle so the outgoing icon doesn't just vanish in place.
+        // Smooth shrink out without moving position
         tab.icon.animate().cancel()
         tab.icon.animate()
-            .scaleX(0.9f)
-            .scaleY(0.9f)
+            .scaleX(0.85f)
+            .scaleY(0.85f)
             .setDuration(140)
             .setInterpolator(smoothInterpolator)
             .withEndAction {
