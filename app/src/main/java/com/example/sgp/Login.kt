@@ -25,9 +25,12 @@ import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.firestore
 import com.onesignal.OneSignal
 import kotlinx.coroutines.launch
-import android.os.CountDownTimer
 
 class Login : BaseActivity() {
+
+    companion object {
+        private const val TAG = "LoginDebug"
+    }
 
     private lateinit var auth: FirebaseAuth
     private lateinit var db: FirebaseFirestore
@@ -44,21 +47,22 @@ class Login : BaseActivity() {
                     val idToken = account?.idToken
 
                     if (idToken == null) {
-                        Log.e("GoogleSignIn", "idToken is null — check default_web_client_id / SHA-1 config")
+                        Log.e(TAG, "Google idToken is null — check default_web_client_id / SHA-1 config")
                         Toast.makeText(this, "Google sign-in failed: no ID token returned", Toast.LENGTH_LONG).show()
                         return@registerForActivityResult
                     }
 
+                    Log.d(TAG, "Google idToken received, length=${idToken.length}")
                     firebaseAuthWithGoogle(idToken)
                 } catch (e: ApiException) {
-                    Log.e("GoogleSignIn", "ApiException code=${e.statusCode}", e)
+                    Log.e(TAG, "Google sign-in ApiException code=${e.statusCode}", e)
                     Toast.makeText(this, "Google sign‑in failed (code ${e.statusCode}): ${e.message}", Toast.LENGTH_LONG).show()
                 } catch (e: Exception) {
-                    Log.e("GoogleSignIn", "Unexpected exception", e)
+                    Log.e(TAG, "Google sign-in unexpected exception", e)
                     Toast.makeText(this, "Google sign‑in failed: ${e.message}", Toast.LENGTH_LONG).show()
                 }
             } else {
-                Log.e("GoogleSignIn", "Result not OK, resultCode=${result.resultCode}")
+                Log.e(TAG, "Google sign-in result not OK, resultCode=${result.resultCode}")
             }
         }
 
@@ -70,23 +74,36 @@ class Login : BaseActivity() {
         db = Firebase.firestore
         progressBar = findViewById(R.id.progressBar)
 
+        Log.d(TAG, "onCreate: Firebase project=${auth.app.options.projectId}, currentUser=${auth.currentUser?.uid}")
+
         val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
             .requestIdToken(getString(R.string.default_web_client_id))
             .requestEmail()
             .build()
         googleSignInClient = GoogleSignIn.getClient(this, gso)
 
-        // Auto-login only covers Google sign-in sessions (Firebase-based).
-        // Email/password sessions now live in Supabase, so this check
-        // intentionally does NOT auto-login email/password users. See note
-        // at the bottom of this file if you want that added later.
+        // Auto-login check for Google-authenticated users
         if (auth.currentUser != null) {
+            Log.d(TAG, "Auto-login: currentUser already set, uid=${auth.currentUser?.uid}")
             startActivity(Intent(this, Home::class.java))
             finish()
             return
         }
 
         initializeViews()
+        requestNotificationPermission()
+    }
+
+    /**
+     * Prompts for notification permission here on the login screen, instead of
+     * at app startup (MyApp.onCreate), so the OS popup doesn't appear over the
+     * splash screen. Skipped entirely when auto-login above short-circuits
+     * onCreate before this point.
+     */
+    private fun requestNotificationPermission() {
+        lifecycleScope.launch {
+            OneSignal.Notifications.requestPermission(true)
+        }
     }
 
     private fun initializeViews() {
@@ -99,18 +116,15 @@ class Login : BaseActivity() {
         val passwordInput = findViewById<TextInputLayout>(R.id.password)
 
         btnLogin.setOnClickListener {
-            // Normalized here (trim + lowercase) so the SAME string is used
-            // for both the Supabase auth call and the Firestore profile
-            // lookup below. Supabase matches email case-insensitively, but
-            // Firestore's whereEqualTo() is case-sensitive — if the email
-            // was stored with different casing at signup than what's typed
-            // here, Supabase login can succeed while the Firestore lookup
-            // silently returns nothing, which looks like "can't log in."
             val email = emailInput.editText?.text.toString().trim().lowercase()
             val password = passwordInput.editText?.text.toString()
 
+            Log.d(TAG, "Login button clicked, email='$email', passwordLength=${password.length}")
+
             if (validateForm(email, password)) {
                 loginUser(email, password)
+            } else {
+                Log.d(TAG, "Form validation failed")
             }
         }
 
@@ -155,126 +169,214 @@ class Login : BaseActivity() {
         return isValid
     }
 
-    // ---------- Email/password login — now via Supabase ----------
-
-    private var lockCountDownTimer: CountDownTimer? = null
-
+    // ---------- Email/password login via Supabase ----------
     private fun loginUser(email: String, password: String) {
         showLoading(true)
+        Log.d(TAG, "loginUser: calling AuthRepository.loginWithPassword for '$email'")
+
         lifecycleScope.launch {
-            try {
-                val result = AuthRepository.loginWithPassword(email, password)
-                showLoading(false)
+            val result = AuthRepository.loginWithPassword(email, password)
 
-                // TEMP DIAGNOSTIC LOGGING — remove once login is confirmed
-                // working. This tells us exactly which branch is firing and
-                // what AuthRepository actually returned, without needing to
-                // guess from the UI alone. Check Logcat filtered on "LoginDebug".
-                Log.d(
-                    "LoginDebug",
-                    "loginWithPassword(email=$email) -> success=${result.success}, " +
-                            "isLocked=${result.isLocked}, message=${result.message}, " +
-                            "returnedEmail=${result.email}"
-                )
+            if (result.success) {
+                Log.d(TAG, "AuthRepository.loginWithPassword SUCCESS for '${result.email}'")
 
-                when {
-                    result.success -> loadUserByEmailAndNavigate(result.email ?: email)
-                    result.isLocked -> handleAccountLocked(result.secondsRemaining, result.message)
-                    else -> showError(result.message)
-                }
-            } catch (e: Exception) {
+                // ⭐ CRITICAL: Create Firebase user for this Supabase user
+                createFirebaseUserForSupabase(email, password)
+            } else {
                 showLoading(false)
-                Log.e("LoginDebug", "loginWithPassword threw an exception", e)
-                showError("Login failed: ${e.message}")
+                Log.e(TAG, "AuthRepository.loginWithPassword FAILED: locked=${result.isLocked}, " +
+                        "attemptsRemaining=${result.attemptsRemaining}, message=${result.message}")
+                showError(result.message)
             }
         }
     }
 
-    private fun handleAccountLocked(secondsRemaining: Int, message: String) {
-        showError(message)
-        val btnLogin = findViewById<Button>(R.id.btnLogin)
-        btnLogin.isEnabled = false
+    /**
+     * ⭐ NEW: Creates a Firebase user for Supabase-authenticated users
+     * This ensures Firestore rules work correctly (request.auth.uid will exist)
+     */
+    private fun createFirebaseUserForSupabase(email: String, password: String) {
+        Log.d(TAG, "createFirebaseUserForSupabase: creating Firebase user for $email")
 
-        lockCountDownTimer?.cancel()
-        lockCountDownTimer = object : CountDownTimer(secondsRemaining * 1000L, 1000L) {
-            override fun onTick(millisUntilFinished: Long) {
-                btnLogin.text = "Try again in ${formatCountdown((millisUntilFinished / 1000).toInt())}"
+        // Try to sign in with Firebase first (in case user already exists in Firebase)
+        auth.signInWithEmailAndPassword(email, password)
+            .addOnSuccessListener { authResult ->
+                Log.d(TAG, "Firebase signIn successful for $email, uid=${authResult.user?.uid}")
+                loadUserAndNavigateByEmail(email, authResult.user?.uid)
             }
+            .addOnFailureListener { signInError ->
+                Log.d(TAG, "Firebase signIn failed: ${signInError.message}, trying to create new user")
 
-            override fun onFinish() {
-                btnLogin.isEnabled = true
-                btnLogin.text = "Sign In"
+                // User doesn't exist in Firebase, create them
+                auth.createUserWithEmailAndPassword(email, password)
+                    .addOnSuccessListener { createResult ->
+                        Log.d(TAG, "✅ Firebase user CREATED for $email, uid=${createResult.user?.uid}")
+                        loadUserAndNavigateByEmail(email, createResult.user?.uid)
+                    }
+                    .addOnFailureListener { createError ->
+                        showLoading(false)
+                        Log.e(TAG, "❌ Failed to create Firebase user: ${createError.message}")
+
+                        // Even if Firebase user creation fails, we still have Supabase user
+                        // Load user by email (but Firestore rules might not work)
+                        Toast.makeText(
+                            this,
+                            "Login successful, but some features may be limited",
+                            Toast.LENGTH_LONG
+                        ).show()
+                        loadUserAndNavigateByEmail(email, null)
+                    }
             }
-        }.start()
     }
 
-    private fun formatCountdown(totalSeconds: Int): String {
-        val minutes = totalSeconds / 60
-        val seconds = totalSeconds % 60
-        return if (minutes > 0) String.format("%d:%02d", minutes, seconds) else "${seconds}s"
-    }
+    /**
+     * Loads user and navigates. If firebaseUid is provided, use it for Firestore lookup.
+     */
+    private fun loadUserAndNavigateByEmail(email: String, firebaseUid: String? = null) {
+        Log.d(TAG, "loadUserAndNavigateByEmail: querying users where email == $email")
 
-    override fun onDestroy() {
-        super.onDestroy()
-        lockCountDownTimer?.cancel()
-    }
-
-    /** Looks up the Firestore profile by email (used for Supabase-authenticated logins). */
-    private fun loadUserByEmailAndNavigate(email: String) {
-        // email is already normalized (trim + lowercase) by the caller.
-        db.collection("users").whereEqualTo("email", email).limit(1).get()
+        db.collection("users")
+            .whereEqualTo("email", email)
+            .limit(1)
+            .get()
             .addOnSuccessListener { snapshot ->
                 showLoading(false)
-                val document = snapshot.documents.firstOrNull()
+                val doc = snapshot.documents.firstOrNull()
+                Log.d(TAG, "Firestore email lookup: found=${doc != null}, id=${doc?.id}")
 
-                // TEMP DIAGNOSTIC LOGGING — remove once login is confirmed working.
-                Log.d(
-                    "LoginDebug",
-                    "Firestore lookup for email=$email -> found=${document != null}, " +
-                            "docCount=${snapshot.size()}"
-                )
+                if (doc != null) {
+                    val userData = doc.toObject(Users::class.java)
+                    if (userData != null) {
+                        // Update the user document with Firebase UID if available
+                        if (firebaseUid != null && doc.id != firebaseUid) {
+                            // The user document ID might be different from Firebase UID
+                            // Update the document to include Firebase UID
+                            db.collection("users").document(doc.id)
+                                .update("firebaseUid", firebaseUid)
+                                .addOnSuccessListener {
+                                    Log.d(TAG, "✅ Updated user document with firebaseUid: $firebaseUid")
+                                }
+                                .addOnFailureListener { e ->
+                                    Log.e(TAG, "Failed to update firebaseUid: ${e.message}")
+                                }
+                        }
 
-                val userData = document?.toObject(Users::class.java)
-                if (userData != null) {
-                    val prefs = getSharedPreferences("SkillSwapPrefs", MODE_PRIVATE)
-                    prefs.edit()
-                        .putString("user_name", userData.name)
-                        .putString("user_email", userData.email)
-                        .putString("user_location", userData.location)
-                        .putString("user_type", userData.userType)
-                        .apply()
-
-
-
-                    // Tie this device's push subscription to the logged-in user
-                    document.id.let { uid -> OneSignal.login(uid) }
-
-                    Toast.makeText(this@Login, "Login successful", Toast.LENGTH_SHORT).show()
-
-                    val intent = if (userData.userType == "admin") {
-                        Intent(this@Login, AdminDashboardActivity::class.java)
+                        saveUserDataAndNavigate(userData)
                     } else {
-                        Intent(this@Login, Home::class.java)
+                        Log.e(TAG, "Failed to parse user data")
+                        showError("Failed to parse user data")
                     }
-                    intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-                    startActivity(intent)
-                    finish()
                 } else {
-                    showError(
-                        "Your login was verified, but we couldn't find your profile. " +
-                                "This can happen if your account email doesn't exactly match " +
-                                "what's on file — please contact support."
-                    )
+                    // User exists in Supabase but not in Firestore
+                    // Create Firestore profile
+                    Log.d(TAG, "Creating Firestore profile for email=$email")
+                    createFirestoreProfileForUser(email, firebaseUid)
                 }
             }
             .addOnFailureListener { e ->
                 showLoading(false)
-                Log.e("LoginDebug", "Firestore lookup failed for email=$email", e)
+                Log.e(TAG, "Firestore lookup failed: ${e.message}", e)
                 showError("Error fetching user data: ${e.message}")
             }
     }
 
-    // ---------- Google login — unchanged, still Firebase ----------
+    /**
+     * Creates a Firestore profile for a user who exists in Supabase but not Firestore
+     */
+    private fun createFirestoreProfileForUser(email: String, firebaseUid: String? = null) {
+        val userDocId = firebaseUid ?: email.replace(".", "_").replace("@", "_at_")
+
+        val userData = hashMapOf(
+            "email" to email,
+            "name" to email.split("@")[0],
+            "userType" to "standard",
+            "credits" to 100,
+            "location" to "",
+            "createdAt" to System.currentTimeMillis(),
+            "lastLogin" to System.currentTimeMillis(),
+            "authProvider" to "supabase",
+            "firebaseUid" to firebaseUid
+        )
+
+        db.collection("users")
+            .document(userDocId)
+            .set(userData)
+            .addOnSuccessListener {
+                Log.d(TAG, "✅ Firestore profile created with ID: $userDocId")
+
+                val users = Users().apply {
+                    this.email = email
+                    this.name = email.split("@")[0]
+                    this.userType = "standard"
+                    this.credits = 100
+                    this.location = ""
+                }
+                saveUserDataAndNavigate(users)
+            }
+            .addOnFailureListener { e ->
+                showLoading(false)
+                Log.e(TAG, "❌ Failed to create Firestore profile: ${e.message}", e)
+                showError("Failed to create user profile: ${e.message}")
+            }
+    }
+
+    /**
+     * Saves user data to SharedPreferences and navigates to appropriate activity
+     */
+    private fun saveUserDataAndNavigate(userData: Users) {
+        val prefs = getSharedPreferences("SkillSwapPrefs", MODE_PRIVATE)
+        prefs.edit()
+            .putString("user_name", userData.name)
+            .putString("user_email", userData.email)
+            .putString("user_location", userData.location)
+            .putString("user_type", userData.userType)
+            .apply()
+
+        // Tie this device's push subscription to the logged-in user
+        OneSignal.login(userData.email)
+
+        Toast.makeText(this@Login, "Login successful", Toast.LENGTH_SHORT).show()
+
+        val intent = if (userData.userType == "admin") {
+            Intent(this@Login, AdminDashboardActivity::class.java)
+        } else {
+            Intent(this@Login, Home::class.java)
+        }
+        intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+        startActivity(intent)
+        finish()
+    }
+
+    // ---------- Google login ----------
+    private fun loadUserAndNavigate(uid: String, isGoogle: Boolean = false) {
+        Log.d(TAG, "loadUserAndNavigate: querying users/$uid (isGoogle=$isGoogle)")
+        db.collection("users").document(uid).get()
+            .addOnSuccessListener { doc ->
+                showLoading(false)
+                Log.d(TAG, "Firestore lookup success: exists=${doc.exists()}, id=${doc.id}")
+                val userData = doc.toObject(Users::class.java)
+
+                if (userData != null) {
+                    saveUserDataAndNavigate(userData)
+                } else if (isGoogle) {
+                    Log.e(TAG, "No Firestore profile for Google user uid=$uid")
+                    auth.signOut()
+                    googleSignInClient.signOut()
+                    Toast.makeText(this@Login, "No account found for this Google user. Please create an account.", Toast.LENGTH_LONG).show()
+                    startActivity(Intent(this@Login, Createaccount::class.java))
+                    finish()
+                } else {
+                    Log.e(TAG, "No usable Firestore profile for uid=$uid")
+                    auth.signOut()
+                    showError("Profile not found. Please contact support.")
+                }
+            }
+            .addOnFailureListener { e ->
+                showLoading(false)
+                Log.e(TAG, "Firestore lookup FAILED for uid=$uid: ${e.message}", e)
+                showError("Error fetching user data: ${e.message}")
+            }
+    }
 
     private fun firebaseAuthWithGoogle(idToken: String) {
         showLoading(true)
@@ -283,63 +385,24 @@ class Login : BaseActivity() {
             .addOnCompleteListener { task ->
                 if (task.isSuccessful) {
                     val user = auth.currentUser
+                    Log.d(TAG, "Google signInWithCredential SUCCESS, uid=${user?.uid}")
                     if (user != null) {
                         loadUserAndNavigate(user.uid, isGoogle = true)
                     } else {
                         showLoading(false)
+                        Log.e(TAG, "Google signInWithCredential succeeded but currentUser is null")
                         showError("Google sign‑in succeeded but no user found")
                     }
                 } else {
                     showLoading(false)
+                    Log.e(TAG, "Google signInWithCredential FAILED: ${task.exception?.message}", task.exception)
                     showError("Google sign‑in failed: ${task.exception?.message}")
                 }
             }
     }
 
-    private fun loadUserAndNavigate(uid: String, isGoogle: Boolean = false) {
-        db.collection("users").document(uid).get()
-            .addOnSuccessListener { doc ->
-                showLoading(false)
-                val userData = doc.toObject(Users::class.java)
-                if (userData != null) {
-                    val prefs = getSharedPreferences("SkillSwapPrefs", MODE_PRIVATE)
-                    prefs.edit()
-                        .putString("user_name", userData.name)
-                        .putString("user_email", userData.email)
-                        .putString("user_location", userData.location)
-                        .putString("user_type", userData.userType)
-                        .apply()
-
-                    // Tie this device's push subscription to the logged-in user
-                    OneSignal.login(uid)
-
-                    Toast.makeText(this@Login, "Login successful", Toast.LENGTH_SHORT).show()
-
-                    val intent = if (userData.userType == "admin") {
-                        Intent(this@Login, AdminDashboardActivity::class.java)
-                    } else {
-                        Intent(this@Login, Home::class.java)
-                    }
-                    intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-                    startActivity(intent)
-                    finish()
-                } else if (isGoogle) {
-                    auth.signOut()
-                    googleSignInClient.signOut()
-                    Toast.makeText(this@Login, "No account found for this Google user. Please create an account.", Toast.LENGTH_LONG).show()
-                    startActivity(Intent(this@Login, Createaccount::class.java))
-                    finish()
-                } else {
-                    showError("User data not found")
-                }
-            }
-            .addOnFailureListener { e ->
-                showLoading(false)
-                showError("Error fetching user data: ${e.message}")
-            }
-    }
-
     private fun showError(message: String) {
+        Log.e(TAG, "showError: $message")
         Snackbar.make(findViewById(android.R.id.content), message, Snackbar.LENGTH_LONG).show()
     }
 

@@ -22,7 +22,14 @@ data class Skill(
     val thumbnailUrl: String? = null,   // cover image URL
     val demoVideoUrl: String? = null,   // preview video (not part of paid videos)
     val videoCount: Int = 0,            // number of videos in the playlist
-    val totalDuration: String? = null   // human‑readable total duration (e.g. "45 min")
+    val totalDuration: String? = null,  // human‑readable total duration (e.g. "45 min")
+
+    // ---- FEATURE 1: uploader-facing access count ----
+    // Denormalized counter of how many people currently have access to this
+    // playlist (i.e. have purchased/unlocked it with points). Incremented
+    // atomically inside PlaylistManager.purchasePlaylist's transaction —
+    // never computed client-side from a purchase subcollection query.
+    val accessCount: Int = 0
 ) : Parcelable
 
 @Parcelize

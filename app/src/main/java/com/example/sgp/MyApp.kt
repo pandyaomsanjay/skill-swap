@@ -5,9 +5,6 @@ import android.content.Context
 import androidx.appcompat.app.AppCompatDelegate
 import com.onesignal.OneSignal
 import com.onesignal.debug.LogLevel
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
 
 class MyApp : Application() {
 
@@ -30,8 +27,7 @@ class MyApp : Application() {
         OneSignal.Debug.logLevel = LogLevel.VERBOSE // remove/lower for release builds
         OneSignal.initWithContext(this, "68ee31c3-5a74-48c8-bf07-7751b4306618")
 
-        CoroutineScope(Dispatchers.Main).launch {
-            OneSignal.Notifications.requestPermission(true)
-        }
+        // Notification permission is now requested from the Login screen,
+        // not here, so the OS prompt doesn't appear over the splash screen.
     }
 }

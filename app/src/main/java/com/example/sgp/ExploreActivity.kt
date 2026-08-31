@@ -13,16 +13,19 @@ import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.Button
 import android.widget.EditText
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
+import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
 import com.google.android.material.card.MaterialCardView
+import com.google.android.material.progressindicator.LinearProgressIndicator
 import com.google.firebase.Firebase
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
@@ -34,10 +37,17 @@ enum class SkillCategoryTab {
     ALL, TECHNOLOGY, ARTS, SPORTS, HOME, EDUCATION, LIFESTYLE
 }
 
+enum class SkillSourceTab {
+    ALL, PURCHASED
+}
+
+data class LiveProgress(val completedCount: Int, val totalVideos: Int)
+
 class ExploreActivity : BaseActivity() {
 
     private lateinit var recyclerView: RecyclerView
     private lateinit var emptyState: View
+    private lateinit var tvEmptyStateMessage: TextView
     private lateinit var etSearch: EditText
     private lateinit var adapter: SkillAdapter
     private lateinit var db: FirebaseFirestore
@@ -48,6 +58,15 @@ class ExploreActivity : BaseActivity() {
 
     private var currentTab = SkillCategoryTab.ALL
     private var currentQuery = ""
+
+    private var currentSourceTab = SkillSourceTab.ALL
+    private val purchasedPlaylistIds = mutableSetOf<String>()
+    private var purchasedListener: ListenerRegistration? = null
+    private var currentUserEmail: String? = null
+
+    private var resolvedUid: String? = null
+    private val liveProgressMap = mutableMapOf<String, LiveProgress>()
+    private var progressListener: ListenerRegistration? = null
 
     private lateinit var btnChatInbox: View
     private lateinit var unreadBadge: View
@@ -69,9 +88,15 @@ class ExploreActivity : BaseActivity() {
     private lateinit var tvTabEducation: TextView
     private lateinit var tvTabLifestyle: TextView
 
+    private lateinit var tabSourceAll: MaterialCardView
+    private lateinit var tabSourcePurchased: MaterialCardView
+    private lateinit var tvTabSourceAll: TextView
+    private lateinit var tvTabSourcePurchased: TextView
+
     private val selectedTabBg = Color.parseColor("#F9F3EF")
     private val selectedTabText = Color.parseColor("#1B3C53")
     private val unselectedTabText = Color.parseColor("#D2C1B6")
+    private val unselectedTabBg = Color.parseColor("#456882")
 
     private val reportReasons = arrayOf(
         "Inappropriate or Offensive Content",
@@ -86,25 +111,37 @@ class ExploreActivity : BaseActivity() {
         setContentView(R.layout.activity_explore)
 
         db = Firebase.firestore
+        currentUserEmail = FirebaseAuth.getInstance().currentUser?.email
 
         bindViews()
         setupChatInbox()
+        setupSourceTabs()
         setupTabs()
         setupSearch()
         setupBottomNav()
 
         loadSkills()
+        resolveUidThenListenForPurchasedAndProgress()
     }
 
-    // ---------- Binding ----------
+    override fun onResume() {
+        super.onResume()
+        // Refresh progress when returning to this activity
+        refreshProgress()
+    }
+
     private fun bindViews() {
         recyclerView = findViewById(R.id.recyclerView)
         emptyState = findViewById(R.id.emptyState)
+        tvEmptyStateMessage = findViewById(R.id.tvEmptyStateMessage)
         etSearch = findViewById(R.id.etSearch)
 
         recyclerView.layoutManager = LinearLayoutManager(this)
         adapter = SkillAdapter(
             displayedSkills,
+            currentUserEmail = currentUserEmail,
+            purchasedPlaylistIds = purchasedPlaylistIds,
+            liveProgressMap = liveProgressMap,
             onItemClick = { skill -> openSkill(skill) },
             onReportClick = { skill -> showReportDialog(skill) },
             onUserClick = { skill -> openUserProfile(skill) },
@@ -115,6 +152,11 @@ class ExploreActivity : BaseActivity() {
 
         btnChatInbox = findViewById(R.id.btnChatInbox)
         unreadBadge = findViewById(R.id.unreadBadge)
+
+        tabSourceAll = findViewById(R.id.tabSourceAll)
+        tabSourcePurchased = findViewById(R.id.tabSourcePurchased)
+        tvTabSourceAll = findViewById(R.id.tvTabSourceAll)
+        tvTabSourcePurchased = findViewById(R.id.tvTabSourcePurchased)
 
         tabAll = findViewById(R.id.tabAll)
         tabTechnology = findViewById(R.id.tabTechnology)
@@ -144,7 +186,6 @@ class ExploreActivity : BaseActivity() {
         BottomNavHelper.setup(this, BottomNavItem.EXPLORE)
     }
 
-    // ---------- Chat inbox / unread badge ----------
     private fun listenForUnreadChats() {
         val myEmail = FirebaseAuth.getInstance().currentUser?.email ?: return
         chatsListener = db.collection("chats")
@@ -166,7 +207,130 @@ class ExploreActivity : BaseActivity() {
             }
     }
 
-    // ---------- Tabs ----------
+    private fun setupSourceTabs() {
+        tabSourceAll.setOnClickListener { selectSourceTab(SkillSourceTab.ALL) }
+        tabSourcePurchased.setOnClickListener { selectSourceTab(SkillSourceTab.PURCHASED) }
+        selectSourceTab(SkillSourceTab.ALL)
+    }
+
+    private fun selectSourceTab(tab: SkillSourceTab) {
+        currentSourceTab = tab
+
+        if (tab == SkillSourceTab.ALL) {
+            tabSourceAll.setCardBackgroundColor(selectedTabBg)
+            tvTabSourceAll.setTextColor(selectedTabText)
+            tabSourcePurchased.setCardBackgroundColor(unselectedTabBg)
+            tvTabSourcePurchased.setTextColor(unselectedTabText)
+        } else {
+            tabSourcePurchased.setCardBackgroundColor(selectedTabBg)
+            tvTabSourcePurchased.setTextColor(selectedTabText)
+            tabSourceAll.setCardBackgroundColor(unselectedTabBg)
+            tvTabSourceAll.setTextColor(unselectedTabText)
+        }
+
+        if (tab == SkillSourceTab.PURCHASED) {
+            val currentUser = FirebaseAuth.getInstance().currentUser
+            if (currentUser == null) {
+                Toast.makeText(this, "Log in to see what you've purchased", Toast.LENGTH_SHORT).show()
+            }
+        }
+
+        applyFilters()
+    }
+
+    /**
+     * SIMPLIFIED: Now uses Firebase Auth for ALL users
+     * (Firebase users are created for Supabase logins)
+     */
+    private fun resolveUidThenListenForPurchasedAndProgress() {
+        val firebaseUser = FirebaseAuth.getInstance().currentUser
+        if (firebaseUser != null) {
+            resolvedUid = firebaseUser.uid
+            currentUserEmail = firebaseUser.email
+            Log.d("ExploreActivity", "✅ User found: ${firebaseUser.email}, uid: ${firebaseUser.uid}")
+            listenForPurchasedPlaylists(firebaseUser.uid)
+            listenForProgress(firebaseUser.uid)
+        } else {
+            Log.d("ExploreActivity", "❌ No user logged in")
+        }
+    }
+
+    private fun listenForPurchasedPlaylists(uid: String) {
+        purchasedListener = db.collection("users").document(uid)
+            .collection("purchasedPlaylists")
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    Log.e("ExploreActivity", "Purchased playlists listener error", error)
+                    return@addSnapshotListener
+                }
+                purchasedPlaylistIds.clear()
+                snapshot?.documents?.forEach { doc ->
+                    if (doc.id != "_init") {
+                        purchasedPlaylistIds.add(doc.id)
+                    }
+                }
+                Log.d("ExploreActivity", "Loaded ${purchasedPlaylistIds.size} purchased playlists")
+                applyFilters()
+            }
+    }
+
+    private fun listenForProgress(uid: String) {
+        progressListener = db.collection("users").document(uid)
+            .collection("playlistProgress")
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    Log.e("ExploreActivity", "Progress listener error", error)
+                    return@addSnapshotListener
+                }
+                liveProgressMap.clear()
+                snapshot?.documents?.forEach { doc ->
+                    if (doc.id != "_init") {
+                        @Suppress("UNCHECKED_CAST")
+                        val completedVideos = doc.get("completedVideos") as? List<String> ?: emptyList()
+                        liveProgressMap[doc.id] = LiveProgress(
+                            completedCount = completedVideos.size,
+                            totalVideos = 0
+                        )
+                        Log.d("ExploreActivity", "Progress for ${doc.id}: ${completedVideos.size} videos")
+                    }
+                }
+                adapter.notifyDataSetChanged()
+            }
+    }
+
+    /**
+     * Manually refresh progress data
+     * Called when returning to this activity
+     */
+    private fun refreshProgress() {
+        val uid = resolvedUid
+        if (uid != null) {
+            Log.d("ExploreActivity", "🔄 Manually refreshing progress for uid: $uid")
+            db.collection("users").document(uid)
+                .collection("playlistProgress")
+                .get()
+                .addOnSuccessListener { snapshot ->
+                    liveProgressMap.clear()
+                    snapshot.documents.forEach { doc ->
+                        if (doc.id != "_init") {
+                            @Suppress("UNCHECKED_CAST")
+                            val completedVideos = doc.get("completedVideos") as? List<String> ?: emptyList()
+                            liveProgressMap[doc.id] = LiveProgress(
+                                completedCount = completedVideos.size,
+                                totalVideos = 0
+                            )
+                            Log.d("ExploreActivity", "Progress for ${doc.id}: ${completedVideos.size} videos")
+                        }
+                    }
+                    adapter.notifyDataSetChanged()
+                    Log.d("ExploreActivity", "✅ Progress manually refreshed")
+                }
+                .addOnFailureListener { e ->
+                    Log.e("ExploreActivity", "Failed to refresh progress: ${e.message}")
+                }
+        }
+    }
+
     private fun setupTabs() {
         tabAll.setOnClickListener { selectTab(SkillCategoryTab.ALL) }
         tabTechnology.setOnClickListener { selectTab(SkillCategoryTab.TECHNOLOGY) }
@@ -210,7 +374,6 @@ class ExploreActivity : BaseActivity() {
         applyFilters()
     }
 
-    // ---------- Search ----------
     private fun setupSearch() {
         etSearch.addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
@@ -222,7 +385,6 @@ class ExploreActivity : BaseActivity() {
         })
     }
 
-    // ---------- Filtering ----------
     private fun applyFilters() {
         val categoryFiltered = allSkills.filter { skill ->
             when (currentTab) {
@@ -236,10 +398,16 @@ class ExploreActivity : BaseActivity() {
             }
         }
 
-        val fullyFiltered = if (currentQuery.isBlank()) {
+        val sourceFiltered = if (currentSourceTab == SkillSourceTab.ALL) {
             categoryFiltered
         } else {
-            categoryFiltered.filter {
+            categoryFiltered.filter { skill -> purchasedPlaylistIds.contains(skill.id) }
+        }
+
+        val fullyFiltered = if (currentQuery.isBlank()) {
+            sourceFiltered
+        } else {
+            sourceFiltered.filter {
                 it.title.lowercase(Locale.getDefault()).contains(currentQuery) ||
                         it.category.lowercase(Locale.getDefault()).contains(currentQuery) ||
                         it.description.lowercase(Locale.getDefault()).contains(currentQuery)
@@ -249,10 +417,19 @@ class ExploreActivity : BaseActivity() {
         displayedSkills.clear()
         displayedSkills.addAll(fullyFiltered)
         adapter.notifyDataSetChanged()
+
+        tvEmptyStateMessage.text = if (currentSourceTab == SkillSourceTab.PURCHASED) {
+            if (FirebaseAuth.getInstance().currentUser == null) {
+                "Log in to see what you've purchased"
+            } else {
+                "You haven't purchased any playlist with points yet"
+            }
+        } else {
+            "No skills found"
+        }
         emptyState.visibility = if (displayedSkills.isEmpty()) View.VISIBLE else View.GONE
     }
 
-    // ---------- Data loading ----------
     private fun loadSkills() {
         listener = db.collection("skills")
             .addSnapshotListener { snapshot, error ->
@@ -263,7 +440,10 @@ class ExploreActivity : BaseActivity() {
                 allSkills.clear()
                 snapshot?.documents?.forEach { doc ->
                     try {
-                        doc.toObject(Skill::class.java)?.let { allSkills.add(it) }
+                        doc.toObject(Skill::class.java)?.let {
+                            it.id = doc.id
+                            allSkills.add(it)
+                        }
                     } catch (e: Exception) {
                         Log.e("ExploreActivity", "Skipping malformed skill doc: ${doc.id}", e)
                     }
@@ -276,6 +456,8 @@ class ExploreActivity : BaseActivity() {
         super.onDestroy()
         listener?.remove()
         chatsListener?.remove()
+        purchasedListener?.remove()
+        progressListener?.remove()
     }
 
     // ---------- Actions ----------
@@ -469,6 +651,9 @@ class ExploreActivity : BaseActivity() {
     // ---------- Adapter ----------
     class SkillAdapter(
         private val skills: List<Skill>,
+        private val currentUserEmail: String?,
+        private val purchasedPlaylistIds: Set<String>,
+        private val liveProgressMap: Map<String, LiveProgress>,
         private val onItemClick: (Skill) -> Unit,
         private val onReportClick: (Skill) -> Unit,
         private val onUserClick: (Skill) -> Unit,
@@ -492,6 +677,9 @@ class ExploreActivity : BaseActivity() {
             val btnUnlock: View = itemView.findViewById(R.id.btnUnlock)
             val singleInfoLayout: LinearLayout = itemView.findViewById(R.id.singleInfoLayout)
             val ivPlayIcon: ImageView = itemView.findViewById(R.id.ivPlayIcon)
+            val tvAccessCount: TextView = itemView.findViewById(R.id.tvAccessCount)
+            val tvCardProgressLabel: TextView = itemView.findViewById(R.id.tvCardProgressLabel)
+            val progressIndicatorCard: LinearProgressIndicator = itemView.findViewById(R.id.progressIndicatorCard)
         }
 
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
@@ -503,12 +691,13 @@ class ExploreActivity : BaseActivity() {
         override fun onBindViewHolder(holder: ViewHolder, position: Int) {
             val skill = skills[position]
 
-            // Common fields
+            val isOwnUpload = currentUserEmail != null && currentUserEmail == skill.userId
+            val isPurchased = purchasedPlaylistIds.contains(skill.id)
+
             holder.tvTitle.text = skill.title
             holder.tvCategory.text = skill.category
             holder.tvUser.text = "by ${skill.userName.uppercase()}"
 
-            // Load thumbnail
             val thumbnailUrl = when {
                 skill.skillType == "playlist" && !skill.thumbnailUrl.isNullOrEmpty() -> skill.thumbnailUrl
                 else -> skill.videoUrl
@@ -524,40 +713,112 @@ class ExploreActivity : BaseActivity() {
                 holder.ivThumbnail.setImageResource(R.drawable.baseline_videocam_24)
             }
 
-            // Play icon only for single videos
             if (skill.skillType == "single") {
                 holder.ivPlayIcon.visibility = View.VISIBLE
             } else {
                 holder.ivPlayIcon.visibility = View.GONE
             }
 
-            // Report button only for single (playlists can be reported from detail)
-            holder.btnReport.visibility = if (skill.skillType == "single") View.VISIBLE else View.GONE
+            holder.btnReport.visibility =
+                if (skill.skillType == "single" && !isOwnUpload) View.VISIBLE else View.GONE
             holder.btnReport.setOnClickListener { onReportClick(skill) }
 
-            // View Profile
             holder.btnViewProfile.setOnClickListener { onUserClick(skill) }
 
-            // Decide which info block to show
             if (skill.skillType == "playlist") {
                 holder.playlistInfoLayout.visibility = View.VISIBLE
                 holder.singleInfoLayout.visibility = View.GONE
 
-                holder.tvCredits.text = "${skill.credits} credits"
+                holder.tvCredits.text = when {
+                    isOwnUpload -> "Free • Your upload"
+                    isPurchased -> "Unlocked"
+                    else -> "${skill.credits} credits"
+                }
                 holder.tvVideoCount.text = "${skill.videoCount} videos"
                 holder.tvTotalDuration.text = skill.totalDuration ?: "—"
+
+                if (isOwnUpload) {
+                    holder.tvAccessCount.visibility = View.VISIBLE
+                    val count = skill.accessCount
+                    holder.tvAccessCount.text = if (count == 1) {
+                        "1 person has access"
+                    } else {
+                        "$count people have access"
+                    }
+                } else {
+                    holder.tvAccessCount.visibility = View.GONE
+                }
+
+                // 🟢 FIX: Make progress bar GREEN when 100% complete
+                if (isPurchased && !isOwnUpload) {
+                    val live = liveProgressMap[skill.id]
+                    val completed = live?.completedCount ?: 0
+                    val total = skill.videoCount.takeIf { it > 0 } ?: 1
+                    val percent = (completed * 100) / total
+
+                    holder.tvCardProgressLabel.visibility = View.VISIBLE
+                    holder.progressIndicatorCard.visibility = View.VISIBLE
+                    holder.tvCardProgressLabel.text = "$completed of ${skill.videoCount} watched · $percent%"
+                    holder.progressIndicatorCard.progress = percent
+
+                    // 🟢 SET COLOR BASED ON COMPLETION
+                    if (percent >= 100) {
+                        // COMPLETE - MAKE IT GREEN
+                        holder.progressIndicatorCard.setIndicatorColor(
+                            ContextCompat.getColor(holder.itemView.context, R.color.success)
+                        )
+                        holder.tvCardProgressLabel.setTextColor(
+                            ContextCompat.getColor(holder.itemView.context, R.color.success)
+                        )
+                    } else {
+                        // IN PROGRESS - USE BRAND COLOR
+                        holder.progressIndicatorCard.setIndicatorColor(
+                            ContextCompat.getColor(holder.itemView.context, R.color.brand_navy)
+                        )
+                        holder.tvCardProgressLabel.setTextColor(
+                            ContextCompat.getColor(holder.itemView.context, R.color.text_secondary)
+                        )
+                    }
+                } else {
+                    holder.tvCardProgressLabel.visibility = View.GONE
+                    holder.progressIndicatorCard.visibility = View.GONE
+                }
+
+                val isUnlockedForUser = isOwnUpload || isPurchased
+
+                if (isUnlockedForUser) {
+                    holder.btnUnlock.visibility = View.GONE
+                    (holder.btnPreview.layoutParams as? LinearLayout.LayoutParams)?.let { params ->
+                        params.width = LinearLayout.LayoutParams.MATCH_PARENT
+                        params.weight = 1f
+                        holder.btnPreview.layoutParams = params
+                    }
+                } else {
+                    holder.btnUnlock.visibility = View.VISIBLE
+                    when (val unlockView = holder.btnUnlock) {
+                        is Button -> unlockView.text = "Unlock"
+                        is TextView -> unlockView.text = "Unlock"
+                    }
+                    (holder.btnPreview.layoutParams as? LinearLayout.LayoutParams)?.let { params ->
+                        params.width = 0
+                        params.weight = 1f
+                        holder.btnPreview.layoutParams = params
+                    }
+                }
 
                 holder.btnPreview.setOnClickListener { onPreviewClick(skill) }
                 holder.btnUnlock.setOnClickListener { onUnlockClick(skill) }
             } else {
                 holder.playlistInfoLayout.visibility = View.GONE
                 holder.singleInfoLayout.visibility = View.VISIBLE
+                holder.tvAccessCount.visibility = View.GONE
+                holder.tvCardProgressLabel.visibility = View.GONE
+                holder.progressIndicatorCard.visibility = View.GONE
 
-                holder.tvCredits.text = "${skill.credits} swaps"
-                holder.tvSwapsCount.text = "${skill.credits} swaps completed" // placeholder
+                holder.tvCredits.text = if (isOwnUpload) "Free • Your upload" else "${skill.credits} swaps"
+                holder.tvSwapsCount.text = "${skill.credits} swaps completed"
             }
 
-            // Whole card click (for single, opens player; for playlist, opens detail)
             holder.itemView.setOnClickListener { onItemClick(skill) }
         }
 

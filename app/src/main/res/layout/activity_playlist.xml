@@ -132,6 +132,31 @@
                     android:gravity="end" />
             </LinearLayout>
 
+            <!-- FEATURE 2: learner progress bar + label. Hidden until access is
+                 confirmed and PlaylistActivity.loadProgressForLearner() populates it;
+                 stays gone entirely for owners (who see the accessCount pill instead,
+                 shown via tvPlaylistCreditsRequired above) and for non-purchasers. -->
+            <TextView
+                android:id="@+id/tvProgressLabel"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:text="0 of 0 videos completed · 0%"
+                android:textColor="#1B3C53"
+                android:textSize="12sp"
+                android:textStyle="bold"
+                android:visibility="gone" />
+
+            <com.google.android.material.progressindicator.LinearProgressIndicator
+                android:id="@+id/progressIndicatorWatched"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                app:trackColor="#D2C1B6"
+                app:indicatorColor="#D4A857"
+                app:trackCornerRadius="6dp"
+                android:visibility="gone" />
+
             <!-- Demo & Access Buttons -->
             <LinearLayout
                 android:layout_width="match_parent"

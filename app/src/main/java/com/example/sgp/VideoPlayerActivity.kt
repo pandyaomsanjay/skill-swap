@@ -9,6 +9,9 @@ import android.graphics.drawable.GradientDrawable
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
+import android.util.Log
 import android.util.Rational
 import android.util.TypedValue
 import android.view.Gravity
@@ -37,6 +40,7 @@ class VideoPlayerActivity : AppCompatActivity() {
     private lateinit var topBar: View
     private lateinit var mediaController: MediaController
     private lateinit var tvFullscreenIcon: TextView
+    private lateinit var progressBar: ProgressBar
 
     private val db: FirebaseFirestore by lazy { Firebase.firestore }
 
@@ -48,6 +52,7 @@ class VideoPlayerActivity : AppCompatActivity() {
     private var videoId: String? = null
     private var totalVideos: Int = 0
     private var progressMarked = false
+    private var videoCompleted = false
 
     private val reportReasons = arrayOf(
         "Inappropriate or Offensive Content",
@@ -62,6 +67,9 @@ class VideoPlayerActivity : AppCompatActivity() {
     private var skillUserId: String = ""
     private var skillUserName: String = ""
 
+    // Handler for delayed progress update
+    private val handler = Handler(Looper.getMainLooper())
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_video_player)
@@ -72,7 +80,7 @@ class VideoPlayerActivity : AppCompatActivity() {
         videoContainer = findViewById(R.id.videoContainer)
         scrollContent = findViewById(R.id.scrollContent)
         topBar = findViewById(R.id.topBar)
-        val progressBar: ProgressBar = findViewById(R.id.progressBar)
+        progressBar = findViewById(R.id.progressBar)
         val tvTitle: TextView = findViewById(R.id.tvVideoTitle)
         val tvSubtitle: TextView = findViewById(R.id.tvVideoSubtitle)
         val tvDescription: TextView = findViewById(R.id.tvVideoDescription)
@@ -98,6 +106,14 @@ class VideoPlayerActivity : AppCompatActivity() {
         videoId = intent.getStringExtra("videoId")
         totalVideos = intent.getIntExtra("totalVideos", 0)
 
+        Log.d("VideoPlayerActivity", "========================================")
+        Log.d("VideoPlayerActivity", "🎬 Video Player Created")
+        Log.d("VideoPlayerActivity", "  playlistId: $playlistId")
+        Log.d("VideoPlayerActivity", "  videoId: $videoId")
+        Log.d("VideoPlayerActivity", "  totalVideos: $totalVideos")
+        Log.d("VideoPlayerActivity", "  videoUrl: ${videoUrl?.take(50)}...")
+        Log.d("VideoPlayerActivity", "========================================")
+
         tvTitle.text = skillTitle
         tvSubtitle.text = listOfNotNull(
             category.ifBlank { null },
@@ -106,7 +122,14 @@ class VideoPlayerActivity : AppCompatActivity() {
         ).joinToString(" • ")
         tvDescription.text = description.ifBlank { "No description provided." }
 
-        btnClose.setOnClickListener { finish() }
+        btnClose.setOnClickListener {
+            // If video was playing and progress not marked, try to mark it
+            if (!progressMarked && videoId != null && playlistId != null) {
+                Log.d("VideoPlayerActivity", "Close button pressed - marking progress")
+                markProgressIfNeeded()
+            }
+            finish()
+        }
         btnFullscreen.setOnClickListener { toggleFullscreen() }
         btnPip.setOnClickListener { enterPip() }
         btnReport.setOnClickListener { showReportDialog() }
@@ -127,24 +150,107 @@ class VideoPlayerActivity : AppCompatActivity() {
             mp.isLooping = false
             videoView.setVideoSize(mp.videoWidth, mp.videoHeight)
             videoView.start()
+            Log.d("VideoPlayerActivity", "Video prepared, starting playback")
         }
 
         videoView.setOnErrorListener { _, _, _ ->
             progressBar.visibility = View.GONE
             Toast.makeText(this, "Unable to play this video", Toast.LENGTH_SHORT).show()
+            Log.e("VideoPlayerActivity", "Video playback error")
             true
         }
 
         // Track video completion for playlist progress
         videoView.setOnCompletionListener {
-            if (!progressMarked && playlistId != null && videoId != null && totalVideos > 0) {
-                progressMarked = true
-                val uid = FirebaseAuth.getInstance().currentUser?.uid
-                if (uid != null) {
-                    PlaylistManager.updateProgress(uid, playlistId!!, videoId!!, totalVideos)
-                }
-            }
+            Log.d("VideoPlayerActivity", "========================================")
+            Log.d("VideoPlayerActivity", "🎬 Video COMPLETED! (via completion listener)")
+            Log.d("VideoPlayerActivity", "========================================")
+            videoCompleted = true
+            // Delay slightly to ensure everything is ready
+            handler.postDelayed({
+                markProgressIfNeeded()
+            }, 500)
         }
+    }
+
+    private fun getCurrentUid(): String? {
+        val uid = FirebaseAuth.getInstance().currentUser?.uid
+        Log.d("VideoPlayerActivity", "Current UID: $uid")
+        return uid
+    }
+
+    private fun markProgressIfNeeded() {
+        Log.d("VideoPlayerActivity", "========================================")
+        Log.d("VideoPlayerActivity", "📊 markProgressIfNeeded called")
+        Log.d("VideoPlayerActivity", "  progressMarked: $progressMarked")
+        Log.d("VideoPlayerActivity", "  playlistId: $playlistId")
+        Log.d("VideoPlayerActivity", "  videoId: $videoId")
+        Log.d("VideoPlayerActivity", "  totalVideos: $totalVideos")
+        Log.d("VideoPlayerActivity", "========================================")
+
+        if (progressMarked) {
+            Log.d("VideoPlayerActivity", "⚠️ Progress already marked, skipping")
+            return
+        }
+
+        val pid = playlistId
+        val vid = videoId
+        if (pid.isNullOrEmpty() || vid.isNullOrEmpty() || totalVideos <= 0) {
+            Log.d("VideoPlayerActivity", "⚠️ Missing playlist info, skipping progress")
+            Log.d("VideoPlayerActivity", "  pid: $pid, vid: $vid, totalVideos: $totalVideos")
+            return
+        }
+
+        val uid = getCurrentUid()
+        if (uid == null) {
+            Log.d("VideoPlayerActivity", "⚠️ No user logged in, skipping progress")
+            Toast.makeText(this, "Please log in to track progress", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        Log.d("VideoPlayerActivity", "✅ Updating progress for playlist: $pid, video: $vid, total: $totalVideos")
+        progressMarked = true
+
+        // Call PlaylistManager to update progress
+        PlaylistManager.updateProgress(uid, pid, vid, totalVideos)
+
+        // Show toast to indicate progress was saved
+        Toast.makeText(this, "✅ Progress saved!", Toast.LENGTH_SHORT).show()
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        Log.d("VideoPlayerActivity", "onDestroy called")
+        Log.d("VideoPlayerActivity", "  videoCompleted: $videoCompleted, progressMarked: $progressMarked")
+
+        // If video was completed but progress not marked, try to mark it
+        if (videoCompleted && !progressMarked) {
+            Log.d("VideoPlayerActivity", "Video completed but progress not marked - marking now in onDestroy")
+            markProgressIfNeeded()
+        }
+
+        // Remove any pending handler callbacks
+        handler.removeCallbacksAndMessages(null)
+
+        if (::videoView.isInitialized && videoView.isPlaying) {
+            videoView.stopPlayback()
+        }
+    }
+
+    override fun onBackPressed() {
+        if (isFullscreen) {
+            toggleFullscreen()
+            return
+        }
+        // If video was playing and progress not marked, try to mark it
+        if (!progressMarked && videoId != null && playlistId != null) {
+            Log.d("VideoPlayerActivity", "Back pressed - marking progress")
+            markProgressIfNeeded()
+        }
+        if (::videoView.isInitialized && videoView.isPlaying) {
+            videoView.stopPlayback()
+        }
+        super.onBackPressed()
     }
 
     // ---------------- Report (themed dialog) ----------------
@@ -371,23 +477,5 @@ class VideoPlayerActivity : AppCompatActivity() {
             topBar.visibility = if (isFullscreen) View.GONE else View.VISIBLE
             videoView.setMediaController(mediaController)
         }
-    }
-
-    override fun onDestroy() {
-        super.onDestroy()
-        if (::videoView.isInitialized && videoView.isPlaying) {
-            videoView.stopPlayback()
-        }
-    }
-
-    override fun onBackPressed() {
-        if (isFullscreen) {
-            toggleFullscreen()
-            return
-        }
-        if (::videoView.isInitialized && videoView.isPlaying) {
-            videoView.stopPlayback()
-        }
-        super.onBackPressed()
     }
 }

@@ -11,7 +11,9 @@ class PlaylistDetailActivity : PlaylistActivity() {
     companion object {
         @JvmStatic
         fun start(context: Context, skillId: String) {
-            PlaylistActivity.start(context, skillId)
+            val intent = Intent(context, PlaylistDetailActivity::class.java)
+            intent.putExtra("skillId", skillId)
+            context.startActivity(intent)
         }
     }
 }
