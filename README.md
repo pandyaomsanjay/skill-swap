@@ -112,36 +112,12 @@ A user can select:
 **Trade Process**
 
 ```text
-Find Skill
-    ↓
-Select User
-    ↓
-Choose Skill to Offer
-    ↓
-Choose Skill to Learn
-    ↓
-Send Trade Request
-    ↓
-Accept / Reject Request
-    ↓
-Start Skill Exchange
-    ↓
-Complete Trade
-    ↓
-Rating & Feedback
+Find Skill → Select User → Choose Skill to Offer → Choose Skill to Learn
+   → Send Trade Request → Accept / Reject → Start Skill Exchange
+   → Complete Trade → Rating & Feedback
 ```
 
-Trade information can include:
-
-* Requester
-* Receiver
-* Offered skill
-* Requested skill
-* Trade status
-* Timestamp
-* User information
-* Skill information
-* Rating/feedback information
+Trade information can include: requester, receiver, offered skill, requested skill, trade status, timestamp, user information, skill information, and rating/feedback information.
 
 ---
 
@@ -256,24 +232,11 @@ Notifications can be used for important events such as:
 **Notification Architecture**
 
 ```text
-Skill Swap Android App
-          │
-          ▼
-   OneSignal SDK
-          │
-          ▼
-  OneSignal Platform
-          │
-          ▼
- Android Push Service
-          │
-          ▼
-        User
+Skill Swap Android App → OneSignal SDK → OneSignal Platform
+   → Android Push Service → User
 ```
 
-OneSignal provides the notification management and delivery layer for the application.
-
-For Android push delivery, OneSignal uses Firebase Cloud Messaging (FCM) credentials configured through the OneSignal platform. **Firebase Cloud Functions are not required for the notification architecture.**
+OneSignal provides the notification management and delivery layer for the application. For Android push delivery, OneSignal uses Firebase Cloud Messaging (FCM) credentials configured through the OneSignal platform. **Firebase Cloud Functions are not required for the notification architecture.**
 
 Official OneSignal documentation: [OneSignal Android SDK Setup](https://documentation.onesignal.com/docs/en/android-sdk-setup)
 
@@ -281,13 +244,7 @@ Official OneSignal documentation: [OneSignal Android SDK Setup](https://document
 
 ### 📍 Location Support
 
-The application includes Google Places integration for location-related functionality.
-
-This can be used to:
-
-* Select locations
-* Display user locations
-* Assist users in finding relevant people based on location
+The application includes Google Places integration for location-related functionality — used to select locations, display user locations, and assist users in finding relevant people based on location.
 
 ---
 
@@ -299,33 +256,13 @@ Skill Swap includes a dedicated **Admin Panel** for administrators to monitor an
 
 The Admin Dashboard provides an overview of the application's current activity.
 
-**Dashboard Statistics**
+Administrators can monitor: 👥 Total Users, 🔄 Total Trades, 🎯 Total Skills, 🚨 Pending Reports, and 📈 Swap Activity.
 
-Administrators can monitor:
-
-* 👥 Total Users
-* 🔄 Total Trades
-* 🎯 Total Skills
-* 🚨 Pending Reports
-* 📈 Swap Activity
-
-**Statistics Filters**
-
-The dashboard supports different time periods:
-
-```text
-Today
-Week
-Month
-Custom Range
-All Time
-```
-
----
+**Statistics Filters:** Today · Week · Month · Custom Range · All Time
 
 ### 👥 Admin User Management
 
-The Admin Panel includes a dedicated user management section, accessible through `AdminUsersActivity.kt`, providing administrators with an overview of users registered on the platform.
+Accessible through `AdminUsersActivity.kt`, providing administrators with an overview of users registered on the platform.
 
 ### 🎯 Admin Skill Management
 
@@ -356,15 +293,8 @@ The application includes an administration settings section through `AdminSettin
 The application checks the user's account type before providing access to the Admin Dashboard, using a `user_type` value to distinguish administrator access from normal user access.
 
 ```text
-Normal User
-     │
-     ▼
-User Dashboard
-
-Admin User
-     │
-     ▼
-Admin Dashboard
+Normal User → User Dashboard
+Admin User  → Admin Dashboard
 ```
 
 ---
@@ -384,7 +314,7 @@ Admin Dashboard
 | **OneSignal**                  | Push notifications                |
 | **Google Sign-In**             | Google authentication             |
 | **Google Places**              | Location functionality            |
-| **Supabase**                   | Storage/backend services          |
+| **Supabase**                   | Auth (email/password), Postgres backend for security features |
 | **Ktor**                       | Networking                        |
 | **Kotlin Serialization**       | JSON serialization                |
 | **Glide**                      | Image loading                     |
@@ -397,57 +327,30 @@ Admin Dashboard
 Skill Swap uses Firebase, Supabase, and OneSignal for different application requirements.
 
 ```text
-                         Skill Swap
-                             │
-            ┌────────────────┼────────────────┐
-            │                │                │
-            ▼                ▼                ▼
-         Firebase          Supabase        OneSignal
-            │                │                │
-      ┌─────┼─────┐          │                │
-      │     │     │          │                │
-      ▼     ▼     ▼          ▼                ▼
-     Auth Firestore RTDB   Storage       Notifications
-            │
-            ▼
-        Application
-            Data
-            │
-            ▼
-          Chat
+Skill Swap
+   ├── Firebase  → Auth, Firestore, Realtime DB, Storage, Chat
+   ├── Supabase  → Auth (email/password), Storage
+   └── OneSignal → Push Notifications
 ```
 
 ### 🔥 Firebase
 
-Firebase is used for:
-
-* Authentication
-* Cloud Firestore
-* Realtime Database
-* Storage
-
-Firebase Cloud Firestore is also used for real-time chat functionality.
+Firebase is used for authentication, Cloud Firestore, Realtime Database, and Storage. Firebase Cloud Firestore is also used for real-time chat functionality.
 
 ### 🟢 Supabase
 
-Supabase is integrated into the application for backend/storage-related functionality.
+Supabase is integrated into the application for authentication and backend security functionality, in addition to storage.
 
 ```text
 SupabaseClient.kt
 SupabaseImageUploader.kt
 ```
 
-Supabase can be used for application media/storage operations.
+Supabase Auth (Postgres-backed, `auth.users`) handles email/password login and password hashing (bcrypt, with a unique random salt embedded per user). Supabase Postgres also hosts the custom SQL functions used for account lockout and password-strength checks — see [🔐 Security](#-security) below.
 
 ### 🔔 OneSignal
 
-OneSignal is responsible for the application's push notification functionality. It provides:
-
-* Push notifications
-* Notification targeting
-* User identification
-* Notification data
-* Notification management
+OneSignal is responsible for the application's push notification functionality. It provides push notifications, notification targeting, user identification, notification data, and notification management.
 
 ---
 
@@ -457,15 +360,10 @@ OneSignal is responsible for the application's push notification functionality. 
 skill-swap/
 │
 ├── app/
-│   │
 │   ├── src/
-│   │   │
 │   │   ├── androidTest/
-│   │   │
 │   │   └── main/
-│   │       │
 │   │       ├── java/com/example/sgp/
-│   │       │   │
 │   │       │   ├── Authentication/
 │   │       │   ├── User & Profile/
 │   │       │   ├── Skills/
@@ -476,14 +374,11 @@ skill-swap/
 │   │       │   ├── Admin/
 │   │       │   ├── Supabase/
 │   │       │   └── Other Components
-│   │       │
 │   │       └── res/
-│   │
 │   ├── build.gradle.kts
 │   └── google-services.json
 │
 ├── gradle/
-│
 ├── build.gradle.kts
 ├── settings.gradle.kts
 ├── firebase.json
@@ -497,25 +392,14 @@ skill-swap/
 
 ## 🗄️ Main Data Structure
 
-The application uses Firebase data collections for major application entities.
-
-```text
-users
-skills
-trades
-chats
-reports
-```
+The application uses Firebase data collections for major application entities: `users`, `skills`, `trades`, `chats`, `reports`.
 
 **Chat Data**
 
 ```text
 chats
- │
  └── {conversationId}
-       │
        └── messages
-             │
              └── {messageId}
 ```
 
@@ -524,51 +408,10 @@ chats
 ## 🔄 Complete Application Workflow
 
 ```text
-                         ┌───────────────┐
-                         │   Sign Up /   │
-                         │     Login     │
-                         └───────┬───────┘
-                                 │
-                                 ▼
-                         ┌───────────────┐
-                         │    Profile    │
-                         │   Completion  │
-                         └───────┬───────┘
-                                 │
-                                 ▼
-                         ┌───────────────┐
-                         │ Explore Skills│
-                         └───────┬───────┘
-                                 │
-                                 ▼
-                         ┌───────────────┐
-                         │ Find a User   │
-                         └───────┬───────┘
-                                 │
-                                 ▼
-                         ┌───────────────┐
-                         │ Create Trade  │
-                         └───────┬───────┘
-                                 │
-                       ┌─────────┴─────────┐
-                       ▼                   ▼
-                   Accepted             Rejected
+Sign Up / Login → Profile Completion → Explore Skills → Find a User
+   → Create Trade → Accepted / Rejected
                        │
-                       ▼
-                 ┌───────────────┐
-                 │     Chat      │
-                 └───────┬───────┘
-                         │
-                         ▼
-                 ┌───────────────┐
-                 │ Complete Trade│
-                 └───────┬───────┘
-                         │
-                         ▼
-                 ┌───────────────┐
-                 │ Rating &      │
-                 │   Feedback    │
-                 └───────────────┘
+                    Accepted → Chat → Complete Trade → Rating & Feedback
 ```
 
 Notifications are handled independently through OneSignal throughout relevant application events.
@@ -631,7 +474,7 @@ Configure Google Sign-In through Firebase Authentication. Make sure the required
 
 ### 5. Configure Supabase
 
-Create a Supabase project and configure the required storage/backend services. Update the application's Supabase configuration accordingly.
+Create a Supabase project and configure Supabase Auth for email/password login. Run the SQL scripts under `sql/` (see [🔐 Security](#-security) below) in the Supabase SQL Editor to set up account lockout, password-pattern checking, and password-reset OTP support. Update the application's Supabase configuration accordingly.
 
 ### 6. Configure OneSignal
 
@@ -660,18 +503,44 @@ Run → Run 'app'
 
 ## 🔐 Security
 
-Security should be considered carefully before deploying the application to production.
+Skill Swap implements the following password and account-security controls, primarily via Supabase Auth (Postgres) with supporting checks in the Android client.
 
-**Recommended practices**
+### ✅ Implemented
+
+| Requirement | Implementation |
+|---|---|
+| **No password reuse on change** | Enforced during password change flow |
+| **Password complexity** | Client-side validation requires uppercase, lowercase, a number, and a special character (`Createaccount.kt`, `ResetPasswordActivity.kt`) |
+| **Account lockout / throttling** | Escalating lockout via Postgres `SECURITY DEFINER` RPCs: 5 failed attempts → 15-minute lock; a second lockout → 24-hour lock (`login_lockout.sql`, called from `AuthRepository.kt`) |
+| **No clear-text password storage** | Authentication runs through Supabase Auth (`auth.users`), which stores only a bcrypt hash — never the plaintext password. Verified directly via SQL: `auth.users` has no plaintext password column, only `encrypted_password` |
+| **Random salt** | Bcrypt embeds a unique, randomly generated salt in every stored hash. Verified that no two users share an identical hash even where duplicate passwords are possible, and that 100% of stored hashes match bcrypt's salted format |
+| **Disallow dictionary / weak passwords** | `is_password_common()` Postgres function (`common_passwords.sql`) rejects: exact matches against a known-weak password list, all-repeated-character strings (`aaaaaa`), repeated-chunk strings (`abab`, `123123`), common keyboard-walk patterns (`qwerty`, `asdf`, `zxcv`), and leetspeak-disguised matches (`P@ssw0rd` → `password`). Called from the Android app at signup (`Createaccount.kt`) and password reset (`AuthRepository.kt`) |
+
+### ⏳ Not implemented (policy-level)
+
+| Requirement | Status |
+|---|---|
+| **Disallow password sharing** | Not enforced technically — no reliable server-side way to detect shared credentials without additional device/session tracking. Addressed as a stated policy: accounts are for individual use only, per the application's Terms of Service |
+
+### SQL Files
+
+The Supabase-side security logic lives in the SQL Editor as the following scripts:
+
+```text
+sql/
+├── login_lockout.sql           # Escalating lockout functions (check_login_lock, record_failed_login, reset_login_attempts)
+├── common_passwords.sql        # Dictionary/pattern password check (is_password_common)
+├── password_reset_otps.sql     # OTP table for password reset flow
+└── verification_queries.sql    # Manual queries used to verify hashing/salting on auth.users (not runtime code)
+```
+
+### General Recommended Practices
 
 * Never expose private API keys.
 * Do not commit service-account credentials.
 * Configure proper Firebase security rules.
-* Configure proper Supabase access policies.
-* Protect user information.
-* Secure administrator access.
+* Configure proper Supabase Row Level Security (RLS) policies — tables like `common_passwords` and `password_reset_otps` have RLS enabled with no client-facing policies; they are only accessed through `SECURITY DEFINER` functions.
 * Do not place OneSignal REST/API keys inside the Android application.
-* Use backend/server-side infrastructure for sensitive operations.
 * Keep production secrets outside the Git repository.
 
 ---
@@ -680,143 +549,9 @@ Security should be considered carefully before deploying the application to prod
 
 The project includes Android testing configuration.
 
-Testing technologies include:
-
-* JUnit
-* AndroidX JUnit
-* Espresso
+Testing technologies include: JUnit, AndroidX JUnit, Espresso.
 
 Testing can be performed using Android Studio's built-in test and instrumentation testing tools.
-
----
-
-## 📊 Admin Panel Overview
-
-```text
-                     ADMIN PANEL
-                          │
-             ┌────────────┼────────────┐
-             │            │            │
-             ▼            ▼            ▼
-        Dashboard      Users        Skills
-             │
-      ┌──────┼───────┬───────────┐
-      │      │       │           │
-      ▼      ▼       ▼           ▼
-    Trades Reports Feedback    Videos
-      │
-      ▼
-   Settings
-```
-
-**Admin Modules**
-
-| Module       | Purpose                 |
-| ------------ | ------------------------ |
-| 📊 Dashboard | Application statistics  |
-| 👥 Users     | User management         |
-| 🎯 Skills    | Skill management        |
-| 🔄 Trades    | Trade monitoring        |
-| 🚨 Reports   | Report management       |
-| ⭐ Feedback   | Feedback management     |
-| 🎥 Videos    | Video management        |
-| ⚙️ Settings  | Administration settings |
-
----
-
-## 📈 Admin Dashboard Statistics
-
-The Admin Dashboard monitors:
-
-```text
-Total Users
-Total Trades
-Total Skills
-Pending Reports
-Swap Activity
-```
-
-Statistics can be viewed using:
-
-```text
-Today
-Week
-Month
-Custom Range
-All Time
-```
-
----
-
-## 🔮 Future Improvements
-
-------------------------------------
-### 🔴 High Priority
-------------------------------------
-
-1. **Chat Encryption & Warning System** – Implement encryption for chats. The system should detect unnecessary or inappropriate chats and issue warnings. After 5 warnings, the user should be temporarily blocked from chatting for 24 hours.
-2. **Teaching Limit** – Each user can teach up to 10 other users at the same time.
-3. **Complete UI Redesign** – Change and improve the entire user-side UI to make the application modern, attractive, and user-friendly.
-4. **Multiple Languages** – Add support for different languages so users can select their preferred language.
-5. **Payment Module** – Implement a complete and secure payment system.
-6. **Dark Mode** – Add Dark Mode for the user side of the application.
-7. **Swap Animation** – Add an attractive animation on the swapping/trade page to make the swap process more interactive.
-8. **Continue Where You Left Off** – Users should be able to continue from where they previously stopped, such as continuing a video, playlist, course, or learning activity.
-9. **Certificate System** – Provide users with a certificate after successfully completing a skill/course/playlist.
-10. **Fix the Complete Trade/Swap System** – Review and fix the entire trade/swap functionality to make the process smooth and reliable.
-11. **Trade/Swap from Demo Video** – Add a Trade/Swap option directly on individual demo videos. When a user clicks it, they can send a trade request along with their preferred schedule.
-12. **Trade Request & Counter-Schedule System** – When another user receives a trade request, they can accept it if they are available at the proposed time. If they are not available, they can provide one counter-schedule. After that, both users must finalize one mutually agreed date and time for the trade.
-13. **Meeting Reminders** – Both users should receive a reminder before the scheduled trade/meeting.
-14. **Different Trade Options** – Users should be able to trade different types of learning resources, such as:
-    - Notes
-    - Videos
-    - Live teaching sessions
-    - Documents/PDFs
-    - Courses
-    - Other useful learning resources
-
-------------------------------------
-### 🟡 Low Priority
-------------------------------------
-
-1. **Playlist Purchase Expiry** – After some months, a user should no longer be able to purchase a given playlist (e.g. it expires or is retired).
-2. **Points Transaction History** – Maintain a log of all point credits and deductions with reason and timestamp, so users can review how their points were earned or spent.
-3. **Playlist Sharing Across Platforms** – Allow users to share a playlist link with others, with an option to keep it public or private.
-4. **Low-Points Warning** – Notify users when their point balance is insufficient to access a playlist, along with suggestions on how to earn more points.
-5. **Playlist Discount** – Offer playlists at a lower total points cost than purchasing the equivalent individual resources separately.
-6. **Advanced Chat & User Channels** – LinkedIn-style chat with user video/channel pages.
-
-> ℹ️ Items previously listed here that are now implemented — Multi-Language Support (via `LocaleHelper`), Dark Mode (via `SettingsActivity`/`BaseActivity`), Advanced Playlists, Playlist Preview Videos, Points/Completion Rewards — have been moved to their relevant feature sections above (see [📑 Playlists](#-playlists)) and removed from this roadmap.
-
----
-
-## 📸 Screenshots
-
-Add screenshots of the application here to showcase the main interfaces.
-
-Recommended screenshots: Login, Home, Explore Skills, Skill Details, Create Trade, My Trades, Chat, Profile, Videos, Admin Dashboard, Admin Users, Admin Skills, Admin Trades, Admin Reports.
-
-Example:
-
-```markdown
-## 📸 Screenshots
-
-| Login | Home |
-|---|---|
-| ![Login](screenshots/login.png) | ![Home](screenshots/home.png) |
-
-| Explore | Trade |
-|---|---|
-| ![Explore](screenshots/explore.png) | ![Trade](screenshots/trade.png) |
-
-| Chat | Profile |
-|---|---|
-| ![Chat](screenshots/chat.png) | ![Profile](screenshots/profile.png) |
-
-| Admin Dashboard | Admin Panel |
-|---|---|
-| ![Dashboard](screenshots/admin-dashboard.png) | ![Admin](screenshots/admin-panel.png) |
-```
 
 ---
 
@@ -901,6 +636,88 @@ AdminVideoPlayerActivity.kt
 ```text
 SupabaseClient.kt
 SupabaseImageUploader.kt
+```
+
+**SQL (Supabase SQL Editor)**
+
+```text
+login_lockout.sql
+common_passwords.sql
+password_reset_otps.sql
+verification_queries.sql
+```
+
+---
+
+## 🔮 Future Improvements
+
+------------------------------------
+### 🔴 High Priority
+------------------------------------
+
+1. **Chat Encryption & Warning System** – Implement encryption for chats. The system should detect unnecessary or inappropriate chats and issue warnings. After 5 warnings, the user should be temporarily blocked from chatting for 24 hours.
+2. **Teaching Limit** – Each user can teach up to 10 other users at the same time.
+3. **Complete UI Redesign** – Change and improve the entire user-side UI to make the application modern, attractive, and user-friendly.
+4. **Multiple Languages** – Add support for different languages so users can select their preferred language.
+5. **Payment Module** – Implement a complete and secure payment system.
+6. **Dark Mode** – Add Dark Mode for the user side of the application.
+7. **Swap Animation** – Add an attractive animation on the swapping/trade page to make the swap process more interactive.
+8. **Continue Where You Left Off** – Users should be able to continue from where they previously stopped, such as continuing a video, playlist, course, or learning activity.
+9. **Certificate System** – Provide users with a certificate after successfully completing a skill/course/playlist.
+10. **Fix the Complete Trade/Swap System** – Review and fix the entire trade/swap functionality to make the process smooth and reliable.
+11. **Trade/Swap from Demo Video** – Add a Trade/Swap option directly on individual demo videos. When a user clicks it, they can send a trade request along with their preferred schedule.
+12. **Trade Request & Counter-Schedule System** – When another user receives a trade request, they can accept it if they are available at the proposed time. If they are not available, they can provide one counter-schedule. After that, both users must finalize one mutually agreed date and time for the trade.
+13. **Meeting Reminders** – Both users should receive a reminder before the scheduled trade/meeting.
+14. **Different Trade Options** – Users should be able to trade different types of learning resources, such as:
+    - Notes
+    - Videos
+    - Live teaching sessions
+    - Documents/PDFs
+    - Courses
+    - Other useful learning resources
+15. **Password Sharing Detection** – Optional device/session-based signal (e.g. flag logins from a notably different device than the last known one) to support the "disallow password sharing" security requirement beyond policy alone.
+
+------------------------------------
+### 🟡 Low Priority
+------------------------------------
+
+1. **Playlist Purchase Expiry** – After some months, a user should no longer be able to purchase a given playlist (e.g. it expires or is retired).
+2. **Points Transaction History** – Maintain a log of all point credits and deductions with reason and timestamp, so users can review how their points were earned or spent.
+3. **Playlist Sharing Across Platforms** – Allow users to share a playlist link with others, with an option to keep it public or private.
+4. **Low-Points Warning** – Notify users when their point balance is insufficient to access a playlist, along with suggestions on how to earn more points.
+5. **Playlist Discount** – Offer playlists at a lower total points cost than purchasing the equivalent individual resources separately.
+6. **Advanced Chat & User Channels** – LinkedIn-style chat with user video/channel pages.
+
+> ℹ️ Items previously listed here that are now implemented — Multi-Language Support (via `LocaleHelper`), Dark Mode (via `SettingsActivity`/`BaseActivity`), Advanced Playlists, Playlist Preview Videos, Points/Completion Rewards, Account Lockout/Throttling, Password Complexity Rules, Dictionary/Pattern Password Checking — have been moved to their relevant feature sections above (see [📑 Playlists](#-playlists) and [🔐 Security](#-security)) and removed from this roadmap.
+
+---
+
+## 📸 Screenshots
+
+Add screenshots of the application here to showcase the main interfaces.
+
+Recommended screenshots: Login, Home, Explore Skills, Skill Details, Create Trade, My Trades, Chat, Profile, Videos, Admin Dashboard, Admin Users, Admin Skills, Admin Trades, Admin Reports.
+
+Example:
+
+```markdown
+## 📸 Screenshots
+
+| Login | Home |
+|---|---|
+| ![Login](screenshots/login.png) | ![Home](screenshots/home.png) |
+
+| Explore | Trade |
+|---|---|
+| ![Explore](screenshots/explore.png) | ![Trade](screenshots/trade.png) |
+
+| Chat | Profile |
+|---|---|
+| ![Chat](screenshots/chat.png) | ![Profile](screenshots/profile.png) |
+
+| Admin Dashboard | Admin Panel |
+|---|---|
+| ![Dashboard](screenshots/admin-dashboard.png) | ![Admin](screenshots/admin-panel.png) |
 ```
 
 ---
