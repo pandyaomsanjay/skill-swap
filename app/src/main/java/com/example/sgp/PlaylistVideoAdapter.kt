@@ -12,7 +12,13 @@ class PlaylistVideoAdapter(
     // FEATURE 2: ids of videos this learner has completed. Defaults to empty so
     // existing call sites without progress data still compile.
     private val completedVideoIds: Set<String> = emptySet(),
-    private val onVideoClick: (PlaylistVideo) -> Unit
+    // Per-video report: hides the report icon for the playlist owner viewing
+    // their own upload. Defaults to false so existing call sites still compile.
+    private val isOwner: Boolean = false,
+    private val onVideoClick: (PlaylistVideo) -> Unit,
+    // Called when the report flag on a row is tapped. Defaults to a no-op so
+    // existing call sites without a handler still compile.
+    private val onReportClick: (PlaylistVideo) -> Unit = {}
 ) : RecyclerView.Adapter<PlaylistVideoAdapter.ViewHolder>() {
 
     class ViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
@@ -22,6 +28,7 @@ class PlaylistVideoAdapter(
         val tvDuration: TextView = itemView.findViewById(R.id.tvVideoDuration)
         // FEATURE 2: new checkmark icon, added to item_playlist_video_row.xml — see below.
         val ivCompleted: ImageView = itemView.findViewById(R.id.ivVideoCompleted)
+        val btnReport: View = itemView.findViewById(R.id.btnReportVideo)
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
@@ -47,6 +54,15 @@ class PlaylistVideoAdapter(
             holder.tvOrder.visibility = View.VISIBLE
             holder.tvOrder.text = "${position + 1}."
             holder.ivCompleted.visibility = View.GONE
+        }
+
+        // Report: available on every video except for the playlist owner
+        // viewing their own upload.
+        if (isOwner) {
+            holder.btnReport.visibility = View.GONE
+        } else {
+            holder.btnReport.visibility = View.VISIBLE
+            holder.btnReport.setOnClickListener { onReportClick(video) }
         }
 
         holder.itemView.setOnClickListener { onVideoClick(video) }

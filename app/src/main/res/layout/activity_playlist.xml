@@ -15,7 +15,22 @@
         android:background="#1B3C53"
         app:titleTextColor="@android:color/white"
         app:navigationIcon="@drawable/outline_arrow_back_24"
-        app:navigationIconTint="@android:color/white" />
+        app:navigationIconTint="@android:color/white">
+
+        <!-- Report Flag Icon -->
+        <ImageView
+            android:id="@+id/btnReport"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="end"
+            android:layout_marginEnd="16dp"
+            android:src="@drawable/ic_flag"
+            android:padding="8dp"
+            android:contentDescription="Report"
+            android:visibility="gone"
+            app:tint="@android:color/white" />
+
+    </androidx.appcompat.widget.Toolbar>
 
     <ScrollView
         android:layout_width="match_parent"

@@ -102,6 +102,24 @@ class Login : BaseActivity() {
             return
         }
 
+        val btnLanguageSelector = findViewById<View>(R.id.btnLanguageSelector)
+        val tvCurrentLanguage = findViewById<TextView>(R.id.tvCurrentLanguage)
+
+        tvCurrentLanguage?.text = LocaleHelper.getLanguageDisplayName(this)
+
+        btnLanguageSelector?.setOnClickListener {
+            LocaleHelper.showLanguageDialog(this) {
+                tvCurrentLanguage?.text = LocaleHelper.getLanguageDisplayName(this)
+            }
+        }
+
+        // Prompt first-time users on login screen to select their preferred language
+        if (!LocaleHelper.isLanguagePrompted(this)) {
+            LocaleHelper.showLanguageDialog(this, cancelable = true) {
+                tvCurrentLanguage?.text = LocaleHelper.getLanguageDisplayName(this)
+            }
+        }
+    
         initializeViews()
         requestNotificationPermission()
     }
@@ -395,6 +413,12 @@ class Login : BaseActivity() {
      * Saves user data to SharedPreferences and navigates to appropriate activity
      */
     private fun saveUserDataAndNavigate(userData: Users) {
+        val userLang = userData.language
+        if (userLang.isNotBlank()) {
+            val standardLang = LocaleHelper.normalizeLanguageKey(userLang)
+            LocaleHelper.saveLanguage(this, standardLang)
+        }
+
         val prefs = getSharedPreferences("SkillSwapPrefs", MODE_PRIVATE)
         prefs.edit()
             .putString("user_name", userData.name)

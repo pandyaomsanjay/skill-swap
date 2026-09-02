@@ -8,10 +8,11 @@ import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.TextView
 import androidx.appcompat.widget.Toolbar
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
-import com.google.android.material.floatingactionbutton.FloatingActionButton
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ListenerRegistration
@@ -44,16 +45,27 @@ class ChatListActivity : BaseActivity() {
             it.setTint(android.graphics.Color.WHITE)
         }
 
+        // Apply real system bar insets now that BaseActivity draws edge-to-edge.
+        // Toolbar gets the status bar inset added on top of its existing padding,
+        // RecyclerView gets the nav bar inset added on top of its existing bottom padding.
+        val toolbarBasePaddingTop = toolbar.paddingTop
+        val toolbarBasePaddingBottom = toolbar.paddingBottom
+        ViewCompat.setOnApplyWindowInsetsListener(toolbar) { v, insets ->
+            val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
+            v.setPadding(v.paddingLeft, toolbarBasePaddingTop + bars.top, v.paddingRight, toolbarBasePaddingBottom)
+            insets
+        }
+
         recyclerView = findViewById(R.id.recyclerViewChatList)
         recyclerView.layoutManager = LinearLayoutManager(this)
-        // No DividerItemDecoration here — item_conversation.xml rows are now
-        // MaterialCardViews with their own margin + stroke, so a divider line
-        // would just double up against the card border.
         adapter = ConversationAdapter(conversations, myEmail, db) { convo -> openConversation(convo) }
         recyclerView.adapter = adapter
 
-        findViewById<FloatingActionButton>(R.id.fabNewChat).setOnClickListener {
-            startActivity(Intent(this, NewChatActivity::class.java))
+        val recyclerBasePaddingBottom = recyclerView.paddingBottom
+        ViewCompat.setOnApplyWindowInsetsListener(recyclerView) { v, insets ->
+            val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
+            v.setPadding(v.paddingLeft, v.paddingTop, v.paddingRight, recyclerBasePaddingBottom + bars.bottom)
+            insets
         }
 
         listenForConversations()

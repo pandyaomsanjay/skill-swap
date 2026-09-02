@@ -84,7 +84,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_gravity="top"
-                android:text="0 swaps"
+                android:text="0 Credits"
                 android:textColor="#456882"
                 android:textSize="11sp"
                 android:textStyle="bold"/>

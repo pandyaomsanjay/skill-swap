@@ -21,8 +21,8 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:minHeight="?attr/actionBarSize"
-                android:paddingTop="26dp"
-                android:paddingBottom="14dp"
+                android:paddingTop="6dp"
+                android:paddingBottom="6dp"
                 android:background="@color/brand_final_primary"
                 android:elevation="6dp"
                 app:navigationIcon="@drawable/baseline_arrow_back_24"
@@ -32,7 +32,7 @@
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="10dp"
+                    android:layout_marginTop="0dp"
                     android:orientation="vertical">
 
                     <TextView
@@ -53,7 +53,6 @@
                 </LinearLayout>
 
             </androidx.appcompat.widget.Toolbar>
-
         </com.google.android.material.appbar.AppBarLayout>
 
         <androidx.recyclerview.widget.RecyclerView
@@ -95,19 +94,5 @@
             android:textSize="15sp" />
 
     </LinearLayout>
-
-    <com.google.android.material.floatingactionbutton.FloatingActionButton
-        android:id="@+id/fabNewChat"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="bottom|end"
-        android:layout_margin="20dp"
-        android:contentDescription="Start a new skill swap chat"
-        android:src="@drawable/baseline_chat_24"
-        app:backgroundTint="@color/brand_final_accent"
-        app:elevation="6dp"
-        app:pressedTranslationZ="12dp"
-        app:rippleColor="@color/brand_final_on_accent"
-        app:tint="@color/brand_final_on_accent" />
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

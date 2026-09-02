@@ -719,8 +719,8 @@ class ExploreActivity : BaseActivity() {
                 holder.ivPlayIcon.visibility = View.GONE
             }
 
-            holder.btnReport.visibility =
-                if (skill.skillType == "single" && !isOwnUpload) View.VISIBLE else View.GONE
+            // 🟢 FIX: Show report button for ALL skills (both single and playlist) except own uploads
+            holder.btnReport.visibility = if (!isOwnUpload) View.VISIBLE else View.GONE
             holder.btnReport.setOnClickListener { onReportClick(skill) }
 
             holder.btnViewProfile.setOnClickListener { onUserClick(skill) }

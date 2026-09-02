@@ -2,6 +2,7 @@ package com.example.sgp
 
 import android.os.Bundle
 import android.text.TextUtils
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -9,6 +10,9 @@ import android.widget.ImageButton
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.widget.Toolbar
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.textfield.TextInputEditText
@@ -17,8 +21,27 @@ import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ListenerRegistration
 import com.google.firebase.firestore.Query
+import io.ktor.client.HttpClient
+import io.ktor.client.engine.android.Android
+import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
+import io.ktor.client.request.post
+import io.ktor.client.request.setBody
+import io.ktor.http.ContentType
+import io.ktor.http.contentType
+import io.ktor.serialization.kotlinx.json.json
+import kotlinx.coroutines.launch
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
 
 class ChatActivity : BaseActivity() {
+
+    companion object {
+        private const val TAG = "ChatActivity"
+
+        // Your deployed Supabase Edge Function URL
+        private const val NOTIFY_FUNCTION_URL =
+            "https://ghrxltlstncjcizyyqfo.supabase.co/functions/v1/send-chat-notification"
+    }
 
     private lateinit var db: FirebaseFirestore
     private lateinit var recyclerView: RecyclerView
@@ -38,6 +61,25 @@ class ChatActivity : BaseActivity() {
 
     // My display name pulled from the "users" collection (falls back to email until it loads / if missing)
     private var myDisplayName: String = ""
+
+    // Ktor client reused for the lifetime of this activity, used only to call
+    // our Supabase Edge Function that relays push notifications to OneSignal.
+    private val httpClient by lazy {
+        HttpClient(Android) {
+            install(ContentNegotiation) {
+                json(Json { ignoreUnknownKeys = true })
+            }
+        }
+    }
+
+    @Serializable
+    private data class ChatNotificationRequest(
+        val senderId: String,
+        val senderName: String,
+        val receiverId: String,
+        val text: String,
+        val conversationId: String
+    )
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -79,6 +121,27 @@ class ChatActivity : BaseActivity() {
 
         toolbar.navigationIcon?.setTint(android.graphics.Color.WHITE)
 
+        // Apply status bar inset on top of the toolbar's existing padding, since
+        // BaseActivity now draws edge-to-edge.
+        val toolbarBasePaddingTop = toolbar.paddingTop
+        val toolbarBasePaddingBottom = toolbar.paddingBottom
+        ViewCompat.setOnApplyWindowInsetsListener(toolbar) { v, insets ->
+            val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
+            v.setPadding(v.paddingLeft, toolbarBasePaddingTop + bars.top, v.paddingRight, toolbarBasePaddingBottom)
+            insets
+        }
+
+        // Keyboard-covers-input fix: with edge-to-edge on, the system no longer
+        // auto-resizes the layout for the IME or the nav bar — push the whole
+        // screen up by whichever inset (keyboard or nav bar) is currently larger.
+        val rootLayout = findViewById<View>(R.id.rootChatLayout)
+        ViewCompat.setOnApplyWindowInsetsListener(rootLayout) { v, insets ->
+            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
+            val ime = insets.getInsets(WindowInsetsCompat.Type.ime())
+            v.setPadding(v.paddingLeft, v.paddingTop, v.paddingRight, maxOf(systemBars.bottom, ime.bottom))
+            insets
+        }
+
         findViewById<TextView>(R.id.tvChatWithName).text = otherName
         findViewById<TextView>(R.id.tvChatContext).apply {
             if (!skillTitle.isNullOrEmpty()) {
@@ -118,6 +181,11 @@ class ChatActivity : BaseActivity() {
         super.onStop()
         messagesListener?.remove()
         messagesListener = null
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        httpClient.close()
     }
 
     override fun onOptionsItemSelected(item: android.view.MenuItem): Boolean {
@@ -218,6 +286,14 @@ class ChatActivity : BaseActivity() {
 
         etMessage.setText("")
 
+        // Optimistic UI: show the bubble instantly instead of waiting on the
+        // Firestore round trip. The listener's next snapshot will include this
+        // same message (same id) and cleanly rebuild the list, so there's no
+        // duplicate — this just removes the visible lag on the sender's screen.
+        messages.add(message)
+        adapter.notifyItemInserted(messages.size - 1)
+        recyclerView.scrollToPosition(messages.size - 1)
+
         docRef.set(message)
             .addOnSuccessListener {
                 db.collection("chats").document(conversationId)
@@ -230,10 +306,44 @@ class ChatActivity : BaseActivity() {
                         ),
                         com.google.firebase.firestore.SetOptions.merge()
                     )
+                sendPushNotification(text)
             }
             .addOnFailureListener { e ->
+                // Roll back the optimistic bubble if the write genuinely failed
+                val idx = messages.indexOfFirst { it.id == message.id }
+                if (idx != -1) {
+                    messages.removeAt(idx)
+                    adapter.notifyItemRemoved(idx)
+                }
                 Toast.makeText(this, "Failed to send: ${e.message}", Toast.LENGTH_SHORT).show()
             }
+    }
+
+    /**
+     * Calls our Supabase Edge Function, which relays a push notification to the
+     * recipient via OneSignal. Fire-and-forget: a failure here should never block
+     * or roll back the chat message itself, so we only log on error.
+     */
+    private fun sendPushNotification(text: String) {
+        lifecycleScope.launch {
+            try {
+                val response = httpClient.post(NOTIFY_FUNCTION_URL) {
+                    contentType(ContentType.Application.Json)
+                    setBody(
+                        ChatNotificationRequest(
+                            senderId = myEmail,
+                            senderName = myDisplayName,
+                            receiverId = otherEmail,
+                            text = text,
+                            conversationId = conversationId
+                        )
+                    )
+                }
+                Log.d(TAG, "Push notification response: ${response.status}")
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to send push notification: ${e.message}", e)
+            }
+        }
     }
 
     // ---------------- Adapter ----------------

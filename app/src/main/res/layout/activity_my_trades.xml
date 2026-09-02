@@ -13,7 +13,7 @@
         android:layout_width="match_parent"
         android:layout_height="?attr/actionBarSize"
         android:background="#4CAF50"
-        app:title="My Trades"
+        app:title="@string/my_trades"
         app:titleTextColor="@android:color/white"
         app:navigationIcon="@drawable/outline_arrow_back_24" />
 
@@ -30,12 +30,12 @@
         <com.google.android.material.tabs.TabItem
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Active" />
+            android:text="@string/active_trades" />
 
         <com.google.android.material.tabs.TabItem
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Completed" />
+            android:text="@string/completed_trades" />
 
     </com.google.android.material.tabs.TabLayout>
 

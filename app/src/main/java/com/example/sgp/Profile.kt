@@ -114,6 +114,22 @@ class Profile : BaseActivity() {
             startActivity(Intent(this, SubmitFeedbackActivity::class.java))
         }
 
+        findViewById<TextView>(R.id.tvProfileLanguage)?.text = LocaleHelper.getLanguageDisplayName(this)
+
+        findViewById<LinearLayout>(R.id.layoutChangeLanguage)?.setOnClickListener {
+            LocaleHelper.showLanguageDialog(this) { item ->
+                findViewById<TextView>(R.id.tvProfileLanguage)?.text = LocaleHelper.getLanguageDisplayName(this)
+                if (currentUserEmail.isNotEmpty()) {
+                    db.collection("users").whereEqualTo("email", currentUserEmail).get()
+                        .addOnSuccessListener { snapshot ->
+                            if (!snapshot.isEmpty) {
+                                snapshot.documents[0].reference.update("language", item.key)
+                            }
+                        }
+                }
+            }
+        }
+
         findViewById<LinearLayout>(R.id.layoutSettings).setOnClickListener {
             startActivity(Intent(this, SettingsActivity::class.java))
         }
@@ -161,7 +177,7 @@ class Profile : BaseActivity() {
 
         val date = Date(user.joinedDate)
         val format = SimpleDateFormat("yyyy", Locale.getDefault())
-        tvMemberSince.text = "Member since ${format.format(date)}"
+        tvMemberSince.text = String.format(getString(R.string.member_since), format.format(date))
 
         if (!user.profileImage.isNullOrEmpty()) {
             Glide.with(this).load(user.profileImage).into(profileImageView)
@@ -404,14 +420,14 @@ class Profile : BaseActivity() {
             ).apply { bottomMargin = dp(8) }
         })
         root.addView(TextView(this).apply {
-            text = "Log Out"
+            text = getString(R.string.logout_confirmation_title)
             setTextColor(navyDark)
             textSize = 17f
             setTypeface(typeface, Typeface.BOLD)
             gravity = Gravity.CENTER
         })
         root.addView(TextView(this).apply {
-            text = "Are you sure you want to logout?"
+            text = getString(R.string.logout_confirmation_message)
             setTextColor(navyMed)
             textSize = 13f
             gravity = Gravity.CENTER
@@ -428,10 +444,10 @@ class Profile : BaseActivity() {
         dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
 
         val buttonRow = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
-        val btnCancel = pillButton("Cancel", lightBg, navyMed).apply {
+        val btnCancel = pillButton(getString(R.string.cancel), lightBg, navyMed).apply {
             setOnClickListener { dialog.dismiss() }
         }
-        val btnLogout = pillButton("Logout", destructive, cream).apply {
+        val btnLogout = pillButton(getString(R.string.logout), destructive, cream).apply {
             setOnClickListener {
                 dialog.dismiss()
                 logoutUser()

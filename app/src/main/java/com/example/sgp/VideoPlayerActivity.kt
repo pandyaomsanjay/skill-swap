@@ -32,7 +32,7 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.firestore
 
-class VideoPlayerActivity : AppCompatActivity() {
+class VideoPlayerActivity : BaseActivity() {
 
     private lateinit var videoView: ResizableVideoView
     private lateinit var videoContainer: FrameLayout

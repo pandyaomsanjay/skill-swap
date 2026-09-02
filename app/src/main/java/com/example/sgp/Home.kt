@@ -86,14 +86,14 @@ class Home : BaseActivity(), NavigationView.OnNavigationItemSelectedListener {
         setSupportActionBar(toolbar)
         supportActionBar?.setDisplayShowTitleEnabled(false)
 
-        // Push the toolbar's own top padding down by the status bar height, so its navy
-        // background visually fills the status bar strip instead of relying on the OS.
+        // Better padding for status bar
         ViewCompat.setOnApplyWindowInsetsListener(toolbar) { view, insets ->
             val statusBarInsets = insets.getInsets(WindowInsetsCompat.Type.statusBars())
             view.setPadding(view.paddingLeft, statusBarInsets.top, view.paddingRight, view.paddingBottom)
             insets
         }
 
+        // Custom toggle with better styling and animation support
         val toggle = ActionBarDrawerToggle(
             this,
             drawerLayout,
@@ -103,8 +103,37 @@ class Home : BaseActivity(), NavigationView.OnNavigationItemSelectedListener {
         )
         drawerLayout.addDrawerListener(toggle)
         toggle.syncState()
-        // Keep the hamburger/back icon cream-colored on the navy toolbar
+
+        // Make the hamburger icon cream-colored on the navy toolbar
         toggle.drawerArrowDrawable.color = Color.parseColor(THEME_CREAM)
+        toggle.drawerArrowDrawable.setColorFilter(Color.parseColor(THEME_CREAM), android.graphics.PorterDuff.Mode.SRC_ATOP)
+
+        // Step 6: Add drawer listener for animations and effects (Option 3)
+        drawerLayout.addDrawerListener(object : DrawerLayout.DrawerListener {
+            override fun onDrawerSlide(drawerView: View, slideOffset: Float) {
+                // Get the main content view (the LinearLayout inside DrawerLayout)
+                val contentView = drawerLayout.getChildAt(0)
+                contentView?.apply {
+                    translationX = drawerView.width * slideOffset * 0.3f
+                    scaleX = 1f - (slideOffset * 0.05f)
+                    scaleY = 1f - (slideOffset * 0.05f)
+                }
+            }
+
+            override fun onDrawerOpened(drawerView: View) {
+                // Update UI when drawer opens
+                supportActionBar?.title = "Menu"
+            }
+
+            override fun onDrawerClosed(drawerView: View) {
+                // Update UI when drawer closes
+                supportActionBar?.title = "SkillSwap"
+            }
+
+            override fun onDrawerStateChanged(newState: Int) {
+                // Handle state changes if needed
+            }
+        })
 
         navigationView.setNavigationItemSelectedListener(this)
 
@@ -113,7 +142,7 @@ class Home : BaseActivity(), NavigationView.OnNavigationItemSelectedListener {
         }
 
         setupQuickActions()
-        listenForPopularSkillCategories()   // was: setupPopularSkills()
+        listenForPopularSkillCategories()
         updateGreetingMessage()
         loadUserData()
 
@@ -340,7 +369,8 @@ class Home : BaseActivity(), NavigationView.OnNavigationItemSelectedListener {
         val headerView = navigationView.getHeaderView(0) ?: return
         headerView.findViewById<TextView>(R.id.tvNavUserName)?.text = formatName(userName)
         headerView.findViewById<TextView>(R.id.tvNavUserEmail)?.text = userEmail
-        headerView.findViewById<TextView>(R.id.tvNavUserPoints)?.text = "$points Points"
+        val pointsLabel = getString(R.string.points)
+        headerView.findViewById<TextView>(R.id.tvNavUserPoints)?.text = "$points $pointsLabel"
 
         headerView.findViewById<TextView>(R.id.nav_trades_value)?.text = totalTrades.toString()
         headerView.findViewById<TextView>(R.id.nav_rating_value)?.text = String.format("%.1f", rating)
@@ -351,9 +381,9 @@ class Home : BaseActivity(), NavigationView.OnNavigationItemSelectedListener {
         val greetingTextView = findViewById<TextView>(R.id.tvGreeting)
         val currentHour = java.util.Calendar.getInstance().get(java.util.Calendar.HOUR_OF_DAY)
         val greeting = when {
-            currentHour < 12 -> "Good Morning,"
-            currentHour < 17 -> "Good Afternoon,"
-            else -> "Good Evening,"
+            currentHour < 12 -> getString(R.string.good_morning)
+            currentHour < 17 -> getString(R.string.good_afternoon)
+            else -> getString(R.string.good_evening)
         }
         greetingTextView.text = greeting
     }
@@ -517,21 +547,20 @@ class Home : BaseActivity(), NavigationView.OnNavigationItemSelectedListener {
 
     private fun performLogout() {
         AlertDialog.Builder(this)
-            .setTitle("Logout")
-            .setMessage("Are you sure you want to logout?")
-            .setPositiveButton("Logout") { _, _ ->
+            .setTitle(getString(R.string.logout_confirmation_title))
+            .setMessage(getString(R.string.logout_confirmation_message))
+            .setPositiveButton(getString(R.string.logout)) { _, _ ->
                 requesterSwapsListener?.remove()
                 receiverSwapsListener?.remove()
                 skillsCategoryListener?.remove()
                 FirebaseAuth.getInstance().signOut()
                 sharedPreferences.edit().clear().apply()
-                showMessage("Logged out successfully")
                 val intent = Intent(this, Login::class.java)
                 intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
                 startActivity(intent)
                 finish()
             }
-            .setNegativeButton("Cancel", null)
+            .setNegativeButton(getString(R.string.cancel), null)
             .show()
     }
 

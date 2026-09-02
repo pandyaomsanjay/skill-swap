@@ -106,7 +106,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Complete Your Profile"
+                android:text="@string/complete_profile_title"
                 android:textColor="@color/text_primary"
                 android:textSize="28sp"
                 android:fontFamily="sans-serif-black"
@@ -117,7 +117,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Tell us a bit about yourself"
+                android:text="@string/complete_profile_subtitle"
                 android:textColor="@color/text_secondary"
                 android:textSize="13.5sp"
                 android:fontFamily="sans-serif-light"
@@ -164,7 +164,7 @@
                             android:layout_alignEnd="@id/profileImage"
                             android:background="@drawable/bg_circle_primary"
                             android:src="@drawable/outline_photo_camera_24"
-                            android:contentDescription="Change photo"
+                            android:contentDescription="@string/cd_change_photo"
                             android:padding="6dp" />
                     </RelativeLayout>
 
@@ -174,7 +174,7 @@
                         style="@style/Widget.MaterialComponents.TextInputLayout.FilledBox"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:hint="Full Name"
+                        android:hint="@string/full_name"
                         app:boxBackgroundColor="@color/surface"
                         app:boxCornerRadiusTopStart="26dp"
                         app:boxCornerRadiusTopEnd="26dp"
@@ -213,7 +213,7 @@
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
-                            android:hint="Current Location"
+                            android:hint="@string/current_location"
                             app:boxBackgroundColor="@color/surface"
                             app:boxCornerRadiusTopStart="26dp"
                             app:boxCornerRadiusTopEnd="26dp"
@@ -244,7 +244,7 @@
                             android:layout_height="48dp"
                             android:src="@drawable/outline_my_location_24"
                             android:background="?attr/selectableItemBackground"
-                            android:contentDescription="Auto-detect location"
+                            android:contentDescription="@string/auto_detect_location"
                             android:tint="@color/brand_navy" />
                     </LinearLayout>
 
@@ -263,7 +263,7 @@
                         style="@style/Widget.MaterialComponents.TextInputLayout.FilledBox.ExposedDropdownMenu"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:hint="Preferred Language"
+                        android:hint="@string/preferred_language"
                         app:boxBackgroundColor="@color/surface"
                         app:boxCornerRadiusTopStart="26dp"
                         app:boxCornerRadiusTopEnd="26dp"
@@ -292,7 +292,7 @@
                         android:id="@+id/btnSave"
                         android:layout_width="match_parent"
                         android:layout_height="58dp"
-                        android:text="Save Profile"
+                        android:text="@string/save_profile"
                         android:textAllCaps="false"
                         android:textColor="@color/text_inverse"
                         android:textSize="16sp"

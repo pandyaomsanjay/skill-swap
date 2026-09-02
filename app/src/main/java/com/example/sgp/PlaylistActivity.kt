@@ -7,6 +7,7 @@ import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
 import android.util.Log
+import android.util.TypedValue
 import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
@@ -31,7 +32,7 @@ import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.firestore
 import java.util.Locale
 
-open class PlaylistActivity : AppCompatActivity() {
+open class PlaylistActivity : BaseActivity() {
 
     private lateinit var db: FirebaseFirestore
     private lateinit var skillId: String
@@ -61,11 +62,24 @@ open class PlaylistActivity : AppCompatActivity() {
     private lateinit var adapter: PlaylistVideoAdapter
     private lateinit var emptyState: View
 
+    // Report button
+    private lateinit var btnReport: View
+
     private lateinit var progressIndicatorWatched: LinearProgressIndicator
     private lateinit var tvProgressLabel: TextView
 
+    // ---------- Report ----------
+    private val reportReasons = arrayOf(
+        "Inappropriate or Offensive Content",
+        "Spam or Misleading Information",
+        "Fake Skill or Scam",
+        "Harassment or Abusive Behavior",
+        "Copyright or Intellectual Property Violation"
+    )
+
     companion object {
         private const val EXTRA_SKILL_ID = "skillId"
+
         fun start(context: Context, skillId: String) {
             val intent = Intent(context, PlaylistActivity::class.java)
             intent.putExtra(EXTRA_SKILL_ID, skillId)
@@ -111,6 +125,7 @@ open class PlaylistActivity : AppCompatActivity() {
         progressBar = findViewById(R.id.progressBar)
         recyclerView = findViewById(R.id.recyclerViewPlaylistVideos)
         emptyState = findViewById(R.id.emptyStateVideos)
+        btnReport = findViewById(R.id.btnReport) // Add this to your layout
 
         progressIndicatorWatched = findViewById(R.id.progressIndicatorWatched)
         tvProgressLabel = findViewById(R.id.tvProgressLabel)
@@ -118,6 +133,15 @@ open class PlaylistActivity : AppCompatActivity() {
         tvProgressLabel.visibility = View.GONE
 
         recyclerView.layoutManager = LinearLayoutManager(this)
+
+        // Setup report button
+        btnReport.setOnClickListener {
+            if (::playlist.isInitialized) {
+                showReportDialog()
+            } else {
+                Toast.makeText(this, "Please wait for the playlist to load", Toast.LENGTH_SHORT).show()
+            }
+        }
     }
 
     private fun setupToolbar() {
@@ -142,6 +166,11 @@ open class PlaylistActivity : AppCompatActivity() {
                 bindPlaylistData()
                 checkAccess()
                 progressBar.visibility = View.GONE
+
+                // Show/hide report button based on ownership
+                val firebaseUser = FirebaseAuth.getInstance().currentUser
+                val isOwnUpload = firebaseUser?.email != null && firebaseUser.email == playlist.userId
+                btnReport.visibility = if (isOwnUpload) View.GONE else View.VISIBLE
             }
             .addOnFailureListener { e ->
                 progressBar.visibility = View.GONE
@@ -180,13 +209,19 @@ open class PlaylistActivity : AppCompatActivity() {
     private fun bindVideosList() {
         val videos = playlist.videos ?: emptyList()
         if (videos.isNotEmpty()) {
-            adapter = PlaylistVideoAdapter(videos, completedVideoIds) { video ->
-                if (hasAccess) {
-                    playVideo(video)
-                } else {
-                    Toast.makeText(this, "Please access the playlist first", Toast.LENGTH_SHORT).show()
-                }
-            }
+            adapter = PlaylistVideoAdapter(
+                videos = videos,
+                completedVideoIds = completedVideoIds,
+                isOwner = isOwner,
+                onVideoClick = { video ->
+                    if (hasAccess) {
+                        playVideo(video)
+                    } else {
+                        Toast.makeText(this, "Please access the playlist first", Toast.LENGTH_SHORT).show()
+                    }
+                },
+                onReportClick = { video -> showReportDialogForVideo(video) }
+            )
             recyclerView.adapter = adapter
             emptyState.visibility = View.GONE
             recyclerView.visibility = View.VISIBLE
@@ -466,8 +501,217 @@ open class PlaylistActivity : AppCompatActivity() {
         startActivity(intent)
     }
 
-    override fun onOptionsItemSelected(item: android.view.MenuItem): Boolean {
-        if (item.itemId == android.R.id.home) finish()
-        return super.onOptionsItemSelected(item)
+    // ─────────────────────── Report (playlist-level) ───────────────────────
+
+    private fun showReportDialog() {
+        val reporterEmail = FirebaseAuth.getInstance().currentUser?.email
+        if (reporterEmail.isNullOrEmpty()) {
+            Toast.makeText(this, "Please log in to report", Toast.LENGTH_SHORT).show()
+            return
+        }
+        if (reporterEmail == playlist.userId) {
+            Toast.makeText(this, "You can't report your own playlist", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        val root = dialogCard()
+        root.addView(dialogTitle("Report \"${playlist.title}\""))
+        root.addView(TextView(this).apply {
+            text = "Help us understand what's wrong"
+            setTextColor(Color.parseColor("#456882"))
+            textSize = 13f
+            setPadding(0, dp(4), 0, dp(4))
+        })
+        root.addView(dividerLine())
+
+        val dialog = AlertDialog.Builder(this).setView(root).create()
+        dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
+
+        reportReasons.forEachIndexed { index, reason ->
+            root.addView(reportReasonRow(reason) {
+                dialog.dismiss()
+                submitReport(reason, reporterEmail)
+            })
+            if (index != reportReasons.lastIndex) {
+                root.addView(dividerLine())
+            }
+        }
+
+        val btnCancel = pillButton("Cancel", Color.parseColor("#EAF1F5"), Color.parseColor("#456882")).apply {
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply {
+                topMargin = dp(16)
+                gravity = Gravity.END
+            }
+            setPadding(dp(28), dp(10), dp(28), dp(10))
+            setOnClickListener { dialog.dismiss() }
+        }
+        root.addView(btnCancel)
+
+        dialog.show()
+    }
+
+    private fun submitReport(reason: String, reporterEmail: String) {
+        val docRef = db.collection("reports").document()
+        val report = Report(
+            id = docRef.id,
+            reporterId = reporterEmail,
+            reportedUserId = playlist.userId,
+            skillId = playlist.id,
+            reason = reason,
+            description = "Reported playlist: \"${playlist.title}\" (Playlist ID: ${playlist.id})",
+            status = "pending",
+            timestamp = System.currentTimeMillis()
+        )
+        docRef.set(report)
+            .addOnSuccessListener {
+                Toast.makeText(this, "Report submitted. Our team will review it.", Toast.LENGTH_LONG).show()
+            }
+            .addOnFailureListener { e ->
+                Toast.makeText(this, "Failed to submit report: ${e.message}", Toast.LENGTH_LONG).show()
+            }
+    }
+
+    // ─────────────────────── Report (per-video) ───────────────────────
+
+    private fun showReportDialogForVideo(video: PlaylistVideo) {
+        val reporterEmail = FirebaseAuth.getInstance().currentUser?.email
+        if (reporterEmail.isNullOrEmpty()) {
+            Toast.makeText(this, "Please log in to report", Toast.LENGTH_SHORT).show()
+            return
+        }
+        if (reporterEmail == playlist.userId) {
+            Toast.makeText(this, "You can't report your own video", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        val root = dialogCard()
+        root.addView(dialogTitle("Report \"${video.title}\""))
+        root.addView(TextView(this).apply {
+            text = "Help us understand what's wrong with this video"
+            setTextColor(Color.parseColor("#456882"))
+            textSize = 13f
+            setPadding(0, dp(4), 0, dp(4))
+        })
+        root.addView(dividerLine())
+
+        val dialog = AlertDialog.Builder(this).setView(root).create()
+        dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
+
+        reportReasons.forEachIndexed { index, reason ->
+            root.addView(reportReasonRow(reason) {
+                dialog.dismiss()
+                submitVideoReport(video, reason, reporterEmail)
+            })
+            if (index != reportReasons.lastIndex) {
+                root.addView(dividerLine())
+            }
+        }
+
+        val btnCancel = pillButton("Cancel", Color.parseColor("#EAF1F5"), Color.parseColor("#456882")).apply {
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply {
+                topMargin = dp(16)
+                gravity = Gravity.END
+            }
+            setPadding(dp(28), dp(10), dp(28), dp(10))
+            setOnClickListener { dialog.dismiss() }
+        }
+        root.addView(btnCancel)
+
+        dialog.show()
+    }
+
+    private fun submitVideoReport(video: PlaylistVideo, reason: String, reporterEmail: String) {
+        val docRef = db.collection("reports").document()
+        val report = Report(
+            id = docRef.id,
+            reporterId = reporterEmail,
+            reportedUserId = playlist.userId,
+            skillId = playlist.id,
+            reason = reason,
+            description = "Reported video \"${video.title}\" (Video ID: ${video.id}) in playlist \"${playlist.title}\" (Playlist ID: ${playlist.id})",
+            status = "pending",
+            timestamp = System.currentTimeMillis()
+        )
+        docRef.set(report)
+            .addOnSuccessListener {
+                Toast.makeText(this, "Report submitted. Our team will review it.", Toast.LENGTH_LONG).show()
+            }
+            .addOnFailureListener { e ->
+                Toast.makeText(this, "Failed to submit report: ${e.message}", Toast.LENGTH_LONG).show()
+            }
+    }
+
+    private fun reportReasonRow(text: String, onClick: () -> Unit): TextView {
+        val outValue = TypedValue()
+        theme.resolveAttribute(android.R.attr.selectableItemBackground, outValue, true)
+        return TextView(this).apply {
+            this.text = text
+            setTextColor(Color.parseColor("#1B3C53"))
+            textSize = 15f
+            setPadding(dp(4), dp(8), dp(4), dp(8))
+            setBackgroundResource(outValue.resourceId)
+            isClickable = true
+            isFocusable = true
+            setOnClickListener { onClick() }
+        }
+    }
+
+    // ---------- Themed-dialog helpers ----------
+    private fun dp(value: Int): Int = (value * resources.displayMetrics.density).toInt()
+
+    private fun dialogCard(): LinearLayout {
+        return LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(20), dp(22), dp(20), dp(20))
+            background = GradientDrawable().apply {
+                cornerRadius = dp(20).toFloat()
+                setColor(Color.WHITE)
+            }
+        }
+    }
+
+    private fun dialogTitle(text: String): TextView {
+        return TextView(this).apply {
+            this.text = text
+            setTextColor(Color.parseColor("#1B3C53"))
+            textSize = 17f
+            setTypeface(typeface, Typeface.BOLD)
+        }
+    }
+
+    private fun dividerLine(): View {
+        return View(this).apply {
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                dp(1)
+            ).apply {
+                topMargin = dp(12)
+                bottomMargin = dp(12)
+            }
+            setBackgroundColor(Color.parseColor("#EAF1F5"))
+        }
+    }
+
+    private fun pillButton(text: String, bgColor: Int, textColor: Int): TextView {
+        return TextView(this).apply {
+            this.text = text
+            setTextColor(textColor)
+            textSize = 14f
+            setTypeface(typeface, Typeface.BOLD)
+            gravity = Gravity.CENTER
+            setPadding(0, dp(12), 0, dp(12))
+            background = GradientDrawable().apply {
+                cornerRadius = dp(24).toFloat()
+                setColor(bgColor)
+            }
+            isClickable = true
+            isFocusable = true
+        }
     }
 }

@@ -44,7 +44,7 @@
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
-                        android:text="Profile"
+                        android:text="@string/profile"
                         android:textColor="#F9F3EF"
                         android:textSize="26sp"
                         android:fontFamily="sans-serif-medium"
@@ -59,7 +59,7 @@
                         android:clickable="true"
                         android:focusable="true"
                         android:background="?attr/selectableItemBackgroundBorderless"
-                        android:contentDescription="Settings" />
+                        android:contentDescription="@string/settings" />
                 </LinearLayout>
 
                 <!-- Bordered profile card -->
@@ -178,7 +178,7 @@
                                     android:layout_width="wrap_content"
                                     android:layout_height="wrap_content"
                                     android:layout_marginTop="2dp"
-                                    android:text="Exchanges"
+                                    android:text="@string/exchanges"
                                     android:textColor="#B8C6CE"
                                     android:textSize="11.5sp" />
                             </LinearLayout>
@@ -209,7 +209,7 @@
                                     android:layout_width="wrap_content"
                                     android:layout_height="wrap_content"
                                     android:layout_marginTop="2dp"
-                                    android:text="Rating"
+                                    android:text="@string/rating"
                                     android:textColor="#B8C6CE"
                                     android:textSize="11.5sp" />
                             </LinearLayout>
@@ -240,7 +240,7 @@
                                     android:layout_width="wrap_content"
                                     android:layout_height="wrap_content"
                                     android:layout_marginTop="2dp"
-                                    android:text="Credits"
+                                    android:text="@string/credits"
                                     android:textColor="#B8C6CE"
                                     android:textSize="11.5sp" />
                             </LinearLayout>
@@ -252,7 +252,7 @@
                             android:layout_width="match_parent"
                             android:layout_height="46dp"
                             android:layout_marginTop="18dp"
-                            android:text="Edit Profile"
+                            android:text="@string/edit_profile"
                             android:textAllCaps="false"
                             android:textSize="14.5sp"
                             android:textStyle="bold"
@@ -292,7 +292,7 @@
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
-                        android:text="My Skills"
+                        android:text="@string/my_skills"
                         android:textColor="#1B3C53"
                         android:textSize="18sp"
                         android:textStyle="bold" />
@@ -301,7 +301,7 @@
                         android:id="@+id/btnAddNewSkill"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Add new"
+                        android:text="@string/add_new"
                         android:textAllCaps="false"
                         android:textSize="14sp"
                         android:textStyle="bold"
@@ -326,7 +326,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Achievements"
+                    android:text="@string/achievements"
                     android:textColor="#1B3C53"
                     android:textSize="18sp"
                     android:textStyle="bold"
@@ -380,7 +380,7 @@
                                 android:layout_height="wrap_content"
                                 android:layout_weight="1"
                                 android:layout_marginStart="14dp"
-                                android:text="Booking History"
+                                android:text="@string/booking_history"
                                 android:textColor="#1B3C53"
                                 android:textSize="15.5sp" />
 
@@ -421,7 +421,7 @@
                                 android:layout_height="wrap_content"
                                 android:layout_weight="1"
                                 android:layout_marginStart="14dp"
-                                android:text="Reviews &amp; Ratings"
+                                android:text="@string/reviews_ratings"
                                 android:textColor="#1B3C53"
                                 android:textSize="15.5sp" />
 
@@ -462,9 +462,60 @@
                                 android:layout_height="wrap_content"
                                 android:layout_weight="1"
                                 android:layout_marginStart="14dp"
-                                android:text="Feedback"
+                                android:text="@string/feedback"
                                 android:textColor="#1B3C53"
                                 android:textSize="15.5sp" />
+
+                            <ImageView
+                                android:layout_width="20dp"
+                                android:layout_height="20dp"
+                                android:src="@drawable/outline_chevron_right_24"
+                                app:tint="#9AA7B0" />
+                        </LinearLayout>
+
+                        <View
+                            android:layout_width="match_parent"
+                            android:layout_height="1dp"
+                            android:layout_marginStart="18dp"
+                            android:background="#EAF1F5" />
+
+                        <LinearLayout
+                            android:id="@+id/layoutChangeLanguage"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="horizontal"
+                            android:gravity="center_vertical"
+                            android:paddingStart="18dp"
+                            android:paddingEnd="18dp"
+                            android:paddingVertical="16dp"
+                            android:background="?attr/selectableItemBackground"
+                            android:clickable="true"
+                            android:focusable="true">
+
+                            <TextView
+                                android:layout_width="22dp"
+                                android:layout_height="22dp"
+                                android:text="🌐"
+                                android:textSize="16sp"
+                                android:gravity="center" />
+
+                            <TextView
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:layout_marginStart="14dp"
+                                android:text="@string/change_language"
+                                android:textColor="#1B3C53"
+                                android:textSize="15.5sp" />
+
+                            <TextView
+                                android:id="@+id/tvProfileLanguage"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginEnd="6dp"
+                                android:text="English"
+                                android:textColor="#456882"
+                                android:textSize="13.5sp" />
 
                             <ImageView
                                 android:layout_width="20dp"
@@ -503,7 +554,7 @@
                                 android:layout_height="wrap_content"
                                 android:layout_weight="1"
                                 android:layout_marginStart="14dp"
-                                android:text="Settings"
+                                android:text="@string/settings"
                                 android:textColor="#1B3C53"
                                 android:textSize="15.5sp" />
 
@@ -550,7 +601,7 @@
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
                             android:layout_marginStart="12dp"
-                            android:text="Log Out"
+                            android:text="@string/logout"
                             android:textColor="#DC2626"
                             android:textSize="15.5sp"
                             android:textStyle="bold" />

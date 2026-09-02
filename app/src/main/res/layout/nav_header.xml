@@ -5,14 +5,17 @@
     android:layout_height="wrap_content"
     android:orientation="vertical"
     android:background="@color/brand_navy"
-    android:padding="16dp">
+    android:padding="16dp"
+    android:paddingTop="40dp">
 
-    <!-- Profile Picture -->
+    <!-- Profile Picture - moved down with top padding -->
     <com.google.android.material.card.MaterialCardView
-        android:layout_width="64dp"
-        android:layout_height="64dp"
-        app:cardCornerRadius="32dp"
+        android:layout_width="72dp"
+        android:layout_height="72dp"
+        app:cardCornerRadius="36dp"
         app:cardElevation="4dp"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginTop="20dp"
         android:layout_marginBottom="12dp">
         <ImageView
             android:id="@+id/imgNavProfile"
@@ -29,6 +32,7 @@
         android:id="@+id/tvNavUserName"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:layout_gravity="center_horizontal"
         android:text="Alex Johnson"
         android:textColor="@color/brand_cream"
         android:textSize="18sp"
@@ -39,6 +43,7 @@
         android:id="@+id/tvNavUserEmail"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:layout_gravity="center_horizontal"
         android:text="alex.johnson@example.com"
         android:textColor="#C9D6DD"
         android:textSize="14sp"
@@ -48,6 +53,7 @@
     <LinearLayout
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:layout_gravity="center_horizontal"
         android:orientation="horizontal"
         android:layout_marginTop="8dp"
         android:gravity="center_vertical">
@@ -79,7 +85,8 @@
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Your Stats"
+        android:layout_gravity="center_horizontal"
+        android:text="@string/nav_header_stats"
         android:textColor="@color/brand_cream"
         android:textSize="16sp"
         android:textStyle="bold"
@@ -111,7 +118,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Trades"
+                android:text="@string/nav_trades_label"
                 android:textColor="#C9D6DD"
                 android:textSize="12sp" />
         </LinearLayout>
@@ -140,7 +147,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Rating"
+                android:text="@string/nav_rating_label"
                 android:textColor="#C9D6DD"
                 android:textSize="12sp" />
         </LinearLayout>
@@ -169,7 +176,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Skills"
+                android:text="@string/nav_skills_label"
                 android:textColor="#C9D6DD"
                 android:textSize="12sp" />
         </LinearLayout>

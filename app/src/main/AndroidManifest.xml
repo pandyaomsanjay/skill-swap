@@ -161,7 +161,8 @@
         <activity android:name=".SubmitFeedbackActivity" />
         <activity
             android:name=".ChatActivity"
-            android:exported="false" />
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
         <activity
             android:name=".ChatListActivity"
             android:exported="false" />

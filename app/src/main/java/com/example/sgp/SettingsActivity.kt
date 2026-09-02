@@ -274,7 +274,7 @@ class SettingsActivity : BaseActivity() {
         val isDarkMode = sharedPreferences.getBoolean(KEY_DARK_MODE, false)
         findViewById<MaterialSwitch>(R.id.switchDarkMode)?.isChecked = isDarkMode
 
-        val language = sharedPreferences.getString(KEY_LANGUAGE, "English (US)") ?: "English (US)"
+        val language = LocaleHelper.getLanguageDisplayName(this)
         findViewById<TextView>(R.id.tvLanguage)?.text = language
 
         findViewById<TextView>(R.id.tvAppVersion)?.text = "v1.0.0"
@@ -373,21 +373,22 @@ class SettingsActivity : BaseActivity() {
     }
 
     private fun showLanguageDialog() {
-        val languages = arrayOf("English (US)", "Spanish", "French", "German", "Hindi")
-        val currentLanguage = sharedPreferences.getString(KEY_LANGUAGE, "English (US)") ?: "English (US)"
-        val checkedItem = languages.indexOf(currentLanguage).let { if (it >= 0) it else 0 }
-
-        MaterialAlertDialogBuilder(this)
-            .setTitle("Select Language")
-            .setSingleChoiceItems(languages, checkedItem) { dialog, which ->
-                val selectedLanguage = languages[which]
-                sharedPreferences.edit().putString(KEY_LANGUAGE, selectedLanguage).apply()
-                findViewById<TextView>(R.id.tvLanguage)?.text = selectedLanguage
-                dialog.dismiss()
-                restartApp()
+        LocaleHelper.showLanguageDialog(this) { selected ->
+            findViewById<TextView>(R.id.tvLanguage)?.text = selected.nativeName
+            val email = sharedPreferences.getString(KEY_USER_EMAIL, "")
+                ?.takeIf { it.isNotEmpty() }
+                ?: auth.currentUser?.email
+                ?: ""
+            if (email.isNotEmpty()) {
+                db.collection("users").whereEqualTo("email", email).get()
+                    .addOnSuccessListener { snapshot ->
+                        if (!snapshot.isEmpty) {
+                            snapshot.documents[0].reference.update("language", selected.key)
+                        }
+                    }
             }
-            .setNegativeButton("Cancel", null)
-            .show()
+            restartApp()
+        }
     }
 
     private fun restartApp() {
@@ -400,15 +401,15 @@ class SettingsActivity : BaseActivity() {
 
     private fun showLogoutDialog() {
         MaterialAlertDialogBuilder(this)
-            .setTitle("Sign Out")
-            .setMessage("Are you sure you want to sign out?")
-            .setPositiveButton("Sign Out") { _, _ ->
+            .setTitle(R.string.logout_confirmation_title)
+            .setMessage(R.string.logout_confirmation_message)
+            .setPositiveButton(R.string.logout) { _, _ ->
                 auth.signOut()
                 OneSignal.logout()
                 clearUserData()
                 navigateToLogin()
             }
-            .setNegativeButton("Cancel", null)
+            .setNegativeButton(R.string.cancel, null)
             .show()
     }
 

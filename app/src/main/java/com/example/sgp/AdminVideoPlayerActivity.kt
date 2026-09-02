@@ -37,7 +37,7 @@ import java.util.Locale
 //  - Picture-in-Picture: tapping the PiP button, or leaving the app while a
 //    video is playing, shrinks it into a small floating window like YouTube's
 //    mini player, so the admin can keep browsing elsewhere in the app.
-class AdminVideoPlayerActivity : AppCompatActivity() {
+class AdminVideoPlayerActivity : BaseActivity() {
 
     private lateinit var videoView: ResizableVideoView
     private lateinit var videoContainer: FrameLayout

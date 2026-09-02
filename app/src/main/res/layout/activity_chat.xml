@@ -1,21 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/rootChatLayout"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
     android:background="@color/admin_bg_light_blue">
 
-    <!-- Toolbar: extra top padding pushes the back icon + name down slightly
-         without clipping, since a plain actionBarSize height keeps everything
-         pinned to vertical-center. -->
     <androidx.appcompat.widget.Toolbar
         android:id="@+id/toolbarChat"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:minHeight="?attr/actionBarSize"
-        android:paddingTop="14dp"
-        android:paddingBottom="8dp"
+        android:paddingTop="6dp"
+        android:paddingBottom="6dp"
         android:background="@color/brand_final_primary"
         app:navigationIcon="@drawable/baseline_arrow_back_24"
         app:navigationIconTint="@color/black"
@@ -60,8 +58,6 @@
         android:paddingTop="10dp"
         android:paddingBottom="10dp" />
 
-    <!-- Input bar sits on the same EAF1F5 background; a subtle stroke on the
-         field itself provides separation instead of a contrasting bar color. -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"

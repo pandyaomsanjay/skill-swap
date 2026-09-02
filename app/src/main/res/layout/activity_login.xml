@@ -75,11 +75,68 @@
             android:paddingBottom="36dp"
             android:gravity="center_horizontal">
 
+            <!-- Top bar with Language Selector -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="end|center_vertical"
+                android:paddingTop="12dp"
+                android:paddingBottom="4dp">
+
+                <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/btnLanguageSelector"
+                    android:layout_width="wrap_content"
+                    android:layout_height="36dp"
+                    app:cardCornerRadius="18dp"
+                    app:cardElevation="1dp"
+                    app:strokeWidth="1dp"
+                    app:strokeColor="@color/brand_tan"
+                    app:cardBackgroundColor="@color/surface"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:foreground="?attr/selectableItemBackground">
+
+                    <LinearLayout
+                        android:layout_width="wrap_content"
+                        android:layout_height="match_parent"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
+                        android:paddingStart="12dp"
+                        android:paddingEnd="12dp">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="🌐"
+                            android:textSize="14sp"
+                            android:layout_marginEnd="6dp" />
+
+                        <TextView
+                            android:id="@+id/tvCurrentLanguage"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/language"
+                            android:textColor="@color/brand_navy"
+                            android:textSize="13sp"
+                            android:fontFamily="sans-serif-medium"
+                            android:textStyle="bold" />
+
+                        <ImageView
+                            android:layout_width="16dp"
+                            android:layout_height="16dp"
+                            android:layout_marginStart="4dp"
+                            android:src="@drawable/outline_more_horiz_24"
+                            app:tint="@color/brand_steel" />
+                    </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
+            </LinearLayout>
+
             <!-- Logo -->
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="92dp"
                 android:layout_height="92dp"
-                android:layout_marginTop="52dp"
+                android:layout_marginTop="20dp"
                 android:layout_marginBottom="20dp"
                 app:cardCornerRadius="46dp"
                 app:cardElevation="10dp"
@@ -92,14 +149,15 @@
                     android:layout_height="match_parent"
                     android:scaleType="centerCrop"
                     android:src="@drawable/logo2"
-                    android:contentDescription="SkillSwap Logo" />
+                    android:contentDescription="@string/app_logo" />
             </com.google.android.material.card.MaterialCardView>
 
             <!-- Title -->
             <TextView
+                android:id="@+id/tvLoginTitle"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Welcome Back!"
+                android:text="@string/welcome_back"
                 android:textColor="@color/text_primary"
                 android:textSize="28sp"
                 android:fontFamily="sans-serif-black"
@@ -108,14 +166,15 @@
 
             <!-- Subtitle -->
             <TextView
+                android:id="@+id/tvLoginSubtitle"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Sign in to continue your skill journey"
+                android:text="@string/sign_in_subtitle"
                 android:textColor="@color/text_secondary"
                 android:textSize="13.5sp"
                 android:fontFamily="sans-serif-light"
                 android:letterSpacing="0.02"
-                android:layout_marginBottom="40dp" />
+                android:layout_marginBottom="36dp" />
 
             <!-- ===================== Form — pill-shaped fields ===================== -->
 
@@ -124,7 +183,7 @@
                 style="@style/Widget.MaterialComponents.TextInputLayout.FilledBox"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:hint="Email Address"
+                android:hint="@string/email_address"
                 app:boxBackgroundColor="@color/surface"
                 app:boxCornerRadiusTopStart="26dp"
                 app:boxCornerRadiusTopEnd="26dp"
@@ -155,7 +214,7 @@
                 style="@style/Widget.MaterialComponents.TextInputLayout.FilledBox"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:hint="Password"
+                android:hint="@string/password"
                 app:boxBackgroundColor="@color/surface"
                 app:boxCornerRadiusTopStart="26dp"
                 app:boxCornerRadiusTopEnd="26dp"
@@ -211,21 +270,21 @@
                 android:id="@+id/tvForgotPassword"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Forgot Password?"
+                android:text="@string/forgot_password"
                 android:textColor="@color/brand_navy"
                 android:textSize="13sp"
                 android:textStyle="bold"
                 android:padding="4dp"
                 android:layout_gravity="end"
                 android:background="?attr/selectableItemBackground"
-                android:layout_marginBottom="30dp" />
+                android:layout_marginBottom="26dp" />
 
             <!-- Sign In Button -->
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnLogin"
                 android:layout_width="match_parent"
                 android:layout_height="58dp"
-                android:text="Sign In"
+                android:text="@string/sign_in"
                 android:textAllCaps="false"
                 android:textColor="@color/text_inverse"
                 android:textSize="16sp"
@@ -235,7 +294,7 @@
                 app:cornerRadius="29dp"
                 app:elevation="8dp"
                 app:rippleColor="@color/overlay_light"
-                android:layout_marginBottom="26dp" />
+                android:layout_marginBottom="24dp" />
 
             <!-- OR divider -->
             <LinearLayout
@@ -254,7 +313,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="OR CONTINUE WITH"
+                    android:text="@string/or_continue_with"
                     android:textColor="@color/text_hint"
                     android:textSize="10.5sp"
                     android:fontFamily="sans-serif-medium"
@@ -274,7 +333,7 @@
                 style="@style/Widget.MaterialComponents.Button.OutlinedButton"
                 android:layout_width="match_parent"
                 android:layout_height="56dp"
-                android:text="Continue with Google"
+                android:text="@string/continue_with_google"
                 android:textAllCaps="false"
                 android:textColor="@color/text_primary"
                 android:textSize="14sp"
@@ -287,7 +346,7 @@
                 app:iconTint="@null"
                 app:iconGravity="textStart"
                 app:iconPadding="10dp"
-                android:layout_marginBottom="28dp" />
+                android:layout_marginBottom="26dp" />
 
             <!-- Create Account Link -->
             <LinearLayout
@@ -304,7 +363,7 @@
                     android:id="@+id/tvSignInPrompt"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="New to SkillSwap?  "
+                    android:text="@string/new_to_skillswap"
                     android:textColor="@color/text_secondary"
                     android:textSize="13.5sp" />
 
@@ -312,7 +371,7 @@
                     android:id="@+id/tvCreateAccount"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Create Account"
+                    android:text="@string/create_account"
                     android:textColor="@color/brand_navy"
                     android:textSize="13.5sp"
                     android:textStyle="bold" />

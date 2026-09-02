@@ -14,7 +14,7 @@ import com.google.firebase.firestore.FirebaseFirestore
 import io.github.jan.supabase.storage.storage
 import kotlinx.coroutines.launch
 
-class UploadVideoActivity : AppCompatActivity() {
+class UploadVideoActivity : BaseActivity() {
     private lateinit var videoView: VideoView
     private lateinit var db: FirebaseFirestore
 

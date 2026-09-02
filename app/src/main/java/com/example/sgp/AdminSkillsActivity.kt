@@ -29,7 +29,7 @@ import com.google.firebase.Firebase
 import com.google.firebase.firestore.ListenerRegistration
 import java.util.Locale
 
-class AdminSkillsActivity : AppCompatActivity() {
+class AdminSkillsActivity : BaseActivity() {
 
     private lateinit var recyclerView: RecyclerView
     private lateinit var adapter: SkillAdapter

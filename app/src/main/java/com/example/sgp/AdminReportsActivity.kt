@@ -43,13 +43,12 @@ import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
 import java.util.Locale
-import android.widget.ImageView
 import com.bumptech.glide.Glide
 
-
 private enum class ReportTab { ALL, PENDING, RESOLVED }
+private enum class ReportTypeTab { ALL, VIDEOS, PLAYLISTS }
 
-class AdminReportsActivity : AppCompatActivity() {
+class AdminReportsActivity : BaseActivity() {
 
     private lateinit var db: FirebaseFirestore
 
@@ -71,6 +70,9 @@ class AdminReportsActivity : AppCompatActivity() {
     // up / update the right user document from a report's email-based ID.
     private val emailToUid = mutableMapOf<String, String>()
 
+    // Cache of skillId -> Skill to know if it's a playlist or single video
+    private val skillCache = mutableMapOf<String, Skill>()
+
     private fun resolveUid(reportedUserId: String): String? =
         emailToUid[reportedUserId] ?: userCache[reportedUserId]?.let { reportedUserId }
 
@@ -88,6 +90,15 @@ class AdminReportsActivity : AppCompatActivity() {
     private lateinit var tvTabResolved: TextView
     private var currentTab = ReportTab.ALL
     private var searchQuery = ""
+
+    // ---- Report Type Tabs (Videos / Playlists) ----
+    private lateinit var tabTypeAll: MaterialCardView
+    private lateinit var tabTypeVideos: MaterialCardView
+    private lateinit var tabTypePlaylists: MaterialCardView
+    private lateinit var tvTabTypeAll: TextView
+    private lateinit var tvTabTypeVideos: TextView
+    private lateinit var tvTabTypePlaylists: TextView
+    private var currentTypeTab = ReportTypeTab.ALL
 
     // ---- Analytics cards ----
     private lateinit var tvTotalUsers: TextView
@@ -107,12 +118,12 @@ class AdminReportsActivity : AppCompatActivity() {
     private lateinit var tvSwapsByMonthPeakValue: TextView
     private lateinit var llSwapsByMonthLabels: LinearLayout
 
-
     // ---- Listeners ----
     private var reportsListener: ListenerRegistration? = null
     private var usersListener: ListenerRegistration? = null
     private var skillsListener: ListenerRegistration? = null
     private var tradesListener: ListenerRegistration? = null
+    private var skillsCacheListener: ListenerRegistration? = null
 
     private var pendingExport: (() -> Unit)? = null
     private val storagePermissionLauncher = registerForActivityResult(
@@ -147,9 +158,13 @@ class AdminReportsActivity : AppCompatActivity() {
         db = Firebase.firestore
 
         bindViews()
-
+        loadSkillsCache()
         recyclerView.layoutManager = LinearLayoutManager(this)
-        adapter = ReportAdapter(filteredReports, ::resolveUser,
+        adapter = ReportAdapter(
+            filteredReports,
+            ::resolveUser,
+            ::getSkillType,
+            ::extractVideoIdFromReport,
             onItemClick = { report -> showReportOptionsDialog(report) },
             onMenuClick = { report, anchor -> showReportOptionsDialog(report) }
         )
@@ -157,8 +172,9 @@ class AdminReportsActivity : AppCompatActivity() {
 
         setupSearch()
         setupTabs()
+        setupTypeTabs()
         setupExport()
-        BottomNav.setup(this, BottomNav.REPORTS)   // ← replaces setupNavigation()
+        BottomNav.setup(this, BottomNav.REPORTS)
 
         loadUsers()
         loadReports()
@@ -172,6 +188,7 @@ class AdminReportsActivity : AppCompatActivity() {
         usersListener?.remove()
         skillsListener?.remove()
         tradesListener?.remove()
+        skillsCacheListener?.remove()
     }
 
     private fun bindViews() {
@@ -187,6 +204,14 @@ class AdminReportsActivity : AppCompatActivity() {
         tvTabPending = findViewById(R.id.tvTabPending)
         tvTabResolved = findViewById(R.id.tvTabResolved)
 
+        // Type tabs
+        tabTypeAll = findViewById(R.id.tabTypeAll)
+        tabTypeVideos = findViewById(R.id.tabTypeVideos)
+        tabTypePlaylists = findViewById(R.id.tabTypePlaylists)
+        tvTabTypeAll = findViewById(R.id.tvTabTypeAll)
+        tvTabTypeVideos = findViewById(R.id.tvTabTypeVideos)
+        tvTabTypePlaylists = findViewById(R.id.tvTabTypePlaylists)
+
         tvTotalUsers = findViewById(R.id.tvTotalUsers)
         tvActiveUsers = findViewById(R.id.tvActiveUsers)
         tvTotalSkills = findViewById(R.id.tvTotalSkills)
@@ -201,6 +226,38 @@ class AdminReportsActivity : AppCompatActivity() {
         swapsByMonthChartView = findViewById(R.id.swapsByMonthChartView)
         tvSwapsByMonthPeakValue = findViewById(R.id.tvSwapsByMonthPeakValue)
         llSwapsByMonthLabels = findViewById(R.id.llSwapsByMonthLabels)
+    }
+
+    // Load skills cache to know which reports are for playlists vs videos
+    private fun loadSkillsCache() {
+        skillsCacheListener = db.collection("skills")
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    Log.e(TAG, "Skills cache listener failed", error)
+                    return@addSnapshotListener
+                }
+                skillCache.clear()
+                snapshot?.documents?.forEach { doc ->
+                    val skill = doc.toObject(Skill::class.java)
+                    if (skill != null) {
+                        skill.id = doc.id
+                        skillCache[doc.id] = skill
+                    }
+                }
+                // Refresh adapter to show correct icons
+                adapter.notifyDataSetChanged()
+            }
+    }
+
+    private fun getSkillType(skillId: String): String {
+        return skillCache[skillId]?.skillType ?: "unknown"
+    }
+
+    // Extract video ID from report description
+    private fun extractVideoIdFromReport(report: Report): String? {
+        // Try to extract from description
+        val match = Regex("Video ID:\\s*([^)]+)\\)").find(report.description)
+        return match?.groupValues?.get(1)?.trim()
     }
 
     // ---------------- Search ----------------
@@ -252,6 +309,42 @@ class AdminReportsActivity : AppCompatActivity() {
         applyFilters()
     }
 
+    // ---------------- Type Tabs (All / Videos / Playlists) ----------------
+
+    private fun setupTypeTabs() {
+        tabTypeAll.setOnClickListener { selectTypeTab(ReportTypeTab.ALL) }
+        tabTypeVideos.setOnClickListener { selectTypeTab(ReportTypeTab.VIDEOS) }
+        tabTypePlaylists.setOnClickListener { selectTypeTab(ReportTypeTab.PLAYLISTS) }
+        selectTypeTab(ReportTypeTab.ALL)
+    }
+
+    private fun selectTypeTab(tab: ReportTypeTab) {
+        currentTypeTab = tab
+        val selectedBg = Color.parseColor("#F9F3EF")
+        val selectedText = Color.parseColor("#1B3C53")
+        val unselectedBg = Color.parseColor("#456882")
+        val unselectedText = Color.parseColor("#FFFFFF")
+
+        val cards = listOf(
+            Triple(tabTypeAll, tvTabTypeAll, ReportTypeTab.ALL),
+            Triple(tabTypeVideos, tvTabTypeVideos, ReportTypeTab.VIDEOS),
+            Triple(tabTypePlaylists, tvTabTypePlaylists, ReportTypeTab.PLAYLISTS)
+        )
+        cards.forEach { (card, text, t) ->
+            if (t == tab) {
+                card.setCardBackgroundColor(selectedBg)
+                card.strokeWidth = 0
+                text.setTextColor(selectedText)
+            } else {
+                card.setCardBackgroundColor(unselectedBg)
+                card.strokeWidth = (1 * resources.displayMetrics.density).toInt()
+                card.strokeColor = Color.parseColor("#FFFFFF")
+                text.setTextColor(unselectedText)
+            }
+        }
+        applyFilters()
+    }
+
     private fun applyFilters() {
         val statusFiltered = when (currentTab) {
             ReportTab.ALL -> allReports
@@ -259,15 +352,35 @@ class AdminReportsActivity : AppCompatActivity() {
             ReportTab.RESOLVED -> allReports.filter { it.status.equals("resolved", ignoreCase = true) }
         }
 
+        // Filter by report type (video vs playlist)
+        val typeFiltered = when (currentTypeTab) {
+            ReportTypeTab.ALL -> statusFiltered
+            ReportTypeTab.VIDEOS -> statusFiltered.filter { report ->
+                val skillId = extractSkillId(report)
+                val videoId = extractVideoIdFromReport(report)
+                // If it has a videoId, it's a specific video report
+                // Or if it's a single video skill
+                videoId != null || skillCache[skillId]?.skillType == "single" || skillCache[skillId]?.skillType == null
+            }
+            ReportTypeTab.PLAYLISTS -> statusFiltered.filter { report ->
+                val skillId = extractSkillId(report)
+                val videoId = extractVideoIdFromReport(report)
+                // Playlist reports are those with playlist skill type AND no specific video ID
+                skillCache[skillId]?.skillType == "playlist" && videoId == null
+            }
+        }
+
         val searched = if (searchQuery.isBlank()) {
-            statusFiltered
+            typeFiltered
         } else {
-            statusFiltered.filter { report ->
+            typeFiltered.filter { report ->
                 val user = resolveUser(report.reportedUserId)
                 val name = user?.name?.lowercase(Locale.getDefault()) ?: ""
                 val email = user?.email?.lowercase(Locale.getDefault()) ?: ""
                 val id = report.id.lowercase(Locale.getDefault())
-                name.contains(searchQuery) || email.contains(searchQuery) || id.contains(searchQuery)
+                val reason = report.reason.lowercase(Locale.getDefault())
+                name.contains(searchQuery) || email.contains(searchQuery) ||
+                        id.contains(searchQuery) || reason.contains(searchQuery)
             }
         }
 
@@ -330,7 +443,6 @@ class AdminReportsActivity : AppCompatActivity() {
                 } else "0.0"
 
                 renderUserGrowthChart()
-                // Re-run filters/adapter since names shown on report cards depend on userCache
                 applyFilters()
             }
     }
@@ -390,12 +502,6 @@ class AdminReportsActivity : AppCompatActivity() {
 
     private fun renderUserGrowthChart() {
         val buckets = last6MonthBuckets()
-        val allJoinDates = userCache.values.mapNotNull {
-            // joinedDate is stored as raw Long millis on the user document (see AdminDashboardActivity)
-            null // placeholder, replaced below via raw doc read
-        }
-        // We need raw joinedDate values, which Users may not expose as a typed field.
-        // Re-read them from the live snapshot instead for accuracy:
         db.collection("users").get().addOnSuccessListener { snapshot ->
             val joinDates = snapshot.documents.mapNotNull { it.getLong("joinedDate") }
             var cumulative = 0
@@ -444,14 +550,15 @@ class AdminReportsActivity : AppCompatActivity() {
         }
     }
 
-
-
     // ---------------- Report actions (themed bottom sheet, matches Trades page) ----------------
 
     private fun showReportOptionsDialog(report: Report) {
         val dialog = BottomSheetDialog(this, R.style.DarkBottomSheetDialog)
         val user = resolveUser(report.reportedUserId)
-        val reporter = resolveUser(report.reporterId) // resolves who filed the report
+        val reporter = resolveUser(report.reporterId)
+        val skillType = getSkillType(extractSkillId(report))
+        val videoId = extractVideoIdFromReport(report)
+        val isSpecificVideo = videoId != null && skillType == "playlist"
 
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
@@ -471,9 +578,7 @@ class AdminReportsActivity : AppCompatActivity() {
             setPadding(dp(20), dp(20), dp(20), dp(20))
         }
 
-        // Profile avatar — loads the user's real photo via Glide when available,
-// falls back to an initial badge otherwise (same pattern as
-// AdminFeedbackActivity.showUserProfileDialog()).
+        // Profile avatar
         val initial = user?.name?.trim()?.firstOrNull()?.uppercaseChar()?.toString() ?: "?"
         header.addView(MaterialCardView(this).apply {
             layoutParams = LinearLayout.LayoutParams(dp(44), dp(44))
@@ -481,9 +586,9 @@ class AdminReportsActivity : AppCompatActivity() {
             cardElevation = 0f
             setCardBackgroundColor(Color.parseColor("#28405A"))
             if (!user?.profileImage.isNullOrEmpty()) {
-                val iv = ImageView(this@AdminReportsActivity).apply {
+                val iv = android.widget.ImageView(this@AdminReportsActivity).apply {
                     layoutParams = ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
-                    scaleType = ImageView.ScaleType.CENTER_CROP
+                    scaleType = android.widget.ImageView.ScaleType.CENTER_CROP
                 }
                 addView(iv)
                 Glide.with(this@AdminReportsActivity).load(user!!.profileImage).into(iv)
@@ -523,7 +628,7 @@ class AdminReportsActivity : AppCompatActivity() {
             setPadding(0, dp(2), 0, 0)
         })
         textCol.addView(TextView(this).apply {
-            text = "Report #$shortId"
+            text = "Report #$shortId • ${if (isSpecificVideo) "🎬 Specific Video" else if (skillType == "playlist") "📋 Playlist" else "🎬 Video"}"
             setTextColor(sheetSecondaryText)
             textSize = 11f
             setPadding(0, dp(2), 0, 0)
@@ -571,7 +676,7 @@ class AdminReportsActivity : AppCompatActivity() {
         }
 
         addRow("📋", "View Details") { viewReportDetails(report) }
-        addRow("🎬", "View Reported Video") { viewReportedSkill(report) }
+        addRow("🎬", "View Reported ${if (isSpecificVideo) "Video" else if (skillType == "playlist") "Playlist" else "Video"}") { viewReportedSkill(report) }
         addRow("👤", "View User Profile") { viewUserProfile(report) }
         if (!report.status.equals("resolved", ignoreCase = true)) {
             addRow("✅", "Resolve Report", Color.parseColor("#34D399")) { updateReportStatus(report, "resolved") }
@@ -589,6 +694,9 @@ class AdminReportsActivity : AppCompatActivity() {
 
     private fun viewReportDetails(report: Report) {
         val user = resolveUser(report.reportedUserId)
+        val skillType = getSkillType(extractSkillId(report))
+        val videoId = extractVideoIdFromReport(report)
+        val isSpecificVideo = videoId != null && skillType == "playlist"
         val root = dialogCard()
 
         root.addView(dialogTitle("Report Details"))
@@ -619,6 +727,10 @@ class AdminReportsActivity : AppCompatActivity() {
         }
 
         addDetailRow("Report ID", report.id)
+        addDetailRow("Type", if (isSpecificVideo) "🎬 Specific Video (in Playlist)" else if (skillType == "playlist") "📋 Playlist" else "🎬 Video")
+        if (isSpecificVideo) {
+            addDetailRow("Video ID", videoId ?: "N/A")
+        }
         addDetailRow("Reported User", user?.name ?: report.reportedUserId)
         addDetailRow("Reporter", report.reporterId)
         addDetailRow("Reason", report.reason)
@@ -630,7 +742,11 @@ class AdminReportsActivity : AppCompatActivity() {
         dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
 
         val buttonRow = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
-        val btnViewVideo = pillButton("View Video", Color.parseColor("#EAF1F5"), Color.parseColor("#1B3C53")).apply {
+        val btnViewVideo = pillButton(
+            if (isSpecificVideo) "View Video" else if (skillType == "playlist") "View Playlist" else "View Video",
+            Color.parseColor("#EAF1F5"),
+            Color.parseColor("#1B3C53")
+        ).apply {
             setOnClickListener {
                 dialog.dismiss()
                 viewReportedSkill(report)
@@ -657,7 +773,7 @@ class AdminReportsActivity : AppCompatActivity() {
 
     private fun viewUserProfile(report: Report) {
         val user = resolveUser(report.reportedUserId)
-        val reporter = resolveUser(report.reporterId) // resolves who filed this report
+        val reporter = resolveUser(report.reporterId)
         val root = dialogCard()
         root.addView(dialogTitle("User Profile"))
         root.addView(dialogDivider())
@@ -669,8 +785,6 @@ class AdminReportsActivity : AppCompatActivity() {
                 textSize = 13f
             })
         } else {
-            // Avatar + name + rating badge, same layout language as the Trades
-            // "View Both User Profiles" dialog.
             val topRow = LinearLayout(this).apply {
                 orientation = LinearLayout.HORIZONTAL
                 gravity = Gravity.CENTER_VERTICAL
@@ -682,9 +796,9 @@ class AdminReportsActivity : AppCompatActivity() {
                 cardElevation = 0f
                 setCardBackgroundColor(Color.parseColor("#EAE1DA"))
                 if (user.profileImage.isNotEmpty()) {
-                    val iv = ImageView(this@AdminReportsActivity).apply {
+                    val iv = android.widget.ImageView(this@AdminReportsActivity).apply {
                         layoutParams = ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
-                        scaleType = ImageView.ScaleType.CENTER_CROP
+                        scaleType = android.widget.ImageView.ScaleType.CENTER_CROP
                     }
                     addView(iv)
                     Glide.with(this@AdminReportsActivity).load(user.profileImage).into(iv)
@@ -732,7 +846,6 @@ class AdminReportsActivity : AppCompatActivity() {
             })
             root.addView(topRow)
 
-            // "Reported by" chip row — shows who filed this specific report
             root.addView(TextView(this).apply {
                 text = "🚩 Reported by ${reporter?.name?.ifBlank { report.reporterId } ?: report.reporterId}"
                 setTextColor(Color.parseColor("#B8860B"))
@@ -800,17 +913,8 @@ class AdminReportsActivity : AppCompatActivity() {
         dialog.show()
     }
 
-    // ---------------- Reported video (new) ----------------
+    // ---------------- Reported video/playlist ----------------
 
-    // Looks up the skill this report points to (via report.skillId) and shows
-    // its thumbnail/title/description with a button to actually play it, or
-    // open the playlist screen when the reported item is a playlist. Falls
-    // back gracefully for older reports that were created before skillId
-    // existed, and for skills that have since been deleted.
-    // Reports created before the skillId field existed on Report don't have it
-    // populated (Firestore just defaults it to ""). But submitReport() has always
-    // embedded the skill's real ID inside the description text as
-    // "...(Skill ID: <id>)", so we can recover it from there for old reports too.
     private fun extractSkillId(report: Report): String {
         if (report.skillId.isNotBlank()) return report.skillId
         val match = Regex("Skill ID:\\s*([^)]+)\\)").find(report.description)
@@ -820,26 +924,41 @@ class AdminReportsActivity : AppCompatActivity() {
     private fun viewReportedSkill(report: Report) {
         val skillId = extractSkillId(report)
         if (skillId.isBlank()) {
-            Toast.makeText(this, "No video is linked to this report", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, "No skill is linked to this report", Toast.LENGTH_SHORT).show()
             return
         }
         db.collection("skills").document(skillId).get()
             .addOnSuccessListener { doc ->
                 val skill = doc.toObject(Skill::class.java)
                 if (skill == null || !doc.exists()) {
-                    Toast.makeText(this, "This skill/video has been deleted", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this, "This skill has been deleted", Toast.LENGTH_SHORT).show()
                     return@addOnSuccessListener
                 }
+                skill.id = doc.id
                 showReportedSkillDialog(report, skill)
             }
             .addOnFailureListener { e ->
-                Toast.makeText(this, "Failed to load video: ${e.message}", Toast.LENGTH_LONG).show()
+                Toast.makeText(this, "Failed to load skill: ${e.message}", Toast.LENGTH_LONG).show()
             }
     }
 
     private fun showReportedSkillDialog(report: Report, skill: Skill) {
+        val isPlaylist = skill.skillType == "playlist"
+        val videoId = extractVideoIdFromReport(report)
+        val isSpecificVideo = videoId != null && isPlaylist
+
+        // If it's a specific video in a playlist, find that video
+        var specificVideo: PlaylistVideo? = null
+        if (isSpecificVideo && skill.videos != null) {
+            specificVideo = skill.videos.find { it.id == videoId }
+        }
+
         val root = dialogCard()
-        root.addView(dialogTitle("Reported Video"))
+        root.addView(dialogTitle(
+            if (isSpecificVideo) "Reported Video (in Playlist)"
+            else if (isPlaylist) "Reported Playlist"
+            else "Reported Video"
+        ))
         root.addView(dialogDivider())
 
         // Thumbnail preview
@@ -851,14 +970,38 @@ class AdminReportsActivity : AppCompatActivity() {
             cardElevation = 0f
             setCardBackgroundColor(Color.parseColor("#EAF1F5"))
         }
-        val thumbView = ImageView(this).apply {
+        val thumbView = android.widget.ImageView(this).apply {
             layoutParams = ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
-            scaleType = ImageView.ScaleType.CENTER_CROP
+            scaleType = android.widget.ImageView.ScaleType.CENTER_CROP
         }
         thumbCard.addView(thumbView)
-        if (!skill.videoUrl.isNullOrEmpty()) {
+
+        // Determine thumbnail URL - Use videoUrl as thumbnail since PlaylistVideo doesn't have thumbnailUrl
+        var thumbnailUrl: String? = null
+
+        if (isSpecificVideo && specificVideo != null) {
+            // Specific video in playlist - use the video's URL
+            if (specificVideo.videoUrl != null && specificVideo.videoUrl.isNotEmpty()) {
+                thumbnailUrl = specificVideo.videoUrl
+            } else if (skill.thumbnailUrl != null && skill.thumbnailUrl.isNotEmpty()) {
+                thumbnailUrl = skill.thumbnailUrl
+            }
+        } else if (isPlaylist) {
+            // Whole playlist - use playlist thumbnail
+            if (skill.thumbnailUrl != null && skill.thumbnailUrl.isNotEmpty()) {
+                thumbnailUrl = skill.thumbnailUrl
+            }
+        } else {
+            // Single video - use video URL
+            if (skill.videoUrl != null && skill.videoUrl.isNotEmpty()) {
+                thumbnailUrl = skill.videoUrl
+            }
+        }
+
+        // Load the thumbnail with Glide
+        if (thumbnailUrl != null && thumbnailUrl.isNotEmpty()) {
             Glide.with(this)
-                .load(skill.videoUrl)
+                .load(thumbnailUrl)
                 .placeholder(R.drawable.baseline_videocam_24)
                 .error(R.drawable.baseline_videocam_24)
                 .into(thumbView)
@@ -867,19 +1010,55 @@ class AdminReportsActivity : AppCompatActivity() {
         }
         root.addView(thumbCard)
 
-        root.addView(TextView(this).apply {
-            text = skill.title
+        // Title with type badge
+        val titleRow = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+        }
+        val displayTitle = if (isSpecificVideo && specificVideo != null) {
+            "${specificVideo.title} (in ${skill.title})"
+        } else {
+            skill.title
+        }
+        titleRow.addView(TextView(this).apply {
+            text = displayTitle
             setTextColor(Color.parseColor("#1B3C53"))
             textSize = 16f
             setTypeface(typeface, Typeface.BOLD)
+            layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
         })
+        titleRow.addView(TextView(this).apply {
+            text = if (isSpecificVideo) "🎬" else if (isPlaylist) "📋" else "🎬"
+            textSize = 16f
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply { marginStart = dp(8) }
+        })
+        root.addView(titleRow)
+
+        val subtitleText = if (isSpecificVideo && specificVideo != null) {
+            "${skill.category} • By ${skill.userName} • From playlist: ${skill.title}"
+        } else {
+            "${skill.category} • By ${skill.userName} • ${skill.credits} credits" +
+                    if (isPlaylist) " • ${skill.videoCount} videos" else ""
+        }
         root.addView(TextView(this).apply {
-            text = "${skill.category} • By ${skill.userName} • ${skill.credits} credits"
+            text = subtitleText
             setTextColor(Color.parseColor("#456882"))
             textSize = 12.5f
             setPadding(0, dp(4), 0, dp(10))
         })
-        if (skill.description.isNotBlank()) {
+
+        // Show specific video description if available
+        if (isSpecificVideo && specificVideo != null && specificVideo.description != null && specificVideo.description.isNotEmpty()) {
+            root.addView(TextView(this).apply {
+                text = "📝 ${specificVideo.description}"
+                setTextColor(Color.parseColor("#1B3C53"))
+                textSize = 12.5f
+                setPadding(0, 0, 0, dp(6))
+            })
+        } else if (skill.description != null && skill.description.isNotEmpty()) {
             root.addView(TextView(this).apply {
                 text = skill.description
                 setTextColor(Color.parseColor("#1B3C53"))
@@ -900,21 +1079,25 @@ class AdminReportsActivity : AppCompatActivity() {
         val btnClose = pillButton("Close", Color.parseColor("#EAF1F5"), Color.parseColor("#456882")).apply {
             setOnClickListener { dialog.dismiss() }
         }
-        val isPlaylist = skill.skillType == "playlist"
         val btnPlay = pillButton(
-            if (isPlaylist) "Open Playlist" else "▶ Play Video",
+            if (isSpecificVideo) "▶ Play Video" else if (isPlaylist) "Open Playlist" else "▶ Play Video",
             Color.parseColor("#1B3C53"),
             Color.WHITE
         ).apply {
             setOnClickListener {
                 dialog.dismiss()
                 when {
+                    isSpecificVideo && specificVideo != null -> {
+                        // Play the specific video from the playlist
+                        playSpecificVideoFromPlaylist(report, skill, specificVideo)
+                    }
                     isPlaylist -> {
+                        // Open the entire playlist
                         val intent = Intent(this@AdminReportsActivity, PlaylistActivity::class.java)
                         intent.putExtra("skillId", skill.id)
                         startActivity(intent)
                     }
-                    !skill.videoUrl.isNullOrEmpty() -> playReportedVideo(
+                    skill.videoUrl != null && skill.videoUrl.isNotEmpty() -> playReportedVideo(
                         report,
                         skill.videoUrl!!,
                         skill.title,
@@ -931,10 +1114,25 @@ class AdminReportsActivity : AppCompatActivity() {
         dialog.show()
     }
 
-    // Plays the video inside the app (AdminVideoPlayerActivity) instead of handing it
-    // off to whatever external player the device has installed. Also passes the
-    // report's own data through so the player screen can render "Report Details"
-    // and let the admin resolve/block right from there.
+    private fun playSpecificVideoFromPlaylist(report: Report, skill: Skill, video: PlaylistVideo) {
+        val intent = Intent(this, VideoPlayerActivity::class.java)
+        intent.putExtra("videoUrl", video.videoUrl)
+        intent.putExtra("skillTitle", "${video.title} (from ${skill.title})")
+        intent.putExtra("skillCategory", skill.category)
+        intent.putExtra("skillUserId", skill.userId)
+        intent.putExtra("skillUserName", skill.userName)
+        intent.putExtra("skillCredits", 0)
+        intent.putExtra("skillDescription", "Reported video from playlist")
+        intent.putExtra("skillId", skill.id)
+        intent.putExtra("playlistId", skill.id)
+        intent.putExtra("videoId", video.id)
+        intent.putExtra("totalVideos", skill.videoCount)
+        // Pass report info for context
+        intent.putExtra("reportId", report.id)
+        intent.putExtra("isFromReport", true)
+        startActivity(intent)
+    }
+
     private fun playReportedVideo(report: Report, videoUrl: String, title: String, subtitle: String) {
         val user = resolveUser(report.reportedUserId)
         val reporter = resolveUser(report.reporterId)
@@ -1023,9 +1221,6 @@ class AdminReportsActivity : AppCompatActivity() {
     }
 
     private fun blockUser(report: Report) {
-        // report.reportedUserId is an email; users/{uid} docs are keyed by uid,
-        // so resolve the real document ID first or this update silently
-        // creates/touches the wrong (nonexistent) document.
         val uid = resolveUid(report.reportedUserId)
         if (uid == null) {
             Toast.makeText(this, "Could not find this user's account record", Toast.LENGTH_LONG).show()
@@ -1035,7 +1230,6 @@ class AdminReportsActivity : AppCompatActivity() {
             .update("blocked", true)
             .addOnSuccessListener {
                 Toast.makeText(this, "User blocked", Toast.LENGTH_SHORT).show()
-                // Resolving the report alongside the block keeps the queue accurate
                 updateReportStatus(report, "resolved")
             }
             .addOnFailureListener {
@@ -1043,8 +1237,7 @@ class AdminReportsActivity : AppCompatActivity() {
             }
     }
 
-    // ---------------- Themed-dialog helpers (shared white rounded card + pill buttons,
-    // same look as AdminTradesActivity so both screens feel identical) ----------------
+    // ---------------- Themed-dialog helpers ----------------
 
     private fun dp(value: Int): Int = (value * resources.displayMetrics.density).toInt()
 
@@ -1098,7 +1291,7 @@ class AdminReportsActivity : AppCompatActivity() {
         }
     }
 
-    // ---------------- Export: choose between Reports Summary PDF and Users List PDF ----------------
+    // ---------------- Export ----------------
 
     private fun setupExport() {
         btnExport.setOnClickListener {
@@ -1106,7 +1299,6 @@ class AdminReportsActivity : AppCompatActivity() {
         }
     }
 
-    // Lets the admin pick which PDF to generate before any storage permission is requested.
     private fun showExportOptionsDialog() {
         val dialog = BottomSheetDialog(this, R.style.DarkBottomSheetDialog)
 
@@ -1120,7 +1312,6 @@ class AdminReportsActivity : AppCompatActivity() {
             }
         }
 
-        // ---- Header ----
         val header = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
@@ -1144,7 +1335,6 @@ class AdminReportsActivity : AppCompatActivity() {
         })
         root.addView(header)
 
-        // ---- Divider ----
         root.addView(View(this).apply {
             layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp(1))
             setBackgroundColor(sheetDivider)
@@ -1239,9 +1429,9 @@ class AdminReportsActivity : AppCompatActivity() {
         val headerRowHeight = 24f
         val bannerHeight = 70f
 
-        val headers = listOf("Report ID", "User Name", "Reason", "Status", "Date")
+        val headers = listOf("Report ID", "Type", "User Name", "Reason", "Status", "Date")
         val tableWidth = pageWidth - (leftMargin * 2)
-        val columnWeights = listOf(0.16f, 0.2f, 0.34f, 0.12f, 0.18f)
+        val columnWeights = listOf(0.14f, 0.08f, 0.16f, 0.30f, 0.12f, 0.20f)
         val columnWidths = columnWeights.map { it * tableWidth }
 
         val brandColor = Color.parseColor("#1B3C53")
@@ -1324,8 +1514,16 @@ class AdminReportsActivity : AppCompatActivity() {
             if (y + rowHeight > bottomMargin) newPage()
 
             val userName = resolveUser(report.reportedUserId)?.name ?: report.reportedUserId
+            val skillType = getSkillType(extractSkillId(report))
+            val videoId = extractVideoIdFromReport(report)
+            val typeLabel = when {
+                videoId != null && skillType == "playlist" -> "Specific Video"
+                skillType == "playlist" -> "Playlist"
+                else -> "Video"
+            }
             val rowValues = listOf(
                 report.id,
+                typeLabel,
                 userName,
                 report.reason,
                 report.status,
@@ -1373,11 +1571,6 @@ class AdminReportsActivity : AppCompatActivity() {
                     return@addOnSuccessListener
                 }
 
-                // NOTE: user.completedTrades is a field on the users doc that is never
-                // incremented anywhere when a trade's status becomes "completed" in the
-                // trades collection, so it stays 0 forever. Instead we compute the real
-                // completed-trade count per user (matched by email, since trades store
-                // requesterId/receiverId as emails) directly from the trades collection.
                 db.collection("trades").get()
                     .addOnSuccessListener { tradesSnapshot ->
                         val completedCountByEmail = mutableMapOf<String, Int>()
@@ -1402,8 +1595,6 @@ class AdminReportsActivity : AppCompatActivity() {
             }
     }
 
-    // Builds and saves the Users PDF. completedCountByEmail maps a user's email to their
-    // real completed-trade count, computed fresh from the trades collection.
     private fun generateUsersPdf(users: List<Users>, completedCountByEmail: Map<String, Int>) {
         val fileName = "SkillSwap_Users.pdf"
         val dateFormat = SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault())
@@ -1591,12 +1782,15 @@ class AdminReportsActivity : AppCompatActivity() {
     class ReportAdapter(
         private val reports: List<Report>,
         private val resolveUser: (String) -> Users?,
+        private val getSkillType: (String) -> String,
+        private val getVideoId: (Report) -> String?,
         private val onItemClick: (Report) -> Unit,
         private val onMenuClick: (Report, View) -> Unit
     ) : RecyclerView.Adapter<ReportAdapter.ViewHolder>() {
 
         class ViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
             val tvReportId: TextView = itemView.findViewById(R.id.tvReportId)
+            val tvTypeIcon: TextView = itemView.findViewById(R.id.tvTypeIcon)
             val tvUserName: TextView = itemView.findViewById(R.id.tvUserName)
             val tvReason: TextView = itemView.findViewById(R.id.tvReason)
             val tvStatus: TextView = itemView.findViewById(R.id.tvStatus)
@@ -1606,6 +1800,13 @@ class AdminReportsActivity : AppCompatActivity() {
         }
 
         private val dateFormat = SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault())
+        private val skillIdRegex = Regex("Skill ID:\\s*([^)]+)\\)")
+
+        private fun extractSkillId(report: Report): String {
+            if (report.skillId.isNotBlank()) return report.skillId
+            val match = skillIdRegex.find(report.description)
+            return match?.groupValues?.get(1)?.trim() ?: ""
+        }
 
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
             val view = LayoutInflater.from(parent.context)
@@ -1616,8 +1817,19 @@ class AdminReportsActivity : AppCompatActivity() {
         override fun onBindViewHolder(holder: ViewHolder, position: Int) {
             val report = reports[position]
             val user = resolveUser(report.reportedUserId)
+            val skillId = extractSkillId(report)
+            val skillType = getSkillType(skillId)
+            val videoId = getVideoId(report)
+            val isSpecificVideo = videoId != null && skillType == "playlist"
+
+            val typeIcon = when {
+                isSpecificVideo -> "🎬"
+                skillType == "playlist" -> "📋"
+                else -> "🎬"
+            }
 
             holder.tvReportId.text = "Report #${report.id.takeLast(6).ifBlank { report.id }}"
+            holder.tvTypeIcon.text = typeIcon
             holder.tvUserName.text = "Reported: ${user?.name?.ifBlank { report.reportedUserId } ?: report.reportedUserId}"
             holder.tvReason.text = report.reason
             holder.tvDate.text = dateFormat.format(Date(report.timestamp))

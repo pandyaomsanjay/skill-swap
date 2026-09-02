@@ -76,6 +76,21 @@
             android:layout_height="wrap_content"
             android:text="--"
             android:textColor="#9AA7B0"
-            android:textSize="12sp" />
+            android:textSize="12sp"
+            android:layout_marginEnd="4dp" />
+
+        <!-- Report this specific video. Hidden for the playlist owner viewing
+             their own upload (set in PlaylistVideoAdapter#onBindViewHolder). -->
+        <ImageView
+            android:id="@+id/btnReportVideo"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:padding="6dp"
+            android:src="@drawable/ic_flag"
+            app:tint="#9AA7B0"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="Report video"
+            android:clickable="true"
+            android:focusable="true" />
     </LinearLayout>
 </com.google.android.material.card.MaterialCardView>

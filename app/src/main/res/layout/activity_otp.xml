@@ -98,7 +98,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Verify Your Email"
+                android:text="@string/verify_email"
                 android:textColor="@color/text_primary"
                 android:textSize="28sp"
                 android:fontFamily="sans-serif-black"
@@ -110,7 +110,7 @@
                 android:id="@+id/tvEmailInfo"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="OTP sent to your email"
+                android:text="@string/otp_sent_info"
                 android:textColor="@color/text_secondary"
                 android:textSize="13.5sp"
                 android:fontFamily="sans-serif-light"
@@ -140,7 +140,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_gravity="center_horizontal"
-                        android:text="ENTER 6-DIGIT CODE"
+                        android:text="@string/enter_code_label"
                         android:textSize="10sp"
                         android:textStyle="bold"
                         android:fontFamily="sans-serif-medium"
@@ -341,7 +341,7 @@
                                 android:id="@+id/tvTimerLabel"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="Expires in "
+                                android:text="@string/expires_in"
                                 android:textSize="12sp"
                                 android:textColor="@color/text_secondary" />
 
@@ -364,7 +364,7 @@
                         android:id="@+id/btnVerify"
                         android:layout_width="match_parent"
                         android:layout_height="58dp"
-                        android:text="Verify OTP"
+                        android:text="@string/verify_otp"
                         android:textAllCaps="false"
                         android:textColor="@color/text_inverse"
                         android:textSize="16sp"
@@ -392,7 +392,7 @@
                         android:textSize="12sp"
                         android:textColor="#8E1919"
                         android:visibility="gone"
-                        android:text="Invalid or expired OTP"
+                        android:text="@string/invalid_otp"
                         android:layout_marginBottom="8dp" />
 
                     <!-- Resend row -->
@@ -406,7 +406,7 @@
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Didn't receive? "
+                            android:text="@string/didnt_receive_otp"
                             android:textColor="@color/text_secondary"
                             android:textSize="13sp" />
 
@@ -414,7 +414,7 @@
                             android:id="@+id/tvResend"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Resend OTP"
+                            android:text="@string/resend_otp"
                             android:textColor="@color/brand_navy"
                             android:textSize="13sp"
                             android:textStyle="bold"

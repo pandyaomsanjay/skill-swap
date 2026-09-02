@@ -42,7 +42,7 @@ import java.util.Locale
  *    Cloud Function with the Admin SDK (a client app can't delete another
  *    user's auth account). Flagged with a TODO below.
  */
-class AdminVideosActivity : AppCompatActivity() {
+class AdminVideosActivity : BaseActivity() {
 
     private lateinit var recyclerView: RecyclerView
     private lateinit var emptyState: View
@@ -382,7 +382,7 @@ class AdminVideosActivity : AppCompatActivity() {
             holder.tvTitle.text = skill.title
             holder.tvCategory.text = skill.category
             holder.tvUser.text = "By ${skill.userName}  •  ${skill.userId}"
-            holder.tvCredits.text = "${skill.credits} swaps"
+            holder.tvCredits.text = "${skill.credits} Credits"
 
             if (!skill.videoUrl.isNullOrEmpty()) {
                 Glide.with(holder.itemView.context)

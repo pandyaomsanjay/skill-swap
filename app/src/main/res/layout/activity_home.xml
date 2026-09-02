@@ -21,11 +21,12 @@
             android:layout_height="?attr/actionBarSize"
             android:background="#1B3C53"
             android:elevation="0dp"
-            app:navigationIcon="@drawable/outline_menu_24"
+            app:navigationIcon="@drawable/ic_custom_menu"
             app:navigationIconTint="#F9F3EF"
             app:title="SkillSwap"
             app:titleTextColor="#F9F3EF"
-            app:titleTextAppearance="@style/TextAppearance.Material3.TitleLarge" />
+            app:titleTextAppearance="@style/TextAppearance.Material3.TitleLarge"
+            android:paddingTop="0dp" />
 
         <ScrollView
             android:layout_width="match_parent"
@@ -79,7 +80,7 @@
                                 android:id="@+id/tvGreeting"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="Welcome back,"
+                                android:text="@string/welcome_back_user"
                                 android:textColor="#456882"
                                 android:textSize="13sp" />
 
@@ -121,7 +122,7 @@
                             <TextView
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="Points"
+                                android:text="@string/points"
                                 android:textColor="#456882"
                                 android:textSize="11sp" />
                         </LinearLayout>
@@ -131,7 +132,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Quick actions"
+                    android:text="@string/quick_actions"
                     android:textColor="#456882"
                     android:textSize="13sp"
                     android:textStyle="bold"
@@ -151,7 +152,7 @@
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
                         android:layout_marginEnd="10dp"
-                        android:text="Nearby"
+                        android:text="@string/nearby"
                         style="@style/Widget.Material3.Button.TonalButton"
                         app:icon="@drawable/outline_location_on_24"
                         app:iconGravity="textStart"
@@ -165,7 +166,7 @@
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
-                        android:text="Filters"
+                        android:text="@string/filters"
                         style="@style/Widget.Material3.Button.OutlinedButton"
                         app:icon="@drawable/baseline_filter_24"
                         app:iconGravity="textStart"
@@ -214,7 +215,7 @@
                             <TextView
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="Find"
+                                android:text="@string/find"
                                 android:textColor="#1B3C53"
                                 android:textSize="14sp"
                                 android:textStyle="bold"
@@ -223,7 +224,7 @@
                             <TextView
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="Skills"
+                                android:text="@string/skills_word"
                                 android:textColor="#456882"
                                 android:textSize="11sp" />
                         </LinearLayout>
@@ -261,7 +262,7 @@
                             <TextView
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="Teach"
+                                android:text="@string/teach"
                                 android:textColor="#1B3C53"
                                 android:textSize="14sp"
                                 android:textStyle="bold"
@@ -270,7 +271,7 @@
                             <TextView
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="Skills"
+                                android:text="@string/skills_word"
                                 android:textColor="#456882"
                                 android:textSize="11sp" />
                         </LinearLayout>
@@ -307,7 +308,7 @@
                             <TextView
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="Create"
+                                android:text="@string/create"
                                 android:textColor="#1B3C53"
                                 android:textSize="14sp"
                                 android:textStyle="bold"
@@ -316,7 +317,7 @@
                             <TextView
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="Swap"
+                                android:text="@string/swap_word"
                                 android:textColor="#456882"
                                 android:textSize="11sp" />
                         </LinearLayout>
@@ -340,7 +341,7 @@
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Popular skills"
+                            android:text="@string/popular_skills"
                             android:textColor="#1B3C53"
                             android:textSize="18sp"
                             android:textStyle="bold" />
@@ -354,7 +355,7 @@
                             android:id="@+id/tvSeeAll"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="See all"
+                            android:text="@string/see_all"
                             android:textColor="#1B3C53"
                             android:textSize="14sp"
                             android:textStyle="bold"
@@ -398,7 +399,7 @@
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Recent swaps"
+                            android:text="@string/recent_swaps"
                             android:textColor="#1B3C53"
                             android:textSize="18sp"
                             android:textStyle="bold" />
@@ -412,7 +413,7 @@
                             android:id="@+id/tvViewAllTrades"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="View all"
+                            android:text="@string/view_all"
                             android:textColor="#1B3C53"
                             android:textSize="14sp"
                             android:textStyle="bold"
@@ -433,7 +434,7 @@
                         android:id="@+id/tvNoSwaps"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="No swaps yet — create one to get started!"
+                        android:text="@string/no_swaps_yet"
                         android:textColor="#456882"
                         android:textSize="13sp"
                         android:gravity="center"
@@ -452,16 +453,18 @@
             android:layout_gravity="bottom" />
     </LinearLayout>
 
+    <!-- UPDATED NavigationView with scrollable and proper styling -->
     <com.google.android.material.navigation.NavigationView
         android:id="@+id/navigationView"
         android:layout_width="280dp"
         android:layout_height="match_parent"
         android:layout_gravity="start"
-        android:fitsSystemWindows="true"
+        android:fitsSystemWindows="false"
         android:background="#EAF1F5"
         app:headerLayout="@layout/nav_header"
         app:menu="@menu/nav_drawer_menu"
         app:itemIconTint="@color/drawer_icon_colors"
         app:itemTextColor="@color/drawer_text_colors"
-        app:itemBackground="@drawable/drawer_item_background" />
+        app:itemBackground="@drawable/drawer_item_background"
+        android:scrollbars="vertical" />
 </androidx.drawerlayout.widget.DrawerLayout>
