@@ -7,7 +7,6 @@ data class Users(
     var location: String = "",
     var latitude: Double = 0.0,
     var longitude: Double = 0.0,
-    var password: String = "",
     var rating: Double = 0.0,
     var completedTrades: Int = 0,
     var profileImage: String = "",

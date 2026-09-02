@@ -356,7 +356,6 @@ class CompleteProfileActivity : BaseActivity() {
             loginProvider = if (isGoogle) "google" else "email",
             createdAt = System.currentTimeMillis(),
             phone = "",
-            password = "",
             rating = 0.0,
             completedTrades = 0,
             credits = 1250,

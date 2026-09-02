@@ -17,6 +17,7 @@ import android.widget.ProgressBar
 import android.widget.TextView
 import android.widget.Toast
 import androidx.lifecycle.lifecycleScope
+import com.example.sgp.api.AuthRepository
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.card.MaterialCardView
 import com.google.firebase.auth.FirebaseAuth
@@ -413,6 +414,14 @@ class OtpActivity : BaseActivity() {
                 )
 
                 if (!isGoogle && password.isNotEmpty()) {
+                    // Reject common/predictable passwords before setting one
+                    // on the freshly verified Supabase account.
+                    if (AuthRepository.isPasswordCommon(password)) {
+                        showLoading(false)
+                        showError("This password is too common or predictable. Please choose a stronger one.")
+                        return@launch
+                    }
+
                     // verifyEmailOtp() above creates/authenticates the Supabase
                     // user passwordless. Without explicitly setting a password
                     // here, email/password login will NEVER work for this

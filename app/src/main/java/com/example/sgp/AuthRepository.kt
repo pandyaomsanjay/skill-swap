@@ -129,6 +129,27 @@ object AuthRepository {
         return "Too many failed attempts. Try again in $minutes minute${if (minutes == 1) "" else "s"}."
     }
 
+    // ---------- Dictionary / weak-password check (Postgres RPC) ----------
+
+    /**
+     * Checks a candidate password against the server-side is_password_common
+     * RPC (exact common-password matches, repeated-character strings,
+     * repeated chunks, keyboard walks, and leetspeak-normalized matches).
+     * Call this BEFORE creating or updating a password, alongside the
+     * existing client-side complexity rules.
+     */
+    suspend fun isPasswordCommon(password: String): Boolean {
+        return try {
+            SupabaseClient.client.postgrest.rpc(
+                "is_password_common",
+                buildJsonObject { put("p_password", password) }
+            ).decodeAs<Boolean>()
+        } catch (e: Exception) {
+            android.util.Log.e(TAG, "isPasswordCommon failed: ${e.message}", e)
+            false // fail-open so a network hiccup doesn't block signup entirely
+        }
+    }
+
     /**
      * Email/password login via Supabase Auth, gated by a server-side
      * rate limit (5 failed attempts -> 15 minute lock), enforced in Postgres
@@ -216,6 +237,12 @@ object AuthRepository {
     }
 
     suspend fun resetPassword(newPassword: String): ResetPasswordResponse {
+        if (isPasswordCommon(newPassword)) {
+            return ResetPasswordResponse(
+                success = false,
+                message = "This password is too common or predictable. Please choose a stronger one."
+            )
+        }
         return try {
             SupabaseClient.client.auth.updateUser {
                 password = newPassword

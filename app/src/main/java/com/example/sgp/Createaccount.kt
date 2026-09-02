@@ -19,6 +19,7 @@ import com.google.android.material.textfield.TextInputLayout
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.GoogleAuthProvider
 import com.google.firebase.firestore.FirebaseFirestore
+import com.example.sgp.api.AuthRepository
 import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.auth.providers.builtin.OTP
 import kotlinx.coroutines.launch
@@ -309,26 +310,36 @@ class Createaccount : BaseActivity() {
     }
 
     private fun signUpWithEmail() {
-        // Normalized once, here, so the exact same string is used for the
-        // Firestore existence check, the Supabase OTP call, and everything
-        // passed on to OtpActivity — this must match what Login.kt normalizes
-        // to (trim + lowercase) or you get the same email-casing mismatch
-        // bug that broke login previously.
+
         val email = etEmail.text.toString().trim().lowercase()
         val password = etPassword.text.toString()
 
-        db.collection("users").whereEqualTo("email", email).get()
-            .addOnSuccessListener { snapshot ->
-                if (!snapshot.isEmpty) {
-                    emailLayout.error = "Email already registered"
-                    Toast.makeText(this, "Email already exists. Please sign in.", Toast.LENGTH_LONG).show()
-                } else {
-                    sendSupabaseOtp(email, password, isGoogle = false)
+        btnCreateAccount.isEnabled = false
+
+        lifecycleScope.launch {
+            // Reject common/predictable passwords before doing anything else.
+            if (AuthRepository.isPasswordCommon(password)) {
+                btnCreateAccount.isEnabled = true
+                passwordLayout.error = "This password is too common or predictable"
+                Toast.makeText(this@Createaccount, "Please choose a stronger password.", Toast.LENGTH_LONG).show()
+                return@launch
+            }
+
+            db.collection("users").whereEqualTo("email", email).get()
+                .addOnSuccessListener { snapshot ->
+                    btnCreateAccount.isEnabled = true
+                    if (!snapshot.isEmpty) {
+                        emailLayout.error = "Email already registered"
+                        Toast.makeText(this@Createaccount, "Email already exists. Please sign in.", Toast.LENGTH_LONG).show()
+                    } else {
+                        sendSupabaseOtp(email, password, isGoogle = false)
+                    }
                 }
-            }
-            .addOnFailureListener {
-                Toast.makeText(this, "Database error: ${it.message}", Toast.LENGTH_SHORT).show()
-            }
+                .addOnFailureListener {
+                    btnCreateAccount.isEnabled = true
+                    Toast.makeText(this@Createaccount, "Database error: ${it.message}", Toast.LENGTH_SHORT).show()
+                }
+        }
     }
 
     private fun signInWithGoogle() {
@@ -395,9 +406,7 @@ class Createaccount : BaseActivity() {
     }
 
     private fun navigateToOtp(email: String, password: String, isGoogle: Boolean) {
-        // email is already normalized (trim + lowercase) — this is what
-        // OtpActivity will write into Firestore and use for the Supabase
-        // password-set call, so it stays consistent with Login.kt's lookup.
+
         val intent = Intent(this, OtpActivity::class.java).apply {
             putExtra("email", email)
             putExtra("password", password)
