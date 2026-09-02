@@ -863,6 +863,95 @@ verification_queries.sql
 
 ---
 
+# 🌐 Multi-Language Support
+
+Skill Swap supports multiple languages to make the application accessible and easy to use for users from different regions.
+
+## 🗣️ Available Languages
+
+| Language                    | Code | Status      |
+| --------------------------- | ---- | ----------- |
+| 🇬🇧 **English**            | `en` | ✅ Supported |
+| 🇮🇳 **Hindi (हिन्दी)**     | `hi` | ✅ Supported |
+| 🇮🇳 **Gujarati (ગુજરાતી)** | `gu` | ✅ Supported |
+
+### 🇬🇧 English
+
+English is the default language of the Skill Swap application and is used throughout the main user interface.
+
+### 🇮🇳 Hindi (हिन्दी)
+
+Hindi support allows users to use the application interface in Hindi, making Skill Swap more accessible to Hindi-speaking users.
+
+### 🇮🇳 Gujarati (ગુજરાતી)
+
+Gujarati support provides a localized interface for Gujarati-speaking users and improves accessibility for users in Gujarat and other Gujarati-speaking communities.
+
+## ⚙️ Language Selection
+
+Users can select their preferred language from **two locations**:
+
+### 🔐 Login Page
+
+When a user opens the Skill Swap application and reaches the Login page, the application asks the user to select their preferred language:
+
+**English | हिन्दी | ગુજરાતી**
+
+The selected language is applied to the application interface.
+
+### 👤 Profile Page
+
+After logging in, users can change their preferred language from their Profile page:
+
+**Profile → Language**
+
+Users can switch between English, Hindi, and Gujarati at any time. The selected language is saved and automatically applied across the application.
+
+### 🔧 Implementation
+
+Language management is handled through:
+
+```text
+LocaleHelper.kt
+```
+
+Android localization resources are organized using language-specific resource directories:
+
+```text
+res/
+├── values/
+│   └── strings.xml          # English
+│
+├── values-hi/
+│   └── strings.xml          # Hindi
+│
+└── values-gu/
+    └── strings.xml          # Gujarati
+```
+
+This structure allows the application UI to display translated text based on the user's selected language.
+
+## 🔄 Language Flow
+
+```text
+Open Skill Swap
+       ↓
+    Login Page
+       ↓
+Select Language
+       ↓
+English / Hindi / Gujarati
+       ↓
+Login / Continue
+       ↓
+Application Opens
+       ↓
+Profile → Language
+       ↓
+Change Language Anytime
+```
+
+
 # 📸 Screenshots
 
 Add screenshots of the application inside the `screenshots/` directory.
