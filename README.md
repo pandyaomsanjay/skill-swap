@@ -1,12 +1,10 @@
 # 🔄 Skill Swap
 
-> **A peer-to-peer Android platform for exchanging skills, knowledge, and expertise.**
+> **Learn • Share • Exchange**
 
-Skill Swap is an Android application designed to connect people who want to **share what they know and learn new skills from others**.
+Skill Swap is a peer-to-peer Android application designed to connect people who want to **teach their skills, learn new skills, and exchange knowledge with others**.
 
-Users can create profiles, add skills, discover other users, exchange skills through trade requests, communicate through real-time chat, share skill videos, provide ratings and feedback, and receive notifications.
-
-The application also includes a dedicated **Admin Panel** for managing users, skills, trades, reports, feedback, videos, and application statistics.
+Users can create profiles, add skills, discover other users, exchange skills through trade requests, communicate through real-time chat, share skill videos, create playlists, provide ratings and feedback, and receive push notifications.
 
 ---
 
@@ -23,71 +21,67 @@ The application also includes a dedicated **Admin Panel** for managing users, sk
 * 🔔 OneSignal Push Notifications
 * 📍 Location Support
 * 🔎 Skill Discovery
-* 🛡️ Admin Panel
-* 📊 Admin Dashboard & Statistics
-* 🚨 Report Management
-* ⚙️ Admin Settings
+* 🌐 Multi-Language Support
+* 🌙 Dark Mode
 
 ---
 
-## 📱 User Features
+# 📱 User Features
 
-### 🔐 Authentication
+## 🔐 Authentication
 
-Users can securely access the application through the authentication system.
+Users can securely access Skill Swap through the authentication system.
 
-Features include:
+### Features
 
-* User registration
-* User login
+* User Registration
+* User Login
 * Firebase Authentication
 * Google Sign-In
-* OTP verification
-* Forgot password
-* Password reset
-* Change password
-* Account management
+* OTP Verification
+* Forgot Password
+* Password Reset
+* Change Password
+* Account Management
 
 ---
 
-### 👤 User Profile
+## 👤 User Profile
 
 Users can create and manage their personal profiles.
 
-Profile information includes:
+### Profile Information
 
 * Name
 * Email
-* Profile picture
+* Profile Picture
 * Location
-* Skills offered
-* Skills requested
+* Skills Offered
+* Skills Requested
 * Rating
 * Points
-* Number of trades
-* Number of skills
+* Number of Trades
+* Number of Skills
 
-Users can also update their profile information whenever required.
+Users can update their profile information whenever required.
 
 ---
 
-### 🎯 Skill Management
+## 🎯 Skill Management
 
 Users can add and manage the skills they want to teach or share.
 
-**Skill Features**
+### Skill Features
 
-* Add a new skill
-* View skills
-* Explore skills
-* Browse skill categories
-* View skill details
-* Upload skill videos
-* Discover skills offered by other users
+* Add a New Skill
+* View Skills
+* Explore Skills
+* Browse Skill Categories
+* View Skill Details
+* Upload Skill Videos
+* Discover Skills Offered by Other Users
 
-**Skill Categories**
-
-The application includes categories such as:
+### Skill Categories
 
 * 💻 Technology
 * 🎨 Arts
@@ -98,32 +92,56 @@ The application includes categories such as:
 
 ---
 
-### 🔄 Skill Exchange / Trading
+# 🔄 Skill Exchange / Trading
 
 The core functionality of Skill Swap is exchanging knowledge between users.
 
 A user can select:
 
-* A skill they can teach
-* A skill they want to learn
-* Another user to exchange skills with
-* An optional message
+1. A skill they can teach
+2. A skill they want to learn
+3. Another user to exchange skills with
+4. An optional message
 
-**Trade Process**
+### Trade Process
 
 ```text
-Find Skill → Select User → Choose Skill to Offer → Choose Skill to Learn
-   → Send Trade Request → Accept / Reject → Start Skill Exchange
-   → Complete Trade → Rating & Feedback
+Find Skill
+    ↓
+Select User
+    ↓
+Choose Skill to Offer
+    ↓
+Choose Skill to Learn
+    ↓
+Send Trade Request
+    ↓
+Accept / Reject
+    ↓
+Start Skill Exchange
+    ↓
+Complete Trade
+    ↓
+Rating & Feedback
 ```
 
-Trade information can include: requester, receiver, offered skill, requested skill, trade status, timestamp, user information, skill information, and rating/feedback information.
+Trade information can include:
+
+* Requester
+* Receiver
+* Offered Skill
+* Requested Skill
+* Trade Status
+* Timestamp
+* User Information
+* Skill Information
+* Rating / Feedback Information
 
 ---
 
-### 💬 Real-Time Chat
+# 💬 Real-Time Chat
 
-Skill Swap provides communication between users through real-time chat.
+Skill Swap provides real-time communication between users.
 
 Users can:
 
@@ -136,31 +154,31 @@ Users can:
 
 Chat functionality is implemented using **Cloud Firestore**.
 
-**Chat Structure**
+### Chat Structure
 
 ```text
 chats
- └── {conversationId}
-      └── messages
-           └── {messageId}
+└── {conversationId}
+    └── messages
+        └── {messageId}
 ```
 
 ---
 
-### 🎥 Skill Videos
+# 🎥 Skill Videos
 
 Users can share videos related to their skills.
 
-**Video Features**
+### Video Features
 
-* Upload skill videos
-* View videos
-* Play videos
-* Browse skill videos
-* Create/view playlists
-* Admin video management
+* Upload Skill Videos
+* View Videos
+* Play Videos
+* Browse Skill Videos
+* Create / View Playlists
+* Admin Video Management
 
-Application components include:
+### Main Components
 
 ```text
 UploadVideoActivity.kt
@@ -171,25 +189,30 @@ Resizablevideoview.kt
 
 ---
 
-### 📑 Playlists
+# 📑 Skill Playlists
 
-Skill Swap supports **video playlists** — a bundled way to publish and unlock a set of related skill videos as one purchasable unit.
+Skill Swap supports video playlists that bundle related skill videos together.
 
-**Implemented Playlist Features**
+### Playlist Features
 
-* Create and publish playlists (a `Skill` with `skillType == "playlist"`)
-* Browse playlist details — thumbnail, category, creator, description, video count, and total duration
-* Preview a playlist via a **demo video** before purchasing
-* Unlock playlists using **credits**, with live balance checks and clear "not enough credits" state
-* Transactional purchase flow — credits are deducted, the purchase is recorded, and access is granted atomically, so a failed step can't double-charge or leave partial access
-* Per-user **progress tracking** — videos completed, percentage watched, and a progress bar that turns green at 100%
-* Free, automatic access for the playlist **owner** and for **admins**
-* **"People with Access"** view for playlist owners — everyone who purchased the playlist, with names and join dates
-* **500-credit reward**, granted automatically, after a user completes 2 full playlists
-* OneSignal push notifications on playlist purchase and playlist completion
-* One-time data-migration utility (`backfillPurchaseNames`) to backfill missing buyer names on existing purchase records
+* Create and publish playlists
+* Browse playlist details
+* View thumbnail, category, creator and description
+* View video count and total duration
+* Preview playlists using demo videos
+* Unlock playlists using credits
+* Live credit-balance validation
+* Transactional playlist purchases
+* Per-user video progress tracking
+* Progress percentage tracking
+* Progress bar completion indicator
+* Free access for playlist owners
+* Free access for administrators
+* View people who purchased a playlist
+* Automatic **500-credit reward** after completing 2 full playlists
+* OneSignal notifications for playlist purchases and completion
 
-Application components include:
+### Playlist Components
 
 ```text
 PlaylistActivity.kt
@@ -200,161 +223,192 @@ AddPlaylistVideoActivity.kt
 
 ---
 
-### ⭐ Ratings & Feedback
+# ⭐ Ratings & Feedback
 
-Skill Swap allows users to provide feedback after interacting or completing skill exchanges.
+Users can provide feedback after interacting with or completing skill exchanges.
 
 Users can:
 
-* Submit feedback
-* Rate users
-* View feedback
-* Provide ratings
-* Review previous feedback
-
-The application contains dedicated feedback and rating components.
+* Submit Feedback
+* Rate Users
+* View Feedback
+* Provide Ratings
+* Review Previous Feedback
 
 ---
 
-### 🔔 OneSignal Push Notifications
+# 🔔 OneSignal Push Notifications
 
 Skill Swap uses **OneSignal** for push notifications.
 
-Notifications can be used for important events such as:
+Notifications can be triggered for events such as:
 
-* 🔄 New trade requests
-* ✅ Trade status updates
-* 💬 New chat messages
-* 📑 Playlist purchases & playlist completion
-* ⭐ Feedback/rating events
-* 📢 Important application notifications
+* 🔄 New Trade Requests
+* ✅ Trade Status Updates
+* 💬 New Chat Messages
+* 📑 Playlist Purchases
+* 🎓 Playlist Completion
+* ⭐ Feedback / Rating Events
+* 📢 Important Application Notifications
 
-**Notification Architecture**
-
-```text
-Skill Swap Android App → OneSignal SDK → OneSignal Platform
-   → Android Push Service → User
-```
-
-OneSignal provides the notification management and delivery layer for the application. For Android push delivery, OneSignal uses Firebase Cloud Messaging (FCM) credentials configured through the OneSignal platform. **Firebase Cloud Functions are not required for the notification architecture.**
-
-Official OneSignal documentation: [OneSignal Android SDK Setup](https://documentation.onesignal.com/docs/en/android-sdk-setup)
-
----
-
-### 📍 Location Support
-
-The application includes Google Places integration for location-related functionality — used to select locations, display user locations, and assist users in finding relevant people based on location.
-
----
-
-## 🛡️ Admin Panel
-
-Skill Swap includes a dedicated **Admin Panel** for administrators to monitor and manage the application.
-
-### 📊 Admin Dashboard
-
-The Admin Dashboard provides an overview of the application's current activity.
-
-Administrators can monitor: 👥 Total Users, 🔄 Total Trades, 🎯 Total Skills, 🚨 Pending Reports, and 📈 Swap Activity.
-
-**Statistics Filters:** Today · Week · Month · Custom Range · All Time
-
-### 👥 Admin User Management
-
-Accessible through `AdminUsersActivity.kt`, providing administrators with an overview of users registered on the platform.
-
-### 🎯 Admin Skill Management
-
-Administrators can manage the skills available on the platform through `AdminSkillsActivity.kt`, allowing them to monitor skill-related information and maintain the skill database.
-
-### 🔄 Admin Trade Management
-
-Administrators can monitor skill exchange/trade activity through `AdminTradesActivity.kt`, reviewing trade-related information and the platform's exchange activity.
-
-### 🚨 Admin Report Management
-
-The application includes a reporting system where issues can be reported. Administrators can review reports through `AdminReportsActivity.kt`. The dashboard also tracks pending reports so administrators can identify issues requiring attention.
-
-### ⭐ Admin Feedback Management
-
-Administrators can manage user feedback through `AdminFeedbackActivity.kt`, monitoring feedback and ratings submitted by users.
-
-### 🎥 Admin Video Management
-
-The Admin Panel includes video management functionality through `AdminVideosActivity.kt` and `AdminVideoPlayerActivity.kt`, allowing administrators to access and play uploaded skill videos.
-
-### ⚙️ Admin Settings
-
-The application includes an administration settings section through `AdminSettingsActivity.kt`, providing a dedicated area for administrator-level application settings.
-
-### 🔐 Admin Access
-
-The application checks the user's account type before providing access to the Admin Dashboard, using a `user_type` value to distinguish administrator access from normal user access.
+### Notification Architecture
 
 ```text
-Normal User → User Dashboard
-Admin User  → Admin Dashboard
+Skill Swap Android App
+        ↓
+OneSignal SDK
+        ↓
+OneSignal Platform
+        ↓
+Android Push Service
+        ↓
+User
 ```
 
----
+OneSignal provides the notification management and delivery layer. Android push delivery uses Firebase Cloud Messaging (FCM) credentials configured through OneSignal.
 
-## 🏗️ Technology Stack
+Firebase Cloud Functions are **not required** for the notification architecture.
 
-| Technology                     | Purpose                           |
-| ------------------------------- | ---------------------------------- |
-| **Kotlin**                     | Primary programming language      |
-| **Android SDK**                | Android application development   |
-| **AndroidX**                   | Android components                |
-| **Material Components**        | UI components                     |
-| **Firebase Authentication**    | User authentication               |
-| **Cloud Firestore**            | Application data & real-time chat |
-| **Firebase Realtime Database** | Real-time data                    |
-| **Firebase Storage**           | File/media storage                |
-| **OneSignal**                  | Push notifications                |
-| **Google Sign-In**             | Google authentication             |
-| **Google Places**              | Location functionality            |
-| **Supabase**                   | Auth (email/password), Postgres backend for security features |
-| **Ktor**                       | Networking                        |
-| **Kotlin Serialization**       | JSON serialization                |
-| **Glide**                      | Image loading                     |
-| **Gradle Kotlin DSL**          | Build configuration               |
+Official documentation:
+
+https://documentation.onesignal.com/docs/en/android-sdk-setup
 
 ---
 
-## ☁️ Backend Architecture
+# 📍 Location Support
+
+Skill Swap includes Google Places integration for location-related functionality.
+
+Location functionality can be used to:
+
+* Select locations
+* Display user locations
+* Assist users in finding relevant people based on location
+
+---
+
+# 🌐 Multi-Language Support
+
+Skill Swap supports multiple languages.
+
+### Supported Languages
+
+* 🇬🇧 English
+* 🇮🇳 Hindi
+* 🇮🇳 Gujarati
+
+Language preferences are managed using:
+
+```text
+LocaleHelper.kt
+```
+
+Users can change their preferred language through the application settings.
+
+The selected language is persisted across sessions.
+
+---
+
+# 🌙 Dark Mode
+
+Skill Swap includes Light and Dark themes.
+
+Users can switch between themes through Settings.
+
+Main components:
+
+```text
+SettingsActivity.kt
+BaseActivity.kt
+```
+
+`BaseActivity` is used to apply theme preferences consistently across application screens.
+
+---
+
+# 🏗️ Technology Stack
+
+| Technology                     | Purpose                                                |
+| ------------------------------ | ------------------------------------------------------ |
+| **Kotlin**                     | Primary programming language                           |
+| **Android SDK**                | Android application development                        |
+| **AndroidX**                   | Android components                                     |
+| **Material Components**        | UI components                                          |
+| **Firebase Authentication**    | User authentication                                    |
+| **Cloud Firestore**            | Application data & real-time chat                      |
+| **Firebase Realtime Database** | Real-time data                                         |
+| **Firebase Storage**           | File / media storage                                   |
+| **OneSignal**                  | Push notifications                                     |
+| **Google Sign-In**             | Google authentication                                  |
+| **Google Places**              | Location functionality                                 |
+| **Supabase**                   | Authentication, PostgreSQL backend & security features |
+| **Ktor**                       | Networking                                             |
+| **Kotlin Serialization**       | JSON serialization                                     |
+| **Glide**                      | Image loading                                          |
+| **Gradle Kotlin DSL**          | Build configuration                                    |
+
+---
+
+# ☁️ Backend Architecture
 
 Skill Swap uses Firebase, Supabase, and OneSignal for different application requirements.
 
 ```text
 Skill Swap
-   ├── Firebase  → Auth, Firestore, Realtime DB, Storage, Chat
-   ├── Supabase  → Auth (email/password), Storage
-   └── OneSignal → Push Notifications
+│
+├── Firebase
+│   ├── Authentication
+│   ├── Cloud Firestore
+│   ├── Realtime Database
+│   ├── Storage
+│   └── Chat
+│
+├── Supabase
+│   ├── Authentication
+│   ├── PostgreSQL
+│   ├── Security Functions
+│   └── Storage
+│
+└── OneSignal
+    └── Push Notifications
 ```
 
-### 🔥 Firebase
+## 🔥 Firebase
 
-Firebase is used for authentication, Cloud Firestore, Realtime Database, and Storage. Firebase Cloud Firestore is also used for real-time chat functionality.
+Firebase is used for:
 
-### 🟢 Supabase
+* Authentication
+* Cloud Firestore
+* Realtime Database
+* Firebase Storage
+* Real-time chat
 
-Supabase is integrated into the application for authentication and backend security functionality, in addition to storage.
+## 🟢 Supabase
+
+Supabase is integrated for authentication and backend security functionality.
+
+Supabase Auth handles email/password authentication, while PostgreSQL hosts custom security functions.
+
+Important components:
 
 ```text
 SupabaseClient.kt
 SupabaseImageUploader.kt
 ```
 
-Supabase Auth (Postgres-backed, `auth.users`) handles email/password login and password hashing (bcrypt, with a unique random salt embedded per user). Supabase Postgres also hosts the custom SQL functions used for account lockout and password-strength checks — see [🔐 Security](#-security) below.
+## 🔔 OneSignal
 
-### 🔔 OneSignal
+OneSignal manages:
 
-OneSignal is responsible for the application's push notification functionality. It provides push notifications, notification targeting, user identification, notification data, and notification management.
+* Push notifications
+* Notification targeting
+* User identification
+* Notification data
+* Notification management
 
 ---
 
-## 🧩 Project Structure
+# 🧩 Project Structure
 
 ```text
 skill-swap/
@@ -371,10 +425,12 @@ skill-swap/
 │   │       │   ├── Chat/
 │   │       │   ├── Videos/
 │   │       │   ├── Feedback/
-│   │       │   ├── Admin/
 │   │       │   ├── Supabase/
+│   │       │   ├── Utils/
 │   │       │   └── Other Components
+│   │       │
 │   │       └── res/
+│   │
 │   ├── build.gradle.kts
 │   └── google-services.json
 │
@@ -390,47 +446,70 @@ skill-swap/
 
 ---
 
-## 🗄️ Main Data Structure
+# 🗄️ Main Data Structure
 
-The application uses Firebase data collections for major application entities: `users`, `skills`, `trades`, `chats`, `reports`.
+The application uses Firebase data collections for major application entities:
 
-**Chat Data**
+```text
+users
+skills
+trades
+chats
+reports
+```
+
+### Chat Data
 
 ```text
 chats
- └── {conversationId}
-       └── messages
-             └── {messageId}
+└── {conversationId}
+    └── messages
+        └── {messageId}
 ```
 
 ---
 
-## 🔄 Complete Application Workflow
+# 🔄 Complete Application Workflow
 
 ```text
-Sign Up / Login → Profile Completion → Explore Skills → Find a User
-   → Create Trade → Accepted / Rejected
-                       │
-                    Accepted → Chat → Complete Trade → Rating & Feedback
+Sign Up / Login
+      ↓
+Profile Completion
+      ↓
+Explore Skills
+      ↓
+Find a User
+      ↓
+Create Trade
+      ↓
+Accepted / Rejected
+      │
+      └── Accepted
+            ↓
+          Chat
+            ↓
+      Complete Trade
+            ↓
+      Rating & Feedback
 ```
 
-Notifications are handled independently through OneSignal throughout relevant application events.
+OneSignal notifications operate independently throughout relevant application events.
 
 ---
 
-## ⚙️ Requirements
+# ⚙️ Requirements
 
 To build and run Skill Swap, you need:
 
 * Android Studio
 * JDK 11
 * Android SDK 36
-* Android device or emulator
-* Firebase project
-* Supabase project
-* OneSignal account/application
+* Android Device or Emulator
+* Firebase Project
+* Supabase Project
+* OneSignal Account / Application
 
-**Android Configuration**
+### Android Configuration
 
 ```text
 Minimum SDK : 27
@@ -442,22 +521,24 @@ Kotlin JVM  : 11
 
 ---
 
-## 🚀 Installation
+# 🚀 Installation
 
-### 1. Clone the Repository
+## 1. Clone the Repository
 
 ```bash
 git clone https://github.com/pandyaomsanjay/skill-swap.git
 cd skill-swap
 ```
 
-### 2. Open in Android Studio
+## 2. Open in Android Studio
 
-Open the cloned project using Android Studio. Allow Gradle to synchronize the project and download the required dependencies.
+Open the cloned project using Android Studio.
 
-### 3. Configure Firebase
+Allow Gradle to synchronize and download the required dependencies.
 
-Create or configure a Firebase project. Enable the services required by the application:
+## 3. Configure Firebase
+
+Create or configure a Firebase project and enable:
 
 ```text
 Firebase Authentication
@@ -466,34 +547,58 @@ Realtime Database
 Firebase Storage
 ```
 
-Add the appropriate Android Firebase configuration (`google-services.json`).
+Add the appropriate:
 
-### 4. Configure Google Sign-In
+```text
+google-services.json
+```
 
-Configure Google Sign-In through Firebase Authentication. Make sure the required SHA-1/SHA-256 fingerprints are configured for the Android application.
+to the Android project.
 
-### 5. Configure Supabase
+## 4. Configure Google Sign-In
 
-Create a Supabase project and configure Supabase Auth for email/password login. Run the SQL scripts under `sql/` (see [🔐 Security](#-security) below) in the Supabase SQL Editor to set up account lockout, password-pattern checking, and password-reset OTP support. Update the application's Supabase configuration accordingly.
+Configure Google Sign-In through Firebase Authentication.
 
-### 6. Configure OneSignal
+Make sure the required SHA-1 and SHA-256 fingerprints are configured for the Android application.
 
-Create a OneSignal application. Configure Android push notifications and connect the required FCM credentials through OneSignal, then configure the OneSignal App ID in the Android application.
+## 5. Configure Supabase
 
-Official documentation: [OneSignal Android SDK Setup](https://documentation.onesignal.com/docs/en/android-sdk-setup)
+Create a Supabase project and configure:
 
-### 7. Build the Application
+* Supabase Auth
+* Email/password authentication
+* PostgreSQL security functions
+* Required storage
+
+Run the SQL scripts from the `sql/` directory in the **Supabase SQL Editor**.
+
+## 6. Configure OneSignal
+
+Create a OneSignal application.
+
+Configure Android push notifications and connect the required FCM credentials through OneSignal.
+
+Add the OneSignal App ID to the Android application.
+
+Documentation:
+
+https://documentation.onesignal.com/docs/en/android-sdk-setup
+
+## 7. Build the Application
 
 In Android Studio:
 
 ```text
 File → Sync Project with Gradle Files
+
 Build → Make Project
 ```
 
-### 8. Run the Application
+## 8. Run the Application
 
-Connect an Android device or start an Android emulator, then select:
+Connect an Android device or start an emulator.
+
+Then select:
 
 ```text
 Run → Run 'app'
@@ -501,57 +606,113 @@ Run → Run 'app'
 
 ---
 
-## 🔐 Security
+# 🔐 Security
 
-Skill Swap implements the following password and account-security controls, primarily via Supabase Auth (Postgres) with supporting checks in the Android client.
+Skill Swap implements several password and account-security controls.
 
-### ✅ Implemented
+## ✅ Implemented Security Controls
 
-| Requirement | Implementation |
-|---|---|
-| **No password reuse on change** | Enforced during password change flow |
-| **Password complexity** | Client-side validation requires uppercase, lowercase, a number, and a special character (`Createaccount.kt`, `ResetPasswordActivity.kt`) |
-| **Account lockout / throttling** | Escalating lockout via Postgres `SECURITY DEFINER` RPCs: 5 failed attempts → 15-minute lock; a second lockout → 24-hour lock (`login_lockout.sql`, called from `AuthRepository.kt`) |
-| **No clear-text password storage** | Authentication runs through Supabase Auth (`auth.users`), which stores only a bcrypt hash — never the plaintext password. Verified directly via SQL: `auth.users` has no plaintext password column, only `encrypted_password` |
-| **Random salt** | Bcrypt embeds a unique, randomly generated salt in every stored hash. Verified that no two users share an identical hash even where duplicate passwords are possible, and that 100% of stored hashes match bcrypt's salted format |
-| **Disallow dictionary / weak passwords** | `is_password_common()` Postgres function (`common_passwords.sql`) rejects: exact matches against a known-weak password list, all-repeated-character strings (`aaaaaa`), repeated-chunk strings (`abab`, `123123`), common keyboard-walk patterns (`qwerty`, `asdf`, `zxcv`), and leetspeak-disguised matches (`P@ssw0rd` → `password`). Called from the Android app at signup (`Createaccount.kt`) and password reset (`AuthRepository.kt`) |
+| Requirement                               | Implementation                                                       |
+| ----------------------------------------- | -------------------------------------------------------------------- |
+| **No Password Reuse**                     | Enforced during password change                                      |
+| **Password Complexity**                   | Uppercase + lowercase + number + special character                   |
+| **Account Lockout / Throttling**          | 5 failed attempts → 15-minute lock; second lockout → 24-hour lock    |
+| **No Clear-Text Password Storage**        | Supabase Auth stores password hashes rather than plaintext passwords |
+| **Random Salt**                           | Bcrypt generates a unique salt for stored password hashes            |
+| **Dictionary / Weak Password Protection** | Common and weak password patterns are rejected                       |
 
-### SQL Files
+### Password Complexity
 
-The Supabase-side security logic lives in the SQL Editor as the following scripts:
+Password validation requires:
+
+```text
+Uppercase
+Lowercase
+Number
+Special Character
+```
+
+### Account Lockout
+
+```text
+5 Failed Attempts
+        ↓
+15-Minute Lock
+        ↓
+Repeated Lockout
+        ↓
+24-Hour Lock
+```
+
+### Weak Password Protection
+
+The password protection system checks for patterns such as:
+
+```text
+aaaaaa
+abab
+123123
+qwerty
+asdf
+zxcv
+P@ssw0rd
+```
+
+---
+
+# 🗂️ SQL Security Files
+
+Supabase security logic is maintained through:
 
 ```text
 sql/
-├── login_lockout.sql           # Escalating lockout functions (check_login_lock, record_failed_login, reset_login_attempts)
-├── common_passwords.sql        # Dictionary/pattern password check (is_password_common)
-├── password_reset_otps.sql     # OTP table for password reset flow
-└── verification_queries.sql    # Manual queries used to verify hashing/salting on auth.users (not runtime code)
+│
+├── login_lockout.sql
+├── common_passwords.sql
+├── password_reset_otps.sql
+└── verification_queries.sql
 ```
 
-### General Recommended Practices
+### Purpose
+
+| SQL File                   | Purpose                                   |
+| -------------------------- | ----------------------------------------- |
+| `login_lockout.sql`        | Account lockout and failed-login tracking |
+| `common_passwords.sql`     | Weak/dictionary password detection        |
+| `password_reset_otps.sql`  | Password-reset OTP functionality          |
+| `verification_queries.sql` | Security verification queries             |
+
+---
+
+# 🛡️ Security Best Practices
 
 * Never expose private API keys.
 * Do not commit service-account credentials.
-* Configure proper Firebase security rules.
-* Configure proper Supabase Row Level Security (RLS) policies — tables like `common_passwords` and `password_reset_otps` have RLS enabled with no client-facing policies; they are only accessed through `SECURITY DEFINER` functions.
-* Do not place OneSignal REST/API keys inside the Android application.
+* Configure proper Firebase Security Rules.
+* Configure appropriate Supabase Row Level Security (RLS).
 * Keep production secrets outside the Git repository.
+* Never place OneSignal REST/API keys inside the Android application.
+* Do not store passwords in plaintext.
 
 ---
 
-## 🧪 Testing
+# 🧪 Testing
 
 The project includes Android testing configuration.
 
-Testing technologies include: JUnit, AndroidX JUnit, Espresso.
+Testing technologies include:
 
-Testing can be performed using Android Studio's built-in test and instrumentation testing tools.
+* JUnit
+* AndroidX JUnit
+* Espresso
+
+Testing can be performed using Android Studio's built-in unit and instrumentation testing tools.
 
 ---
 
-## 📂 Important Application Components
+# 📂 Important Application Components
 
-**Authentication**
+## Authentication
 
 ```text
 AuthRepository.kt
@@ -563,7 +724,7 @@ ForgotPasswordEmailActivity.kt
 ResetPasswordActivity.kt
 ```
 
-**Skills**
+## Skills
 
 ```text
 Skill.kt
@@ -571,7 +732,7 @@ AddSkillActivity.kt
 ExploreActivity.kt
 ```
 
-**Trades**
+## Trades
 
 ```text
 Trade.kt
@@ -581,7 +742,7 @@ ActiveTradesFragment.kt
 CompletedTradesFragment.kt
 ```
 
-**Chat**
+## Chat
 
 ```text
 ChatActivity.kt
@@ -590,7 +751,7 @@ NewChatActivity.kt
 Chatmessage.kt
 ```
 
-**Videos & Playlists**
+## Videos & Playlists
 
 ```text
 UploadVideoActivity.kt
@@ -602,7 +763,7 @@ AddPlaylistVideoActivity.kt
 Resizablevideoview.kt
 ```
 
-**Feedback**
+## Feedback
 
 ```text
 FeedbackModels.kt
@@ -611,28 +772,22 @@ SubmitFeedbackActivit.kt
 RateUsActivity.kt
 ```
 
-**Admin**
+## Utilities
 
 ```text
-AdminDashboardActivity.kt
-AdminUsersActivity.kt
-AdminSkillsActivity.kt
-AdminTradesActivity.kt
-AdminFeedbackActivity.kt
-AdminReportsActivity.kt
-AdminSettingsActivity.kt
-AdminVideosActivity.kt
-AdminVideoPlayerActivity.kt
+LocaleHelper.kt
+BaseActivity.kt
+SettingsActivity.kt
 ```
 
-**Supabase**
+## Supabase
 
 ```text
 SupabaseClient.kt
 SupabaseImageUploader.kt
 ```
 
-**SQL (Supabase SQL Editor)**
+## SQL
 
 ```text
 login_lockout.sql
@@ -643,54 +798,89 @@ verification_queries.sql
 
 ---
 
-## 🔮 Future Improvements
+# 🔮 Future Improvements
 
-------------------------------------
-### 🔴 High Priority
-------------------------------------
+## 🔴 High Priority
 
-1. **Chat Encryption & Warning System** – Implement encryption for chats. The system should detect unnecessary or inappropriate chats and issue warnings. After 5 warnings, the user should be temporarily blocked from chatting for 24 hours.
-2. **Teaching Limit** – Each user can teach up to 10 other users at the same time.
-3. **Complete UI Redesign** – Change and improve the entire user-side UI to make the application modern, attractive, and user-friendly.
-4. **Multiple Languages** – Add support for different languages so users can select their preferred language.
-5. **Payment Module** – Implement a complete and secure payment system.
-6. **Dark Mode** – Add Dark Mode for the user side of the application.
-7. **Swap Animation** – Add an attractive animation on the swapping/trade page to make the swap process more interactive.
-8. **Continue Where You Left Off** – Users should be able to continue from where they previously stopped, such as continuing a video, playlist, course, or learning activity.
-9. **Certificate System** – Provide users with a certificate after successfully completing a skill/course/playlist.
-10. **Fix the Complete Trade/Swap System** – Review and fix the entire trade/swap functionality to make the process smooth and reliable.
-11. **Trade/Swap from Demo Video** – Add a Trade/Swap option directly on individual demo videos. When a user clicks it, they can send a trade request along with their preferred schedule.
-12. **Trade Request & Counter-Schedule System** – When another user receives a trade request, they can accept it if they are available at the proposed time. If they are not available, they can provide one counter-schedule. After that, both users must finalize one mutually agreed date and time for the trade.
-13. **Meeting Reminders** – Both users should receive a reminder before the scheduled trade/meeting.
-14. **Different Trade Options** – Users should be able to trade different types of learning resources, such as:
-    - Notes
-    - Videos
-    - Live teaching sessions
-    - Documents/PDFs
-    - Courses
-    - Other useful learning resources
-15. **Password Sharing Detection** – Optional device/session-based signal (e.g. flag logins from a notably different device than the last known one) to support the "disallow password sharing" security requirement beyond policy alone.
+1. **Chat Encryption & Warning System** – Encrypt chats and detect inappropriate or unnecessary messages. After 5 warnings, temporarily block chatting for 24 hours.
 
-------------------------------------
-### 🟡 Low Priority
-------------------------------------
+2. **Teaching Limit** – Limit each user to teaching a maximum of 10 users simultaneously.
 
-1. **Playlist Purchase Expiry** – After some months, a user should no longer be able to purchase a given playlist (e.g. it expires or is retired).
-2. **Points Transaction History** – Maintain a log of all point credits and deductions with reason and timestamp, so users can review how their points were earned or spent.
-3. **Playlist Sharing Across Platforms** – Allow users to share a playlist link with others, with an option to keep it public or private.
-4. **Low-Points Warning** – Notify users when their point balance is insufficient to access a playlist, along with suggestions on how to earn more points.
-5. **Playlist Discount** – Offer playlists at a lower total points cost than purchasing the equivalent individual resources separately.
-6. **Advanced Chat & User Channels** – LinkedIn-style chat with user video/channel pages.
+3. **Complete UI Redesign** – Redesign the user-side UI to make it modern, attractive, responsive, and user-friendly.
 
-> ℹ️ Items previously listed here that are now implemented — Multi-Language Support (via `LocaleHelper`), Dark Mode (via `SettingsActivity`/`BaseActivity`), Advanced Playlists, Playlist Preview Videos, Points/Completion Rewards, Account Lockout/Throttling, Password Complexity Rules, Dictionary/Pattern Password Checking — have been moved to their relevant feature sections above (see [📑 Playlists](#-playlists) and [🔐 Security](#-security)) and removed from this roadmap.
+4. **Payment Module** – Implement a secure in-app payment system with:
+
+   * **Payment Gateway Integration** – Enable direct in-app payments.
+   * **Multiple Payment Options** – Support multiple payment methods.
+   * **Payment Confirmation** – Confirm successful payments.
+   * **Transaction History** – Allow users to view previous transactions.
+   * **Payment Status** – Show Successful, Failed, or Pending status.
+   * **48-Hour Payment/Service Window** – Manage payment/service processing within 48 hours.
+   * **Admin Payment Section** – Allow admins to monitor and manage payments and transactions.
+   * **Minimum Offer Amount** – All payment offers must start from **₹50**.
+
+5. **Dark Mode** – Add Dark Mode support for the user-side application.
+
+6. **Continue Where You Left Off** – Resume videos, playlists, courses, and learning activities from the user's previous progress.
+
+7. **Certificate System** – Generate certificates after successfully completing a skill, course, or playlist.
+
+8. **Complete Trade/Swap System** – Fix and improve the complete trade/swap workflow for smooth and reliable operation.
+
+9. **Trade/Swap from Demo Video** – Allow users to initiate a trade directly from a demo video with their preferred schedule.
+
+10. **Trade Request & Counter-Schedule** – Allow recipients to accept the proposed schedule or submit one counter-schedule. Both users must finalize a mutually agreed date and time.
+
+11. **Different Trade Options** – Support exchanging:
+
+    * Notes
+    * Videos
+    * Live Teaching Sessions
+    * Documents/PDFs
+    * Courses
+    * Other Learning Resources
+
+12. **Playlist Completion Reward** – Award **500 points** after successfully completing 2 complete playlists, usable for future learning or trade activities.
+
+13. **Notifications & Reminders** – Send notifications for:
+
+    * 🔄 New Trade Requests
+    * ✅ Trade Status Updates
+    * 📑 Playlist Purchases & Completion
+    * ⭐ Feedback & Rating Events
+    * 🔔 Scheduled Trade/Meeting Reminders
 
 ---
 
-## 📸 Screenshots
+## 🟡 Low Priority
 
-Add screenshots of the application here to showcase the main interfaces.
+1. Playlist Purchase Expiry
+2. Points Transaction History
+3. Playlist Sharing Across Platforms
+4. Low-Points Warning
+5. Playlist Discounts
+6. Advanced Chat & User Channels
 
-Recommended screenshots: Login, Home, Explore Skills, Skill Details, Create Trade, My Trades, Chat, Profile, Videos, Admin Dashboard, Admin Users, Admin Skills, Admin Trades, Admin Reports.
+---
+
+# 📸 Screenshots
+
+Add screenshots of the application inside the `screenshots/` directory.
+
+Recommended screenshots:
+
+* Login
+* Home
+* Explore Skills
+* Skill Details
+* Create Trade
+* My Trades
+* Chat
+* Profile
+* Videos
+* Settings
+* Language Selection
+* Dark Mode
 
 Example:
 
@@ -709,30 +899,32 @@ Example:
 |---|---|
 | ![Chat](screenshots/chat.png) | ![Profile](screenshots/profile.png) |
 
-| Admin Dashboard | Admin Panel |
+| Settings | Language Selection |
 |---|---|
-| ![Dashboard](screenshots/admin-dashboard.png) | ![Admin](screenshots/admin-panel.png) |
+| ![Settings](screenshots/settings.png) | ![Language](screenshots/language.png) |
 ```
 
 ---
 
-## 🌐 Repository
+# 🌐 Repository
 
-**GitHub Repository:** [Skill Swap — GitHub Repository](https://github.com/pandyaomsanjay/skill-swap)
+**GitHub Repository:**
 
----
-
-## 👨‍💻 Project
-
-### Skill Swap
-
-**Learn • Share • Exchange**
-
-A platform designed to make knowledge exchange easier by connecting people who want to teach their skills with people who want to learn them.
+https://github.com/pandyaomsanjay/skill-swap
 
 ---
 
-## 📄 License
+# 👨‍💻 Project
+
+## Skill Swap
+
+### Learn • Share • Exchange
+
+Skill Swap is designed to make knowledge exchange easier by connecting people who want to **teach their skills with people who want to learn them**.
+
+---
+
+# 📄 License
 
 No explicit open-source license is currently included in the repository.
 
@@ -740,8 +932,10 @@ If this project is intended for public distribution or open-source use, add an a
 
 ---
 
-## ⭐ Support
+# ⭐ Support
 
 If you find **Skill Swap** useful or interesting, consider giving the repository a ⭐ on GitHub.
+
+---
 
 **Built with Kotlin, Firebase, Supabase & OneSignal.**
