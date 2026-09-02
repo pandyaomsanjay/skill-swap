@@ -516,12 +516,6 @@ Skill Swap implements the following password and account-security controls, prim
 | **Random salt** | Bcrypt embeds a unique, randomly generated salt in every stored hash. Verified that no two users share an identical hash even where duplicate passwords are possible, and that 100% of stored hashes match bcrypt's salted format |
 | **Disallow dictionary / weak passwords** | `is_password_common()` Postgres function (`common_passwords.sql`) rejects: exact matches against a known-weak password list, all-repeated-character strings (`aaaaaa`), repeated-chunk strings (`abab`, `123123`), common keyboard-walk patterns (`qwerty`, `asdf`, `zxcv`), and leetspeak-disguised matches (`P@ssw0rd` → `password`). Called from the Android app at signup (`Createaccount.kt`) and password reset (`AuthRepository.kt`) |
 
-### ⏳ Not implemented (policy-level)
-
-| Requirement | Status |
-|---|---|
-| **Disallow password sharing** | Not enforced technically — no reliable server-side way to detect shared credentials without additional device/session tracking. Addressed as a stated policy: accounts are for individual use only, per the application's Terms of Service |
-
 ### SQL Files
 
 The Supabase-side security logic lives in the SQL Editor as the following scripts:
