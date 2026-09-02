@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/admin_bg_light_blue">
@@ -179,6 +180,31 @@
                     android:textColor="@color/text_primary"
                     android:textColorHint="@color/text_hint" />
             </com.google.android.material.textfield.TextInputLayout>
+
+            <!-- ⭐ NEW: Lockout countdown timer — uses MaterialCardView (no new drawable needed),
+                 same pattern as the logo/decorative cards above. Hidden by default. -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/cardLockTimer"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="10dp"
+                android:visibility="gone"
+                app:cardCornerRadius="14dp"
+                app:cardElevation="0dp"
+                app:cardBackgroundColor="#1AE53935"
+                tools:visibility="visible">
+
+                <TextView
+                    android:id="@+id/tvLockTimer"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center"
+                    android:padding="10dp"
+                    android:textColor="@color/error"
+                    android:textSize="13sp"
+                    android:textStyle="bold"
+                    tools:text="Account locked. Try again in 14:59" />
+            </com.google.android.material.card.MaterialCardView>
 
             <!-- Forgot Password -->
             <TextView

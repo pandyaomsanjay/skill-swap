@@ -2,6 +2,7 @@ package com.example.sgp
 
 import android.content.Intent
 import android.os.Bundle
+import android.os.CountDownTimer
 import android.util.Log
 import android.util.Patterns
 import android.view.View
@@ -36,6 +37,13 @@ class Login : BaseActivity() {
     private lateinit var db: FirebaseFirestore
     private lateinit var progressBar: ProgressBar
     private lateinit var googleSignInClient: GoogleSignInClient
+
+    // ⭐ Lockout countdown UI + timer handle
+    // cardLockTimer = the MaterialCardView wrapper (toggle THIS view's visibility)
+    // tvLockTimer   = the inner TextView (only its text changes, never its own visibility)
+    private var cardLockTimer: View? = null
+    private var tvLockTimer: TextView? = null
+    private var lockCountDownTimer: CountDownTimer? = null
 
     private val googleLauncher =
         registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
@@ -73,6 +81,10 @@ class Login : BaseActivity() {
         auth = FirebaseAuth.getInstance()
         db = Firebase.firestore
         progressBar = findViewById(R.id.progressBar)
+
+        // ⭐ Bind the lock-timer card + its inner text view
+        cardLockTimer = findViewById(R.id.cardLockTimer)
+        tvLockTimer = findViewById(R.id.tvLockTimer)
 
         Log.d(TAG, "onCreate: Firebase project=${auth.app.options.projectId}, currentUser=${auth.currentUser?.uid}")
 
@@ -179,20 +191,79 @@ class Login : BaseActivity() {
 
             if (result.success) {
                 Log.d(TAG, "AuthRepository.loginWithPassword SUCCESS for '${result.email}'")
+                hideLockTimer() // ⭐ clear any stale lock UI on a successful login
 
                 // ⭐ CRITICAL: Create Firebase user for this Supabase user
                 createFirebaseUserForSupabase(email, password)
             } else {
                 showLoading(false)
                 Log.e(TAG, "AuthRepository.loginWithPassword FAILED: locked=${result.isLocked}, " +
-                        "attemptsRemaining=${result.attemptsRemaining}, message=${result.message}")
+                        "secondsRemaining=${result.secondsRemaining}, attemptsRemaining=${result.attemptsRemaining}, " +
+                        "message=${result.message}")
                 showError(result.message)
+
+                // ⭐ if locked, start the countdown using the REAL value from
+                // check_login_lock / record_failed_login (already returned by AuthRepository)
+                if (result.isLocked && result.secondsRemaining > 0) {
+                    startLockCountdown(result.secondsRemaining.toLong())
+                } else {
+                    hideLockTimer()
+                }
             }
         }
     }
 
     /**
-     * ⭐ NEW: Creates a Firebase user for Supabase-authenticated users
+     * ⭐ Starts a visible countdown showing time left on the lock (15 min or 24 hr).
+     * Disables the login button until the timer reaches zero.
+     */
+    private fun startLockCountdown(totalSeconds: Long) {
+        if (totalSeconds <= 0) {
+            hideLockTimer()
+            return
+        }
+
+        lockCountDownTimer?.cancel()
+
+        val btnLogin = findViewById<Button>(R.id.btnLogin)
+        btnLogin.isEnabled = false
+        cardLockTimer?.visibility = View.VISIBLE
+
+        lockCountDownTimer = object : CountDownTimer(totalSeconds * 1000, 1000) {
+            override fun onTick(millisUntilFinished: Long) {
+                tvLockTimer?.text = "Account locked. Try again in ${formatDuration(millisUntilFinished / 1000)}"
+            }
+
+            override fun onFinish() {
+                cardLockTimer?.visibility = View.GONE
+                btnLogin.isEnabled = true
+                Toast.makeText(this@Login, "Lock expired. You can try logging in again.", Toast.LENGTH_SHORT).show()
+            }
+        }.start()
+    }
+
+    /** ⭐ hides/cancels the lock countdown and re-enables the login button */
+    private fun hideLockTimer() {
+        lockCountDownTimer?.cancel()
+        lockCountDownTimer = null
+        cardLockTimer?.visibility = View.GONE
+        findViewById<Button>(R.id.btnLogin).isEnabled = true
+    }
+
+    /** ⭐ formats seconds as HH:MM:SS or MM:SS depending on length (15 min vs 24 hr locks) */
+    private fun formatDuration(totalSeconds: Long): String {
+        val hours = totalSeconds / 3600
+        val minutes = (totalSeconds % 3600) / 60
+        val seconds = totalSeconds % 60
+        return if (hours > 0) {
+            String.format("%02d:%02d:%02d", hours, minutes, seconds)
+        } else {
+            String.format("%02d:%02d", minutes, seconds)
+        }
+    }
+
+    /**
+     * ⭐ Creates a Firebase user for Supabase-authenticated users
      * This ensures Firestore rules work correctly (request.auth.uid will exist)
      */
     private fun createFirebaseUserForSupabase(email: String, password: String) {
@@ -409,5 +480,10 @@ class Login : BaseActivity() {
     private fun showLoading(show: Boolean) {
         progressBar.visibility = if (show) View.VISIBLE else View.GONE
         findViewById<Button>(R.id.btnLogin).isEnabled = !show
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        lockCountDownTimer?.cancel() // ⭐ prevent leaked timer callbacks
     }
 }
