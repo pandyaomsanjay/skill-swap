@@ -79,7 +79,7 @@
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Your Stats"
+        android:text="@string/nav_header_stats"
         android:textColor="@color/brand_cream"
         android:textSize="16sp"
         android:textStyle="bold"
@@ -111,7 +111,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Trades"
+                android:text="@string/nav_trades_label"
                 android:textColor="#C9D6DD"
                 android:textSize="12sp" />
         </LinearLayout>
@@ -140,7 +140,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Rating"
+                android:text="@string/nav_rating_label"
                 android:textColor="#C9D6DD"
                 android:textSize="12sp" />
         </LinearLayout>
@@ -169,7 +169,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Skills"
+                android:text="@string/nav_skills_label"
                 android:textColor="#C9D6DD"
                 android:textSize="12sp" />
         </LinearLayout>

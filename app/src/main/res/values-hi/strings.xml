@@ -1,32 +1,210 @@
 <resources>
-    <!-- Signup Activity Strings -->
+    <!-- App & General -->
     <string name="app_name">स्किलस्वैप</string>
-    <string name="create_account_subtitle">कौशल साझा करें, नए सीखें</string>
-    <string name="full_name">पूरा नाम</string>
+    <string name="cancel">रद्द करें</string>
+    <string name="ok">ठीक है</string>
+    <string name="save">सहेजें</string>
+    <string name="done">संपन्न</string>
+    <string name="send">भेजें</string>
+    <string name="search">खोजें</string>
+    <string name="close">बंद करें</string>
+
+    <!-- Language Selection -->
+    <string name="select_language">भाषा चुनें</string>
+    <string name="choose_preferred_language">अपनी पसंदीदा ऐप भाषा चुनें</string>
+    <string name="change_language">भाषा बदलें</string>
+    <string name="language">भाषा</string>
+    <string name="english">English (अंग्रेज़ी)</string>
+    <string name="hindi">हिन्दी (Hindi)</string>
+    <string name="gujarati">ગુજરાતી (गुजराती)</string>
+
+    <!-- Authentication / Login -->
+    <string name="welcome_back">वापसी पर स्वागत है!</string>
+    <string name="sign_in_subtitle">अपनी कौशल यात्रा जारी रखने के लिए साइन इन करें</string>
     <string name="email_address">ईमेल पता</string>
+    <string name="password">पासवर्ड</string>
+    <string name="forgot_password">पासवर्ड भूल गए?</string>
+    <string name="sign_in">साइन इन करें</string>
+    <string name="or_continue_with">या इसके साथ जारी रखें</string>
+    <string name="continue_with_google">Google के साथ जारी रखें</string>
+    <string name="new_to_skillswap">स्किलस्वैप पर नए हैं? </string>
+    <string name="create_account">खाता बनाएं</string>
+    <string name="create_account_subtitle">अपनी कौशल साझाकरण यात्रा शुरू करें</string>
+    <string name="full_name">पूरा नाम</string>
     <string name="phone_number">फ़ोन नंबर</string>
     <string name="location_city">स्थान (शहर)</string>
+    <string name="confirm_password">पासवर्ड की पुष्टि करें</string>
+    <string name="terms_agreement">मैं सेवा की शर्तों और गोपनीयता नीति से सहमत हूँ</string>
+    <string name="create_account_button">खाता बनाएं</string>
+    <string name="already_have_account">पहले से ही एक खाता है?  </string>
+    <string name="login_link">लॉग इन करें</string>
+    <string name="rule_length">• कम से कम 8 वर्ण</string>
+    <string name="rule_upper">• 1 बड़ा अक्षर (Uppercase)</string>
+    <string name="rule_number">• 1 संख्या</string>
+    <string name="rule_special">• 1 विशेष वर्ण</string>
+    <string name="passwords_match">✓ पासवर्ड मेल खाते हैं</string>
+    <string name="passwords_mismatch">✗ पासवर्ड मेल नहीं खाते</string>
+
+    <!-- OTP Verification -->
+    <string name="verify_email">अपने ईमेल को सत्यापित करें</string>
+    <string name="otp_sent_info">आपके ईमेल पर भेजा गया OTP</string>
+    <string name="enter_code_label">6-अंकीय कोड दर्ज करें</string>
+    <string name="expires_in">समाप्त होने में </string>
+    <string name="seconds">सेकंड</string>
+    <string name="verify_otp">OTP सत्यापित करें</string>
+    <string name="didnt_receive_otp">प्राप्त नहीं हुआ? </string>
+    <string name="resend_otp">OTP पुनः भेजें</string>
+    <string name="invalid_otp">अमान्य या समाप्त हो चुका OTP</string>
+
+    <!-- Complete Profile -->
+    <string name="complete_profile_title">अपनी प्रोफ़ाइल पूरी करें</string>
+    <string name="complete_profile_subtitle">अपने बारे में थोड़ा बताएं</string>
+    <string name="current_location">वर्तमान स्थान</string>
+    <string name="preferred_language">पसंदीदा भाषा</string>
+    <string name="auto_detect_location">स्थान का स्वतः पता लगाएं</string>
+    <string name="save_profile">प्रोफ़ाइल सहेजें</string>
+    <string name="location_verified">✓ स्थान सत्यापित</string>
+
+    <!-- Home Screen -->
+    <string name="good_morning">शुभ प्रभात,</string>
+    <string name="good_afternoon">शुभ दोपहर,</string>
+    <string name="good_evening">शुभ संध्या,</string>
+    <string name="welcome_back_user">वापसी पर स्वागत है,</string>
+    <string name="points">पॉइंट्स</string>
+    <string name="quick_actions">त्वरित क्रियाएं</string>
+    <string name="nearby">आस-पास</string>
+    <string name="filters">फ़िल्टर</string>
+    <string name="find">खोजें</string>
+    <string name="teach">सिखाएं</string>
+    <string name="create">बनाएं</string>
+    <string name="skills_word">कौशल</string>
+    <string name="swap_word">स्वैप</string>
+    <string name="popular_skills">लोकप्रिय कौशल</string>
+    <string name="see_all">सभी देखें</string>
+    <string name="recent_swaps">हाल के स्वैप्स</string>
+    <string name="view_all">सभी देखें</string>
+    <string name="no_swaps_yet">अभी तक कोई स्वैप नहीं — शुरू करने के लिए बनाएं!</string>
+
+    <!-- Navigation Drawer & Header -->
+    <string name="nav_header_stats">आपके आंकड़े</string>
+    <string name="nav_trades_label">ट्रेड्स</string>
+    <string name="nav_rating_label">रेटिंग</string>
+    <string name="nav_skills_label">कौशल</string>
+    <string name="nav_home">होम</string>
+    <string name="nav_my_skills">मेरे कौशल</string>
+    <string name="nav_my_trades">मेरे ट्रेड्स</string>
+    <string name="nav_messages">संदेश</string>
+    <string name="nav_notifications">सूचनाएं</string>
+    <string name="nav_favorites">पसंदीदा</string>
+    <string name="nav_history">इतिहास</string>
+    <string name="nav_settings">सेटिंग्स</string>
+    <string name="nav_help">सहायता और समर्थन</string>
+    <string name="nav_about">हमारे बारे में</string>
+    <string name="nav_logout">लॉग आउट</string>
+    <string name="navigation_drawer_open">नेविगेशन ड्रॉवर खोलें</string>
+    <string name="navigation_drawer_close">नेविगेशन ड्रॉवर बंद करें</string>
+    <string name="app_logo">स्किलस्वैप ऐप लोगो</string>
+
+    <!-- Explore Screen -->
+    <string name="explore_skills">कौशल एक्सप्लोर करें</string>
+    <string name="search_skills_hint">कौशल, श्रेणी या उपयोगकर्ता खोजें</string>
+    <string name="all_videos_playlists">सभी वीडियो/प्लेलिस्ट</string>
+    <string name="purchased_with_points">पॉइंट्स से खरीदे गए</string>
+    <string name="cat_all">सभी</string>
+    <string name="cat_technology">प्रौद्योगिकी</string>
+    <string name="cat_arts">कला</string>
+    <string name="cat_sports">खेल</string>
+    <string name="cat_home">गृह</string>
+    <string name="cat_education">शिक्षा</string>
+    <string name="cat_lifestyle">जीवनशैली</string>
+    <string name="no_skills_found">कोई कौशल नहीं मिला</string>
+
+    <!-- Profile Screen -->
+    <string name="profile">प्रोफ़ाइल</string>
+    <string name="edit_profile">प्रोफ़ाइल संपादित करें</string>
+    <string name="change_photo">फ़ोटो बदलें</string>
+    <string name="cd_change_photo">प्रोफ़ाइल फ़ोटो बदलें</string>
+    <string name="my_profile">मेरी प्रोफ़ाइल</string>
+    <string name="member_since">%1$s से सदस्य</string>
+    <string name="exchanges">आदान-प्रदान</string>
+    <string name="rating">रेटिंग</string>
+    <string name="credits">क्रेडिट</string>
+    <string name="my_skills">मेरे कौशल</string>
+    <string name="add_new">नया जोड़ें</string>
+    <string name="achievements">उपलब्धियां</string>
+    <string name="booking_history">बुकिंग इतिहास</string>
+    <string name="reviews_ratings">समीक्षाएं और रेटिंग</string>
+    <string name="feedback">प्रतिक्रिया</string>
+    <string name="settings">सेटिंग्स</string>
+    <string name="logout">लॉग आउट</string>
+    <string name="logout_confirmation_title">लॉग आउट</string>
+    <string name="logout_confirmation_message">क्या आप वाकई लॉग आउट करना चाहते हैं?</string>
+
+    <!-- Settings Activity -->
+    <string name="account_security">खाता और सुरक्षा</string>
+    <string name="change_password">पासवर्ड बदलें</string>
+    <string name="change_password_subtitle">पासवर्ड और सुरक्षा विकल्प अपडेट करें</string>
+    <string name="forgot_password_title">पासवर्ड भूल गए</string>
+    <string name="forgot_password_subtitle">अपने ईमेल पर रीसेट लिंक भेजें</string>
+    <string name="preferences">प्राथमिकताएं</string>
+    <string name="push_notifications">पुश सूचनाएं</string>
+    <string name="push_notifications_subtitle">तत्काल ऐप अलर्ट प्राप्त करें</string>
+    <string name="dark_mode">डार्क थीम</string>
+    <string name="dark_mode_subtitle">समग्र दृश्य थीम समायोजित करें</string>
+    <string name="dark_theme">डार्क थीम</string>
+    <string name="dark_theme_subtitle">समग्र दृश्य थीम समायोजित करें</string>
+    <string name="about_support">हमारे बारे में और समर्थन</string>
+    <string name="help_support">सहायता और समर्थन</string>
+    <string name="privacy_policy">गोपनीयता नीति</string>
+    <string name="terms_of_service">सेवा की शर्तें</string>
+    <string name="rate_us">रेट करें</string>
+    <string name="about_skillswap">स्किलस्वैप के बारे में</string>
+    <string name="about_skill_swap">स्किलस्वैप के बारे में</string>
+    <string name="app_version">ऐप संस्करण</string>
+    <string name="sign_out">साइन आउट</string>
+    <string name="about">हमारे बारे में</string>
+
+    <!-- Trades Screen -->
+    <string name="my_trades">मेरे ट्रेड्स</string>
+    <string name="tab_active">सक्रिय</string>
+    <string name="tab_completed">संपन्न</string>
+    <string name="active_trades">सक्रिय</string>
+    <string name="completed_trades">संपन्न</string>
+
+    <!-- Categories -->
+    <string name="category_all">सभी</string>
+    <string name="category_technology">प्रौद्योगिकी</string>
+    <string name="category_arts">कला</string>
+    <string name="category_sports">खेल</string>
+    <string name="category_home">गृह</string>
+    <string name="category_education">शिक्षा</string>
+    <string name="category_lifestyle">जीवनशैली</string>
+
+    <!-- Skills Section -->
     <string name="skills_section_title">आपके कौशल</string>
     <string name="skills_teach_hint">कौशल जो आप सिखा/साझा कर सकते हैं</string>
     <string name="skills_teach_example">जैसे, गिटार, खाना बनाना, स्पेनिश, वेब डेवलपमेंट</string>
     <string name="skills_learn_hint">कौशल जो आप सीखना चाहते हैं</string>
     <string name="skills_learn_example">जैसे, फोटोग्राफी, योग, फ्रेंच, ग्राफिक डिजाइन</string>
-    <string name="password">पासवर्ड</string>
-    <string name="confirm_password">पासवर्ड की पुष्टि करें</string>
-    <string name="terms_agreement">मैं सेवा की शर्तों और गोपनीयता नीति से सहमत हूँ</string>
-    <string name="create_account_button">खाता बनाएँ</string>
-    <string name="already_have_account">पहले से ही एक खाता है?</string>
-    <string name="login_link">लॉग इन करें</string>
+    <string name="contact_information">संपर्क जानकारी</string>
+    <string name="placeholder_initial">•</string>
 
-    <!-- For accessibility -->
-    <string name="app_logo">स्किलस्वैप ऐप लोगो</string>
-    <string name="navigation_drawer_open">नेविगेशन ड्रॉवर खोलें</string>
-    <string name="navigation_drawer_close">नेविगेशन ड्रॉवर बंद करें</string>
-    <string name="my_profile" />
-    <string name="change_photo" />
-    <string name="contact_information" />
-    <string name="edit_profile" />
-    <string name="settings" />
-    <string name="logout" />
-    <string name="cd_change_photo" />
+    <!-- Bottom Nav -->
+    <string name="nav_explore">एक्सप्लोर</string>
+    <string name="nav_add_skill">कौशल जोड़ें</string>
+    <string name="nav_trades">ट्रेड्स</string>
+    <string name="nav_dashboard">डैशबोर्ड</string>
+    <string name="nav_users">उपयोगकर्ता</string>
+    <string name="nav_swaps">स्वैप्स</string>
+    <string name="nav_reports">रिपोर्ट्स</string>
+    <string name="nav_feedback">प्रतिक्रिया</string>
+
+    <string-array name="skill_categories">
+        <item>प्रौद्योगिकी</item>
+        <item>कला</item>
+        <item>खेल</item>
+        <item>गृह</item>
+        <item>शिक्षा</item>
+        <item>जीवनशैली</item>
+    </string-array>
 </resources>

@@ -17,7 +17,7 @@ import io.github.jan.supabase.storage.storage
 import kotlinx.coroutines.*
 import java.util.*
 
-class AddPlaylistVideoActivity : AppCompatActivity() {
+class AddPlaylistVideoActivity : BaseActivity() {
 
     private lateinit var db: FirebaseFirestore
     private var selectedVideoUri: Uri? = null

@@ -1,0 +1,210 @@
+<resources>
+    <!-- App & General -->
+    <string name="app_name">સ્કિલસ્વેપ</string>
+    <string name="cancel">રદ કરો</string>
+    <string name="ok">બરાબર</string>
+    <string name="save">સાચવો</string>
+    <string name="done">પૂર્ણ</string>
+    <string name="send">મોકલો</string>
+    <string name="search">શોધો</string>
+    <string name="close">બંધ કરો</string>
+
+    <!-- Language Selection -->
+    <string name="select_language">ભાષા પસંદ કરો</string>
+    <string name="choose_preferred_language">તમારી પસંદગીની એપ્લિકેશન ભાષા પસંદ કરો</string>
+    <string name="change_language">ભાષા બદલો</string>
+    <string name="language">ભાષા</string>
+    <string name="english">English (અંગ્રેજી)</string>
+    <string name="hindi">हिन्दी (હિન્દી)</string>
+    <string name="gujarati">ગુજરાતી (Gujarati)</string>
+
+    <!-- Authentication / Login -->
+    <string name="welcome_back">સ્વાગત છે!</string>
+    <string name="sign_in_subtitle">તમારી કૌશલ્ય યાત્રા ચાલુ રાખવા માટે સાઇન ઇન કરો</string>
+    <string name="email_address">ઇમેઇલ સરનામું</string>
+    <string name="password">પાસવર્ડ</string>
+    <string name="forgot_password">પાસવર્ડ ભૂલી ગયા?</string>
+    <string name="sign_in">સાઇન ઇન કરો</string>
+    <string name="or_continue_with">અથવા આનાથી આગળ વધો</string>
+    <string name="continue_with_google">Google સાથે ચાલુ રાખો</string>
+    <string name="new_to_skillswap">સ્કિલસ્વેપ પર નવા છો? </string>
+    <string name="create_account">ખાતું બનાવો</string>
+    <string name="create_account_subtitle">તમારી કૌશલ્ય વહેંચણી યાત્રા શરૂ કરો</string>
+    <string name="full_name">પૂરું નામ</string>
+    <string name="phone_number">ફોન નંબર</string>
+    <string name="location_city">સ્થળ (શહેર)</string>
+    <string name="confirm_password">પાસવર્ડની પુષ્ટિ કરો</string>
+    <string name="terms_agreement">હું સેવાની શરતો અને ગોપનીયતા નીતિ સાથે સંમત છું</string>
+    <string name="create_account_button">ખાતું બનાવો</string>
+    <string name="already_have_account">પહેલેથી જ ખાતું છે?  </string>
+    <string name="login_link">લૉગ ઇન કરો</string>
+    <string name="rule_length">• ઓછામાં ઓછા 8 અક્ષરો</string>
+    <string name="rule_upper">• 1 મોટો અક્ષર (Uppercase)</string>
+    <string name="rule_number">• 1 નંબર</string>
+    <string name="rule_special">• 1 વિશેષ અક્ષર</string>
+    <string name="passwords_match">✓ પાસવર્ડ મેળ ખાય છે</string>
+    <string name="passwords_mismatch">✗ પાસવર્ડ મેળ ખાતા નથી</string>
+
+    <!-- OTP Verification -->
+    <string name="verify_email">તમારા ઇમેઇલની પુષ્ટિ કરો</string>
+    <string name="otp_sent_info">તમારા ઇમેઇલ પર મોકલેલ OTP</string>
+    <string name="enter_code_label">6-અંકનો કોડ દાખલ કરો</string>
+    <string name="expires_in">સમાપ્ત થવામાં </string>
+    <string name="seconds">સેકન્ડ</string>
+    <string name="verify_otp">OTP ચકાસો</string>
+    <string name="didnt_receive_otp">મળ્યો નથી? </string>
+    <string name="resend_otp">ફરીથી OTP મોકલો</string>
+    <string name="invalid_otp">અમાન્ય અથવા સમાપ્ત થયેલ OTP</string>
+
+    <!-- Complete Profile -->
+    <string name="complete_profile_title">તમારી પ્રોફાઇલ પૂર્ણ કરો</string>
+    <string name="complete_profile_subtitle">તમારા વિશે થોડું જણાવો</string>
+    <string name="current_location">વર્તમાન સ્થળ</string>
+    <string name="preferred_language">પસંદગીની ભાષા</string>
+    <string name="auto_detect_location">સ્થાન આપમેળે શોધો</string>
+    <string name="save_profile">પ્રોફાઇલ સાચવો</string>
+    <string name="location_verified">✓ સ્થળ ચકાસાયેલ છે</string>
+
+    <!-- Home Screen -->
+    <string name="good_morning">શુભ સવાર,</string>
+    <string name="good_afternoon">શુભ બપોર,</string>
+    <string name="good_evening">શુભ સાંજ,</string>
+    <string name="welcome_back_user">સ્વાગત છે,</string>
+    <string name="points">પોઇન્ટ્સ</string>
+    <string name="quick_actions">ઝડપી ક્રિયાઓ</string>
+    <string name="nearby">નજીકમાં</string>
+    <string name="filters">ફિલ્ટર્સ</string>
+    <string name="find">શોધો</string>
+    <string name="teach">શીખવો</string>
+    <string name="create">બનાવો</string>
+    <string name="skills_word">કૌશલ્યો</string>
+    <string name="swap_word">સ્વેપ</string>
+    <string name="popular_skills">લોકપ્રિય કૌશલ્યો</string>
+    <string name="see_all">બધા જુઓ</string>
+    <string name="recent_swaps">તાજેતરના સ્વેપ્સ</string>
+    <string name="view_all">બધા જુઓ</string>
+    <string name="no_swaps_yet">હજુ સુધી કોઈ સ્વેપ નથી — શરૂ કરવા માટે બનાવો!</string>
+
+    <!-- Navigation Drawer & Header -->
+    <string name="nav_header_stats">તમારા આંકડા</string>
+    <string name="nav_trades_label">ટ્રેડ્સ</string>
+    <string name="nav_rating_label">રેટિંગ</string>
+    <string name="nav_skills_label">કૌશલ્યો</string>
+    <string name="nav_home">હોમ</string>
+    <string name="nav_my_skills">મારા કૌશલ્યો</string>
+    <string name="nav_my_trades">મારા ટ્રેડ્સ</string>
+    <string name="nav_messages">સંદેશાઓ</string>
+    <string name="nav_notifications">સૂચનાઓ</string>
+    <string name="nav_favorites">મનપસંદ</string>
+    <string name="nav_history">ઇતિહાસ</string>
+    <string name="nav_settings">સેટિંગ્સ</string>
+    <string name="nav_help">મદદ અને સમર્થન</string>
+    <string name="nav_about">અમારા વિશે</string>
+    <string name="nav_logout">લૉગ આઉટ</string>
+    <string name="navigation_drawer_open">નેવિગેશન ડ્રોઅર ખોલો</string>
+    <string name="navigation_drawer_close">નેવિગેશન ડ્રોઅર બંધ કરો</string>
+    <string name="app_logo">સ્કિલસ્વેપ એપ લોગો</string>
+
+    <!-- Explore Screen -->
+    <string name="explore_skills">કૌશલ્યો એક્સપ્લોર કરો</string>
+    <string name="search_skills_hint">કૌશલ્ય, શ્રેણી અથવા વપરાશકર્તા શોધો</string>
+    <string name="all_videos_playlists">બધા વિડિઓ/પ્લેલિસ્ટ</string>
+    <string name="purchased_with_points">પોઇન્ટ્સથી ખરીદેલ</string>
+    <string name="cat_all">બધા</string>
+    <string name="cat_technology">ટેકનોલોજી</string>
+    <string name="cat_arts">કલા</string>
+    <string name="cat_sports">રમતગમત</string>
+    <string name="cat_home">ઘર</string>
+    <string name="cat_education">શિક્ષણ</string>
+    <string name="cat_lifestyle">જીવનશૈલી</string>
+    <string name="no_skills_found">કોઈ કૌશલ્ય મળ્યું નથી</string>
+
+    <!-- Profile Screen -->
+    <string name="profile">પ્રોફાઇલ</string>
+    <string name="edit_profile">પ્રોફાઇલ સંપાદિત કરો</string>
+    <string name="change_photo">ફોટો બદલો</string>
+    <string name="cd_change_photo">પ્રોફાઇલ ફોટો બદલો</string>
+    <string name="my_profile">મારી પ્રોફાઇલ</string>
+    <string name="member_since">%1$s થી સભ્ય</string>
+    <string name="exchanges">એક્સચેન્જ</string>
+    <string name="rating">રેટિંગ</string>
+    <string name="credits">ક્રેડિટ્સ</string>
+    <string name="my_skills">મારા કૌશલ્યો</string>
+    <string name="add_new">નવું ઉમેરો</string>
+    <string name="achievements">સિદ્ધિઓ</string>
+    <string name="booking_history">બુકિંગ ઇતિહાસ</string>
+    <string name="reviews_ratings">સમીક્ષાઓ અને રેટિંગ્સ</string>
+    <string name="feedback">પ્રતિસાદ</string>
+    <string name="settings">સેટિંગ્સ</string>
+    <string name="logout">લૉગ આઉટ</string>
+    <string name="logout_confirmation_title">લૉગ આઉટ</string>
+    <string name="logout_confirmation_message">શું તમે ખરેખર લૉગ આઉટ કરવા માંગો છો?</string>
+
+    <!-- Settings Activity -->
+    <string name="account_security">ખાતું અને સુરક્ષા</string>
+    <string name="change_password">પાસવર્ડ બદલો</string>
+    <string name="change_password_subtitle">પાસવર્ડ અને સુરક્ષા વિકલ્પો અપડેટ કરો</string>
+    <string name="forgot_password_title">પાસવર્ડ ભૂલી ગયા</string>
+    <string name="forgot_password_subtitle">તમારા ઇમેઇલ પર રીસેટ લિંક મોકલો</string>
+    <string name="preferences">પસંદગીઓ</string>
+    <string name="push_notifications">પુશ સૂચનાઓ</string>
+    <string name="push_notifications_subtitle">તાત્કાલિક એપ્લિકેશન ચેતવણીઓ મેળવો</string>
+    <string name="dark_mode">ડાર્ક થીમ</string>
+    <string name="dark_mode_subtitle">સમગ્ર થીમ ગોઠવો</string>
+    <string name="dark_theme">ડાર્ક થીમ</string>
+    <string name="dark_theme_subtitle">સમગ્ર થીમ ગોઠવો</string>
+    <string name="about_support">અમારા વિશે અને સપોર્ટ</string>
+    <string name="help_support">મદદ અને સમર્થન</string>
+    <string name="privacy_policy">ગોપનીયતા નીતિ</string>
+    <string name="terms_of_service">સેવાની શરતો</string>
+    <string name="rate_us">રેટ કરો</string>
+    <string name="about_skillswap">સ્કિલસ્વેપ વિશે</string>
+    <string name="about_skill_swap">સ્કિલસ્વેપ વિશે</string>
+    <string name="app_version">એપ સંસ્કરણ</string>
+    <string name="sign_out">સાઇન આઉટ</string>
+    <string name="about">અમારા વિશે</string>
+
+    <!-- Trades Screen -->
+    <string name="my_trades">મારા ટ્રેડ્સ</string>
+    <string name="tab_active">સક્રિય</string>
+    <string name="tab_completed">પૂર્ણ</string>
+    <string name="active_trades">સક્રિય</string>
+    <string name="completed_trades">પૂર્ણ</string>
+
+    <!-- Categories -->
+    <string name="category_all">બધા</string>
+    <string name="category_technology">ટેકનોલોજી</string>
+    <string name="category_arts">કલા</string>
+    <string name="category_sports">રમતગમત</string>
+    <string name="category_home">ઘર</string>
+    <string name="category_education">શિક્ષણ</string>
+    <string name="category_lifestyle">જીવનશૈલી</string>
+
+    <!-- Skills Section -->
+    <string name="skills_section_title">તમારા કૌશલ્યો</string>
+    <string name="skills_teach_hint">તમે શીખવી/શેર કરી શકો તેવા કૌશલ્યો</string>
+    <string name="skills_teach_example">દા.ત., ગિટાર, રસોઈ, સ્પેનિશ, વેબ ડેવલપમેન્ટ</string>
+    <string name="skills_learn_hint">તમે શીખવા માંગતા હો તેવા કૌશલ્યો</string>
+    <string name="skills_learn_example">દા.ત., ફોટોગ્રાફી, યોગ, ફ્રેન્ચ, ગ્રાફિક ડિઝાઇન</string>
+    <string name="contact_information">સંપર્ક માહિતી</string>
+    <string name="placeholder_initial">•</string>
+
+    <!-- Bottom Nav -->
+    <string name="nav_explore">એક્સપ્લોર</string>
+    <string name="nav_add_skill">કૌશલ્ય ઉમેરો</string>
+    <string name="nav_trades">ટ્રેડ્સ</string>
+    <string name="nav_dashboard">ડેશબોર્ડ</string>
+    <string name="nav_users">વપરાશકર્તાઓ</string>
+    <string name="nav_swaps">સ્વેપ્સ</string>
+    <string name="nav_reports">રિપોર્ટ્સ</string>
+    <string name="nav_feedback">પ્રતિસાદ</string>
+
+    <string-array name="skill_categories">
+        <item>ટેકનોલોજી</item>
+        <item>કલા</item>
+        <item>રમતગમત</item>
+        <item>ઘર</item>
+        <item>શિક્ષણ</item>
+        <item>જીવનશૈલી</item>
+    </string-array>
+</resources>

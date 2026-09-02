@@ -194,10 +194,10 @@ class Createaccount : BaseActivity() {
             tvMatchIndicator.visibility = android.view.View.VISIBLE
             passwordsMatch = pass == confirm
             if (passwordsMatch) {
-                tvMatchIndicator.text = "✓ Passwords match"
+                tvMatchIndicator.text = getString(R.string.passwords_match)
                 tvMatchIndicator.setTextColor(0xFF4CAF50.toInt())
             } else {
-                tvMatchIndicator.text = "✗ Passwords don't match"
+                tvMatchIndicator.text = getString(R.string.passwords_mismatch)
                 tvMatchIndicator.setTextColor(0xFFD32F2F.toInt())
             }
         }

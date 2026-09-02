@@ -25,8 +25,8 @@ class MyTradesActivity : BaseActivity() {
 
         TabLayoutMediator(tabLayout, viewPager) { tab, position ->
             tab.text = when (position) {
-                0 -> "Active"
-                1 -> "Completed"
+                0 -> getString(R.string.active_trades)
+                1 -> getString(R.string.completed_trades)
                 else -> ""
             }
         }.attach()

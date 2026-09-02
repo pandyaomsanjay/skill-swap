@@ -49,7 +49,7 @@ import com.bumptech.glide.Glide
 
 private enum class ReportTab { ALL, PENDING, RESOLVED }
 
-class AdminReportsActivity : AppCompatActivity() {
+class AdminReportsActivity : BaseActivity() {
 
     private lateinit var db: FirebaseFirestore
 

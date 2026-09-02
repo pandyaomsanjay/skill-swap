@@ -340,7 +340,8 @@ class Home : BaseActivity(), NavigationView.OnNavigationItemSelectedListener {
         val headerView = navigationView.getHeaderView(0) ?: return
         headerView.findViewById<TextView>(R.id.tvNavUserName)?.text = formatName(userName)
         headerView.findViewById<TextView>(R.id.tvNavUserEmail)?.text = userEmail
-        headerView.findViewById<TextView>(R.id.tvNavUserPoints)?.text = "$points Points"
+        val pointsLabel = getString(R.string.points)
+        headerView.findViewById<TextView>(R.id.tvNavUserPoints)?.text = "$points $pointsLabel"
 
         headerView.findViewById<TextView>(R.id.nav_trades_value)?.text = totalTrades.toString()
         headerView.findViewById<TextView>(R.id.nav_rating_value)?.text = String.format("%.1f", rating)
@@ -351,9 +352,9 @@ class Home : BaseActivity(), NavigationView.OnNavigationItemSelectedListener {
         val greetingTextView = findViewById<TextView>(R.id.tvGreeting)
         val currentHour = java.util.Calendar.getInstance().get(java.util.Calendar.HOUR_OF_DAY)
         val greeting = when {
-            currentHour < 12 -> "Good Morning,"
-            currentHour < 17 -> "Good Afternoon,"
-            else -> "Good Evening,"
+            currentHour < 12 -> getString(R.string.good_morning)
+            currentHour < 17 -> getString(R.string.good_afternoon)
+            else -> getString(R.string.good_evening)
         }
         greetingTextView.text = greeting
     }
@@ -517,21 +518,20 @@ class Home : BaseActivity(), NavigationView.OnNavigationItemSelectedListener {
 
     private fun performLogout() {
         AlertDialog.Builder(this)
-            .setTitle("Logout")
-            .setMessage("Are you sure you want to logout?")
-            .setPositiveButton("Logout") { _, _ ->
+            .setTitle(getString(R.string.logout_confirmation_title))
+            .setMessage(getString(R.string.logout_confirmation_message))
+            .setPositiveButton(getString(R.string.logout)) { _, _ ->
                 requesterSwapsListener?.remove()
                 receiverSwapsListener?.remove()
                 skillsCategoryListener?.remove()
                 FirebaseAuth.getInstance().signOut()
                 sharedPreferences.edit().clear().apply()
-                showMessage("Logged out successfully")
                 val intent = Intent(this, Login::class.java)
                 intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
                 startActivity(intent)
                 finish()
             }
-            .setNegativeButton("Cancel", null)
+            .setNegativeButton(getString(R.string.cancel), null)
             .show()
     }
 

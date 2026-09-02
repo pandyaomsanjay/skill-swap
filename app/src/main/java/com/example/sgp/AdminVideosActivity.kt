@@ -42,7 +42,7 @@ import java.util.Locale
  *    Cloud Function with the Admin SDK (a client app can't delete another
  *    user's auth account). Flagged with a TODO below.
  */
-class AdminVideosActivity : AppCompatActivity() {
+class AdminVideosActivity : BaseActivity() {
 
     private lateinit var recyclerView: RecyclerView
     private lateinit var emptyState: View

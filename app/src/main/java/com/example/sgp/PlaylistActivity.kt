@@ -31,7 +31,7 @@ import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.firestore
 import java.util.Locale
 
-open class PlaylistActivity : AppCompatActivity() {
+open class PlaylistActivity : BaseActivity() {
 
     private lateinit var db: FirebaseFirestore
     private lateinit var skillId: String

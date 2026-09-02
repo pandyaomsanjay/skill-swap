@@ -150,9 +150,24 @@ class CompleteProfileActivity : BaseActivity() {
         locationLayout = findViewById(R.id.locationLayout)
         languageLayout = findViewById(R.id.languageLayout)
 
-        val languages = arrayOf("English", "Spanish", "French", "German", "Hindi", "Arabic", "Chinese", "Japanese")
+        val languages = arrayOf("English", "हिन्दी (Hindi)", "ગુજરાતી (Gujarati)")
         val languageAdapter = ArrayAdapter(this, android.R.layout.simple_dropdown_item_1line, languages)
         etLanguage.setAdapter(languageAdapter)
+
+        val currentCode = LocaleHelper.getLanguageCode(this)
+        val defaultDisplay = when (currentCode) {
+            LocaleHelper.CODE_HINDI -> "हिन्दी (Hindi)"
+            LocaleHelper.CODE_GUJARATI -> "ગુજરાતી (Gujarati)"
+            else -> "English"
+        }
+        etLanguage.setText(defaultDisplay, false)
+
+        etLanguage.setOnItemClickListener { _, _, position, _ ->
+            val selected = languages[position]
+            val standardKey = LocaleHelper.normalizeLanguageKey(selected)
+            LocaleHelper.saveLanguage(this, standardKey)
+        }
+
         btnSave.isEnabled = false // locked until location is verified valid
 
         // Apply styling to match OTP page
@@ -344,6 +359,9 @@ class CompleteProfileActivity : BaseActivity() {
         profileImageUrl: String?,
         profileImagePath: String?
     ) {
+        val standardLanguage = LocaleHelper.normalizeLanguageKey(language)
+        LocaleHelper.saveLanguage(this, standardLanguage)
+
         val user = Users(
             name = name,
             email = email,
@@ -361,7 +379,7 @@ class CompleteProfileActivity : BaseActivity() {
             credits = 1250,
             userType = "standard",
             joinedDate = System.currentTimeMillis(),
-            language = language
+            language = standardLanguage
         )
 
         val docId = auth.currentUser?.uid ?: email
@@ -372,11 +390,12 @@ class CompleteProfileActivity : BaseActivity() {
                 with(prefs.edit()) {
                     putString("user_name", name)
                     putString("user_email", email)
+                    putString("language", standardLanguage)
                     putInt("user_points", 1250)
                     putInt("user_total_trades", 0)
                     putFloat("user_rating", 0f)
                     putInt("user_total_skills", 0)
-                    apply()
+                    commit()
                 }
                 startActivity(Intent(this, Home::class.java).apply {
                     flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
@@ -386,7 +405,7 @@ class CompleteProfileActivity : BaseActivity() {
             .addOnFailureListener { e ->
                 Toast.makeText(this, "Save failed: ${e.message}", Toast.LENGTH_SHORT).show()
                 btnSave.isEnabled = true
-                btnSave.text = "Save Profile"
+                btnSave.text = getString(R.string.save_profile)
             }
     }
 
