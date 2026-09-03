@@ -13,6 +13,7 @@ import android.content.Intent
 import android.graphics.Color
 import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
+import android.util.TypedValue
 import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
@@ -58,6 +59,15 @@ class UserProfileActivity : BaseActivity() {
     private var currentUser: Users? = null
     private var viewedUser: Users? = null
 
+    // ---------- Report User ----------
+    private val reportReasons = arrayOf(
+        "Inappropriate or Offensive Content",
+        "Spam or Misleading Information",
+        "Fake Skill or Scam",
+        "Harassment or Abusive Behavior",
+        "Copyright or Intellectual Property Violation"
+    )
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_user_profile)
@@ -85,6 +95,9 @@ class UserProfileActivity : BaseActivity() {
         tvNoSkills = findViewById(R.id.tvNoSkills)
         btnMessage = findViewById(R.id.btnMessage)
         btnBack = findViewById(R.id.btnBack)
+        // NOTE: this id historically opened the stats dialog. Per the "Report User"
+        // feature, it's now repurposed as the report entry point; the stats dialog
+        // moved to tapping tvStats instead (see setupClickListeners()).
         btnMore = findViewById(R.id.btnReportUser)
         progressBar = findViewById(R.id.progressBar)
 
@@ -101,7 +114,10 @@ class UserProfileActivity : BaseActivity() {
     private fun setupClickListeners() {
         btnBack.setOnClickListener { finish() }
         btnMessage.setOnClickListener { messageUser() }
-        btnMore.setOnClickListener { showUserStatsDialog() }
+        // btnMore (id: btnReportUser) now opens the report flow instead of stats.
+        btnMore.setOnClickListener { showReportUserDialog() }
+        // Stats dialog moved here so it's still reachable.
+        tvStats.setOnClickListener { showUserStatsDialog() }
     }
 
     private fun setupSkillsList() {
@@ -378,6 +394,95 @@ class UserProfileActivity : BaseActivity() {
             layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
         })
         parent.addView(row)
+    }
+
+    // ---------- Report User ----------
+
+    private fun showReportUserDialog() {
+        val reporterEmail = FirebaseAuth.getInstance().currentUser?.email
+        if (reporterEmail.isNullOrEmpty()) {
+            Toast.makeText(this, "Please log in to report", Toast.LENGTH_SHORT).show()
+            return
+        }
+        if (reporterEmail == profileUserId) {
+            Toast.makeText(this, "You can't report your own profile", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        val root = dialogCard()
+        root.addView(dialogTitle("Report $profileUserName"))
+        root.addView(TextView(this).apply {
+            text = "Help us understand what's wrong"
+            setTextColor(Color.parseColor("#456882"))
+            textSize = 13f
+            setPadding(0, dp(4), 0, dp(4))
+        })
+        root.addView(dividerLine())
+
+        val dialog = AlertDialog.Builder(this).setView(root).create()
+        dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
+
+        reportReasons.forEachIndexed { index, reason ->
+            root.addView(reportReasonRow(reason) {
+                dialog.dismiss()
+                submitUserReport(reason, reporterEmail)
+            })
+            if (index != reportReasons.lastIndex) {
+                root.addView(dividerLine())
+            }
+        }
+
+        val btnCancel = pillButton("Cancel", Color.parseColor("#EAF1F5"), Color.parseColor("#456882")).apply {
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply {
+                topMargin = dp(16)
+                gravity = Gravity.END
+            }
+            setPadding(dp(28), dp(10), dp(28), dp(10))
+            setOnClickListener { dialog.dismiss() }
+        }
+        root.addView(btnCancel)
+
+        dialog.show()
+    }
+
+    private fun submitUserReport(reason: String, reporterEmail: String) {
+        val docRef = db.collection("reports").document()
+        val report = Report(
+            id = docRef.id,
+            reporterId = reporterEmail,
+            reportedUserId = profileUserId,
+            skillId = "",
+            reason = reason,
+            description = "Reported user profile: $profileUserName ($profileUserId)",
+            status = "pending",
+            timestamp = System.currentTimeMillis(),
+            type = "user"
+        )
+        docRef.set(report)
+            .addOnSuccessListener {
+                Toast.makeText(this, "Report submitted. Our team will review it.", Toast.LENGTH_LONG).show()
+            }
+            .addOnFailureListener { e ->
+                Toast.makeText(this, "Failed to submit report: ${e.message}", Toast.LENGTH_LONG).show()
+            }
+    }
+
+    private fun reportReasonRow(text: String, onClick: () -> Unit): TextView {
+        val outValue = TypedValue()
+        theme.resolveAttribute(android.R.attr.selectableItemBackground, outValue, true)
+        return TextView(this).apply {
+            this.text = text
+            setTextColor(Color.parseColor("#1B3C53"))
+            textSize = 15f
+            setPadding(dp(4), dp(8), dp(4), dp(8))
+            setBackgroundResource(outValue.resourceId)
+            isClickable = true
+            isFocusable = true
+            setOnClickListener { onClick() }
+        }
     }
 
     private fun dp(value: Int): Int = (value * resources.displayMetrics.density).toInt()

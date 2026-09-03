@@ -79,6 +79,24 @@
             android:textSize="12sp"
             android:layout_marginEnd="4dp" />
 
+        <!-- NEW: Feedback (rating/comment) on this specific video. Same slot
+             style as btnReportVideo, placed before it so Report stays the
+             right-most/most-destructive-feeling action. Uses a text emoji
+             instead of a drawable to avoid depending on an icon resource
+             that may not exist in this project (see ic_flag below, which
+             is only safe because it's already used by btnReportVideo). -->
+        <TextView
+            android:id="@+id/btnFeedbackVideo"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:gravity="center"
+            android:text="💬"
+            android:textSize="15sp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="Give feedback on video"
+            android:clickable="true"
+            android:focusable="true" />
+
         <!-- Report this specific video. Hidden for the playlist owner viewing
              their own upload (set in PlaylistVideoAdapter#onBindViewHolder). -->
         <ImageView

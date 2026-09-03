@@ -13,6 +13,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
+import android.widget.EditText
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
@@ -65,6 +66,9 @@ open class PlaylistActivity : BaseActivity() {
     // Report button
     private lateinit var btnReport: View
 
+    // Feedback button (playlist-level)
+    private lateinit var btnFeedback: View
+
     private lateinit var progressIndicatorWatched: LinearProgressIndicator
     private lateinit var tvProgressLabel: TextView
 
@@ -76,6 +80,9 @@ open class PlaylistActivity : BaseActivity() {
         "Harassment or Abusive Behavior",
         "Copyright or Intellectual Property Violation"
     )
+
+    // ---------- Feedback ----------
+    private var selectedFeedbackRating = 0
 
     companion object {
         private const val EXTRA_SKILL_ID = "skillId"
@@ -126,6 +133,7 @@ open class PlaylistActivity : BaseActivity() {
         recyclerView = findViewById(R.id.recyclerViewPlaylistVideos)
         emptyState = findViewById(R.id.emptyStateVideos)
         btnReport = findViewById(R.id.btnReport) // Add this to your layout
+        btnFeedback = findViewById(R.id.btnFeedback) // Add this to your layout, next to btnReport
 
         progressIndicatorWatched = findViewById(R.id.progressIndicatorWatched)
         tvProgressLabel = findViewById(R.id.tvProgressLabel)
@@ -138,6 +146,15 @@ open class PlaylistActivity : BaseActivity() {
         btnReport.setOnClickListener {
             if (::playlist.isInitialized) {
                 showReportDialog()
+            } else {
+                Toast.makeText(this, "Please wait for the playlist to load", Toast.LENGTH_SHORT).show()
+            }
+        }
+
+        // Setup feedback button
+        btnFeedback.setOnClickListener {
+            if (::playlist.isInitialized) {
+                showFeedbackDialog()
             } else {
                 Toast.makeText(this, "Please wait for the playlist to load", Toast.LENGTH_SHORT).show()
             }
@@ -167,10 +184,11 @@ open class PlaylistActivity : BaseActivity() {
                 checkAccess()
                 progressBar.visibility = View.GONE
 
-                // Show/hide report button based on ownership
+                // Show/hide report + feedback buttons based on ownership
                 val firebaseUser = FirebaseAuth.getInstance().currentUser
                 val isOwnUpload = firebaseUser?.email != null && firebaseUser.email == playlist.userId
                 btnReport.visibility = if (isOwnUpload) View.GONE else View.VISIBLE
+                btnFeedback.visibility = if (isOwnUpload) View.GONE else View.VISIBLE
             }
             .addOnFailureListener { e ->
                 progressBar.visibility = View.GONE
@@ -220,7 +238,8 @@ open class PlaylistActivity : BaseActivity() {
                         Toast.makeText(this, "Please access the playlist first", Toast.LENGTH_SHORT).show()
                     }
                 },
-                onReportClick = { video -> showReportDialogForVideo(video) }
+                onReportClick = { video -> showReportDialogForVideo(video) },
+                onFeedbackClick = { video -> showFeedbackDialogForVideo(video) }
             )
             recyclerView.adapter = adapter
             emptyState.visibility = View.GONE
@@ -352,7 +371,7 @@ open class PlaylistActivity : BaseActivity() {
 
         if (currentUserCredits >= playlist.credits) {
             btnAccessPlaylist.text = "Access for ${playlist.credits} credits"
-            btnAccessPlaylist.setOnClickListener { purchaseAccess() }
+            btnAccessPlaylist.setOnClickListener { showPurchaseConfirmDialog() }
             btnAccessPlaylist.isEnabled = true
             Log.d("PlaylistActivity", "Button enabled: Access for ${playlist.credits} credits")
         } else {
@@ -361,7 +380,58 @@ open class PlaylistActivity : BaseActivity() {
             Log.d("PlaylistActivity", "Button disabled: Not enough credits")
         }
     }
+    private fun showPurchaseConfirmDialog() {
+        val root = dialogCard()
 
+        root.addView(TextView(this).apply {
+            text = "🔓"
+            textSize = 30f
+            gravity = Gravity.CENTER
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply { bottomMargin = dp(8) }
+        })
+        root.addView(TextView(this).apply {
+            text = "Unlock \"${playlist.title}\"?"
+            setTextColor(Color.parseColor("#1B3C53"))
+            textSize = 17f
+            setTypeface(typeface, Typeface.BOLD)
+            gravity = Gravity.CENTER
+        })
+        root.addView(TextView(this).apply {
+            text = "This will use ${playlist.credits} credits from your account. This action cannot be undone."
+            setTextColor(Color.parseColor("#456882"))
+            textSize = 13f
+            gravity = Gravity.CENTER
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply {
+                topMargin = dp(8)
+                bottomMargin = dp(18)
+            }
+        })
+
+        val dialog = AlertDialog.Builder(this).setView(root).create()
+        dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
+
+        val buttonRow = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+        val btnCancel = pillButton("Cancel", Color.parseColor("#EAF1F5"), Color.parseColor("#456882")).apply {
+            setOnClickListener { dialog.dismiss() }
+        }
+        val btnPurchase = pillButton("Purchase", Color.parseColor("#2E9E63"), Color.WHITE).apply {
+            setOnClickListener {
+                dialog.dismiss()
+                purchaseAccess()
+            }
+        }
+        buttonRow.addView(btnCancel, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply { marginEnd = dp(8) })
+        buttonRow.addView(btnPurchase, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
+        root.addView(buttonRow)
+
+        dialog.show()
+    }
     private fun purchaseAccess() {
         if (isOwner) {
             hasAccess = true
@@ -563,7 +633,8 @@ open class PlaylistActivity : BaseActivity() {
             reason = reason,
             description = "Reported playlist: \"${playlist.title}\" (Playlist ID: ${playlist.id})",
             status = "pending",
-            timestamp = System.currentTimeMillis()
+            timestamp = System.currentTimeMillis(),
+            type = "playlist"
         )
         docRef.set(report)
             .addOnSuccessListener {
@@ -636,7 +707,8 @@ open class PlaylistActivity : BaseActivity() {
             reason = reason,
             description = "Reported video \"${video.title}\" (Video ID: ${video.id}) in playlist \"${playlist.title}\" (Playlist ID: ${playlist.id})",
             status = "pending",
-            timestamp = System.currentTimeMillis()
+            timestamp = System.currentTimeMillis(),
+            type = "video"
         )
         docRef.set(report)
             .addOnSuccessListener {
@@ -660,6 +732,157 @@ open class PlaylistActivity : BaseActivity() {
             isFocusable = true
             setOnClickListener { onClick() }
         }
+    }
+
+    // ─────────────────────── Feedback (playlist-level) ───────────────────────
+
+    private fun showFeedbackDialog() {
+        val reporterEmail = FirebaseAuth.getInstance().currentUser?.email
+        if (reporterEmail.isNullOrEmpty()) {
+            Toast.makeText(this, "Please log in to leave feedback", Toast.LENGTH_SHORT).show()
+            return
+        }
+        if (reporterEmail == playlist.userId) {
+            Toast.makeText(this, "You can't leave feedback on your own playlist", Toast.LENGTH_SHORT).show()
+            return
+        }
+        showFeedbackDialogInternal(
+            title = "Give Feedback",
+            subtitle = "How was \"${playlist.title}\"?",
+            onSubmit = { rating, comment ->
+                submitContentFeedback(reporterEmail, videoId = "", rating = rating, comment = comment)
+            }
+        )
+    }
+
+    // ─────────────────────── Feedback (per-video) ───────────────────────
+
+    private fun showFeedbackDialogForVideo(video: PlaylistVideo) {
+        val reporterEmail = FirebaseAuth.getInstance().currentUser?.email
+        if (reporterEmail.isNullOrEmpty()) {
+            Toast.makeText(this, "Please log in to leave feedback", Toast.LENGTH_SHORT).show()
+            return
+        }
+        if (reporterEmail == playlist.userId) {
+            Toast.makeText(this, "You can't leave feedback on your own video", Toast.LENGTH_SHORT).show()
+            return
+        }
+        showFeedbackDialogInternal(
+            title = "Give Feedback",
+            subtitle = "How was \"${video.title}\"?",
+            onSubmit = { rating, comment ->
+                submitContentFeedback(reporterEmail, videoId = video.id, rating = rating, comment = comment)
+            }
+        )
+    }
+
+    // ─────────────────────── Feedback (shared dialog + submit) ───────────────────────
+
+    private fun showFeedbackDialogInternal(title: String, subtitle: String, onSubmit: (rating: Int, comment: String) -> Unit) {
+        selectedFeedbackRating = 0
+
+        val root = dialogCard()
+        root.addView(dialogTitle(title))
+        root.addView(TextView(this).apply {
+            text = subtitle
+            setTextColor(Color.parseColor("#456882"))
+            textSize = 13f
+            setPadding(0, dp(4), 0, dp(10))
+        })
+
+        val starRow = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply { bottomMargin = dp(8) }
+        }
+        val starViews = mutableListOf<TextView>()
+        for (i in 1..5) {
+            val star = TextView(this).apply {
+                text = "☆"
+                textSize = 28f
+                setTextColor(Color.parseColor("#D2C1B6"))
+                setPadding(dp(4), 0, dp(4), 0)
+                isClickable = true
+                isFocusable = true
+                setOnClickListener {
+                    selectedFeedbackRating = i
+                    starViews.forEachIndexed { idx, sv ->
+                        sv.text = if (idx < i) "★" else "☆"
+                        sv.setTextColor(if (idx < i) Color.parseColor("#1B3C53") else Color.parseColor("#D2C1B6"))
+                    }
+                }
+            }
+            starViews.add(star)
+            starRow.addView(star)
+        }
+        root.addView(starRow)
+
+        val etComment = EditText(this).apply {
+            hint = "Comment (optional)"
+            setTextColor(Color.parseColor("#1B3C53"))
+            setHintTextColor(Color.parseColor("#456882"))
+            textSize = 13f
+            setPadding(dp(4), dp(10), dp(4), dp(10))
+            minLines = 2
+            maxLines = 4
+        }
+        root.addView(etComment)
+        root.addView(dividerLine())
+
+        val dialog = AlertDialog.Builder(this).setView(root).create()
+        dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
+
+        val row = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.END
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply { topMargin = dp(4) }
+        }
+        row.addView(pillButton("Cancel", Color.parseColor("#EAF1F5"), Color.parseColor("#456882")).apply {
+            setPadding(dp(24), dp(10), dp(24), dp(10))
+            setOnClickListener { dialog.dismiss() }
+        })
+        row.addView(pillButton("Submit", Color.parseColor("#1B3C53"), Color.parseColor("#F9F3EF")).apply {
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply { marginStart = dp(10) }
+            setPadding(dp(24), dp(10), dp(24), dp(10))
+            setOnClickListener {
+                dialog.dismiss()
+                onSubmit(selectedFeedbackRating, etComment.text?.toString()?.trim().orEmpty())
+            }
+        })
+        root.addView(row)
+
+        dialog.show()
+    }
+
+    private fun submitContentFeedback(reporterEmail: String, videoId: String, rating: Int, comment: String) {
+        val reporterName = FirebaseAuth.getInstance().currentUser?.displayName?.ifBlank { reporterEmail } ?: reporterEmail
+        val docRef = db.collection("content_feedback").document()
+        val feedback = ContentFeedback(
+            id = docRef.id,
+            skillId = playlist.id,
+            videoId = videoId,
+            reporterId = reporterEmail,
+            reporterName = reporterName,
+            targetUserId = playlist.userId,
+            rating = rating,
+            comment = comment,
+            timestamp = System.currentTimeMillis()
+        )
+        docRef.set(feedback)
+            .addOnSuccessListener {
+                Toast.makeText(this, "Thanks for your feedback!", Toast.LENGTH_SHORT).show()
+            }
+            .addOnFailureListener { e ->
+                Toast.makeText(this, "Failed to submit feedback: ${e.message}", Toast.LENGTH_LONG).show()
+            }
     }
 
     // ---------- Themed-dialog helpers ----------

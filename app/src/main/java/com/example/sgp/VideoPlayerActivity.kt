@@ -18,6 +18,7 @@ import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
 import android.view.WindowManager
+import android.widget.EditText
 import android.widget.FrameLayout
 import android.widget.LinearLayout
 import android.widget.MediaController
@@ -67,6 +68,9 @@ class VideoPlayerActivity : BaseActivity() {
     private var skillUserId: String = ""
     private var skillUserName: String = ""
 
+    // ---------------- Feedback state ----------------
+    private var selectedFeedbackRating = 0
+
     // Handler for delayed progress update
     private val handler = Handler(Looper.getMainLooper())
 
@@ -88,6 +92,7 @@ class VideoPlayerActivity : BaseActivity() {
         val btnFullscreen: View = findViewById(R.id.btnFullscreen)
         val btnPip: View = findViewById(R.id.btnPip)
         val btnReport: View = findViewById(R.id.btnReport)
+        val btnFeedback: View = findViewById(R.id.btnFeedback) // Add this to activity_video_player.xml, styled like btnReport
         tvFullscreenIcon = findViewById(R.id.tvFullscreenIcon)
 
         originalVideoContainerParams = videoContainer.layoutParams
@@ -133,6 +138,7 @@ class VideoPlayerActivity : BaseActivity() {
         btnFullscreen.setOnClickListener { toggleFullscreen() }
         btnPip.setOnClickListener { enterPip() }
         btnReport.setOnClickListener { showReportDialog() }
+        btnFeedback.setOnClickListener { showFeedbackDialog() }
 
         if (videoUrl.isNullOrBlank()) {
             Toast.makeText(this, "No video available", Toast.LENGTH_SHORT).show()
@@ -329,7 +335,8 @@ class VideoPlayerActivity : BaseActivity() {
             reason = reason,
             description = "Reported skill: \"$skillTitle\" (Skill ID: $skillId)",
             status = "pending",
-            timestamp = System.currentTimeMillis()
+            timestamp = System.currentTimeMillis(),
+            type = "video"
         )
         docRef.set(report)
             .addOnSuccessListener {
@@ -337,6 +344,124 @@ class VideoPlayerActivity : BaseActivity() {
             }
             .addOnFailureListener { e ->
                 Toast.makeText(this, "Failed to submit report: ${e.message}", Toast.LENGTH_LONG).show()
+            }
+    }
+
+    // ---------------- Feedback (themed dialog) ----------------
+
+    private fun showFeedbackDialog() {
+        val reporterEmail = FirebaseAuth.getInstance().currentUser?.email
+        if (reporterEmail.isNullOrEmpty()) {
+            Toast.makeText(this, "Please log in to leave feedback", Toast.LENGTH_SHORT).show()
+            return
+        }
+        if (reporterEmail == skillUserId) {
+            Toast.makeText(this, "You can't leave feedback on your own upload", Toast.LENGTH_SHORT).show()
+            return
+        }
+        selectedFeedbackRating = 0
+
+        val root = dialogCard()
+        root.addView(dialogTitle("Give Feedback"))
+        root.addView(TextView(this).apply {
+            text = "How was \"$skillTitle\"?"
+            setTextColor(Color.parseColor("#456882"))
+            textSize = 13f
+            setPadding(0, dp(4), 0, dp(10))
+        })
+
+        val starRow = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply { bottomMargin = dp(8) }
+        }
+        val starViews = mutableListOf<TextView>()
+        for (i in 1..5) {
+            val star = TextView(this).apply {
+                text = "☆"
+                textSize = 28f
+                setTextColor(Color.parseColor("#D2C1B6"))
+                setPadding(dp(4), 0, dp(4), 0)
+                isClickable = true
+                isFocusable = true
+                setOnClickListener {
+                    selectedFeedbackRating = i
+                    starViews.forEachIndexed { idx, sv ->
+                        sv.text = if (idx < i) "★" else "☆"
+                        sv.setTextColor(if (idx < i) Color.parseColor("#1B3C53") else Color.parseColor("#D2C1B6"))
+                    }
+                }
+            }
+            starViews.add(star)
+            starRow.addView(star)
+        }
+        root.addView(starRow)
+
+        val etComment = EditText(this).apply {
+            hint = "Comment (optional)"
+            setTextColor(Color.parseColor("#1B3C53"))
+            setHintTextColor(Color.parseColor("#456882"))
+            textSize = 13f
+            setPadding(dp(4), dp(10), dp(4), dp(10))
+            minLines = 2
+            maxLines = 4
+        }
+        root.addView(etComment)
+        root.addView(dividerLine())
+
+        val dialog = AlertDialog.Builder(this).setView(root).create()
+        dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
+
+        val row = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.END
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply { topMargin = dp(4) }
+        }
+        row.addView(pillButton("Cancel", Color.parseColor("#EAF1F5"), Color.parseColor("#456882")).apply {
+            setPadding(dp(24), dp(10), dp(24), dp(10))
+            setOnClickListener { dialog.dismiss() }
+        })
+        row.addView(pillButton("Submit", Color.parseColor("#1B3C53"), Color.parseColor("#F9F3EF")).apply {
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply { marginStart = dp(10) }
+            setPadding(dp(24), dp(10), dp(24), dp(10))
+            setOnClickListener {
+                dialog.dismiss()
+                submitContentFeedback(reporterEmail, etComment.text?.toString()?.trim().orEmpty())
+            }
+        })
+        root.addView(row)
+
+        dialog.show()
+    }
+
+    private fun submitContentFeedback(reporterEmail: String, comment: String) {
+        val reporterName = FirebaseAuth.getInstance().currentUser?.displayName?.ifBlank { reporterEmail } ?: reporterEmail
+        val docRef = db.collection("content_feedback").document()
+        val feedback = ContentFeedback(
+            id = docRef.id,
+            skillId = skillId,
+            videoId = "",
+            reporterId = reporterEmail,
+            reporterName = reporterName,
+            targetUserId = skillUserId,
+            rating = selectedFeedbackRating,
+            comment = comment,
+            timestamp = System.currentTimeMillis()
+        )
+        docRef.set(feedback)
+            .addOnSuccessListener {
+                Toast.makeText(this, "Thanks for your feedback!", Toast.LENGTH_SHORT).show()
+            }
+            .addOnFailureListener { e ->
+                Toast.makeText(this, "Failed to submit feedback: ${e.message}", Toast.LENGTH_LONG).show()
             }
     }
 

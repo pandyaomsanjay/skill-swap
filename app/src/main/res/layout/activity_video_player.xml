@@ -15,8 +15,6 @@
         android:background="#000000"
         android:clipChildren="true">
 
-        <!-- Reuses the same center-crop VideoView as AdminVideoPlayerActivity so the
-             video fills this container instead of letterboxing. -->
         <com.example.sgp.ResizableVideoView
             android:id="@+id/videoView"
             android:layout_width="match_parent"
@@ -30,8 +28,6 @@
             android:layout_gravity="center"
             android:indeterminateTint="#F9F3EF" />
 
-        <!-- Back / close, top-left over the video — navy-tinted to match the
-             brand color used across the app (same treatment as the admin player). -->
         <FrameLayout
             android:id="@+id/topBar"
             android:layout_width="wrap_content"
@@ -62,7 +58,6 @@
 
         </FrameLayout>
 
-        <!-- PiP + fullscreen, bottom-right over the video -->
         <LinearLayout
             android:id="@+id/videoControlsRow"
             android:layout_width="wrap_content"
@@ -151,23 +146,48 @@
                 android:textColor="#456882"
                 android:textSize="12.5sp" />
 
-            <!-- Report row — full-width now that Message has been removed;
-                 same pill styling and tap target the Message button used. -->
-            <TextView
-                android:id="@+id/btnReport"
+            <!-- Report + Feedback row — two pills side by side, same style as the
+                 old full-width Report pill, now split 50/50. -->
+            <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="16dp"
-                android:gravity="center"
-                android:paddingTop="11dp"
-                android:paddingBottom="11dp"
-                android:text="🚩 Report"
-                android:textColor="#FFFFFF"
-                android:textSize="13sp"
-                android:textStyle="bold"
-                android:background="@drawable/bg_pill_navy"
-                android:clickable="true"
-                android:focusable="true" />
+                android:orientation="horizontal">
+
+                <TextView
+                    android:id="@+id/btnFeedback"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:layout_marginEnd="8dp"
+                    android:gravity="center"
+                    android:paddingTop="11dp"
+                    android:paddingBottom="11dp"
+                    android:text="⭐ Give Feedback"
+                    android:textColor="#1B3C53"
+                    android:textSize="13sp"
+                    android:textStyle="bold"
+                    android:background="@drawable/bg_pill_light"
+                    android:clickable="true"
+                    android:focusable="true" />
+
+                <TextView
+                    android:id="@+id/btnReport"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:paddingTop="11dp"
+                    android:paddingBottom="11dp"
+                    android:text="🚩 Report"
+                    android:textColor="#FFFFFF"
+                    android:textSize="13sp"
+                    android:textStyle="bold"
+                    android:background="@drawable/bg_pill_navy"
+                    android:clickable="true"
+                    android:focusable="true" />
+
+            </LinearLayout>
 
             <View
                 android:layout_width="match_parent"

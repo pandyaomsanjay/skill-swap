@@ -16,7 +16,7 @@
         android:paddingStart="20dp"
         android:paddingEnd="20dp"
         android:paddingTop="22dp"
-        android:paddingBottom="18dp">
+        android:paddingBottom="0dp">
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -111,6 +111,36 @@
                     android:imeOptions="actionSearch"/>
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
+
+        <!-- Type tabs: All / Videos / Playlists -->
+        <com.google.android.material.tabs.TabLayout
+            android:id="@+id/tabLayout"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="14dp"
+            android:background="@android:color/transparent"
+            app:tabIndicatorColor="#F9F3EF"
+            app:tabIndicatorHeight="3dp"
+            app:tabSelectedTextColor="#F9F3EF"
+            app:tabTextColor="#D2C1B6"
+            app:tabMode="fixed"
+            app:tabGravity="fill">
+
+            <com.google.android.material.tabs.TabItem
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="All"/>
+
+            <com.google.android.material.tabs.TabItem
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Videos"/>
+
+            <com.google.android.material.tabs.TabItem
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Playlists"/>
+        </com.google.android.material.tabs.TabLayout>
 
     </LinearLayout>
 

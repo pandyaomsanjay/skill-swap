@@ -17,6 +17,26 @@
         app:navigationIcon="@drawable/outline_arrow_back_24"
         app:navigationIconTint="@android:color/white">
 
+        <!-- NEW: Feedback icon, placed before btnReport (further from the edge)
+             so Report stays the outermost/most "final" action. Uses a text
+             emoji instead of a drawable to avoid depending on an icon
+             resource that may not exist in this project (unlike ic_flag,
+             which is already proven to exist since btnReport compiles). -->
+        <TextView
+            android:id="@+id/btnFeedback"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="end"
+            android:layout_marginEnd="56dp"
+            android:padding="8dp"
+            android:text="💬"
+            android:textSize="16sp"
+            android:textColor="@android:color/white"
+            android:contentDescription="Give feedback"
+            android:visibility="gone"
+            android:clickable="true"
+            android:focusable="true" />
+
         <!-- Report Flag Icon -->
         <ImageView
             android:id="@+id/btnReport"

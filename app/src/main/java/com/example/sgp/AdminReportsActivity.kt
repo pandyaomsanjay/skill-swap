@@ -48,6 +48,10 @@ import com.bumptech.glide.Glide
 private enum class ReportTab { ALL, PENDING, RESOLVED }
 private enum class ReportTypeTab { ALL, VIDEOS, PLAYLISTS }
 
+// NEW: top-level split between reports filed against uploaded content
+// (video/playlist) and reports filed against a user's profile directly.
+private enum class ReportKindTab { CONTENT, USER }
+
 class AdminReportsActivity : BaseActivity() {
 
     private lateinit var db: FirebaseFirestore
@@ -99,6 +103,13 @@ class AdminReportsActivity : BaseActivity() {
     private lateinit var tvTabTypeVideos: TextView
     private lateinit var tvTabTypePlaylists: TextView
     private var currentTypeTab = ReportTypeTab.ALL
+
+    // ---- NEW: Report Kind Tabs (Content Reports / User Reports) ----
+    private lateinit var tabKindContent: MaterialCardView
+    private lateinit var tabKindUser: MaterialCardView
+    private lateinit var tvTabKindContent: TextView
+    private lateinit var tvTabKindUser: TextView
+    private var currentKindTab = ReportKindTab.CONTENT
 
     // ---- Analytics cards ----
     private lateinit var tvTotalUsers: TextView
@@ -171,6 +182,7 @@ class AdminReportsActivity : BaseActivity() {
         recyclerView.adapter = adapter
 
         setupSearch()
+        setupKindTabs()
         setupTabs()
         setupTypeTabs()
         setupExport()
@@ -211,6 +223,13 @@ class AdminReportsActivity : BaseActivity() {
         tvTabTypeAll = findViewById(R.id.tvTabTypeAll)
         tvTabTypeVideos = findViewById(R.id.tvTabTypeVideos)
         tvTabTypePlaylists = findViewById(R.id.tvTabTypePlaylists)
+
+        // NEW: Kind tabs — needs adding to activity_admin_reports.xml above the
+        // existing status-tab row, styled identically to tabAll/tabPending/tabResolved.
+        tabKindContent = findViewById(R.id.tabKindContent)
+        tabKindUser = findViewById(R.id.tabKindUser)
+        tvTabKindContent = findViewById(R.id.tvTabKindContent)
+        tvTabKindUser = findViewById(R.id.tvTabKindUser)
 
         tvTotalUsers = findViewById(R.id.tvTotalUsers)
         tvActiveUsers = findViewById(R.id.tvActiveUsers)
@@ -271,6 +290,45 @@ class AdminReportsActivity : BaseActivity() {
             }
             override fun afterTextChanged(s: Editable?) {}
         })
+    }
+
+    // ---------------- NEW: Kind Tabs (Content Reports / User Reports) ----------------
+
+    private fun setupKindTabs() {
+        tabKindContent.setOnClickListener { selectKindTab(ReportKindTab.CONTENT) }
+        tabKindUser.setOnClickListener { selectKindTab(ReportKindTab.USER) }
+        selectKindTab(ReportKindTab.CONTENT)
+    }
+
+    private fun selectKindTab(tab: ReportKindTab) {
+        currentKindTab = tab
+        val selectedBg = Color.parseColor("#F9F3EF")
+        val selectedText = Color.parseColor("#1B3C53")
+        val unselectedBg = Color.parseColor("#456882")
+        val unselectedText = Color.parseColor("#FFFFFF")
+
+        listOf(
+            Triple(tabKindContent, tvTabKindContent, ReportKindTab.CONTENT),
+            Triple(tabKindUser, tvTabKindUser, ReportKindTab.USER)
+        ).forEach { (card, text, t) ->
+            if (t == tab) {
+                card.setCardBackgroundColor(selectedBg)
+                card.strokeWidth = 0
+                text.setTextColor(selectedText)
+            } else {
+                card.setCardBackgroundColor(unselectedBg)
+                card.strokeWidth = (1 * resources.displayMetrics.density).toInt()
+                card.strokeColor = Color.parseColor("#FFFFFF")
+                text.setTextColor(unselectedText)
+            }
+        }
+
+        // Video/Playlist type tabs only make sense for content reports —
+        // hide the whole row when viewing user reports.
+        val typeTabsRow = tabTypeAll.parent as? View
+        typeTabsRow?.visibility = if (tab == ReportKindTab.USER) View.GONE else View.VISIBLE
+
+        applyFilters()
     }
 
     // ---------------- Tabs (All / Pending / Resolved) ----------------
@@ -346,14 +404,25 @@ class AdminReportsActivity : BaseActivity() {
     }
 
     private fun applyFilters() {
-        val statusFiltered = when (currentTab) {
-            ReportTab.ALL -> allReports
-            ReportTab.PENDING -> allReports.filter { it.status.equals("pending", ignoreCase = true) }
-            ReportTab.RESOLVED -> allReports.filter { it.status.equals("resolved", ignoreCase = true) }
+        // NEW: split by kind first — user-profile reports vs content reports.
+        // Older report docs written before the `type` field existed decode
+        // with type = "video" (the model's default), so they fall into
+        // CONTENT automatically — nothing extra needed for backward compat.
+        val kindFiltered = when (currentKindTab) {
+            ReportKindTab.USER -> allReports.filter { it.type == "user" }
+            ReportKindTab.CONTENT -> allReports.filter { it.type != "user" }
         }
 
-        // Filter by report type (video vs playlist)
-        val typeFiltered = when (currentTypeTab) {
+        val statusFiltered = when (currentTab) {
+            ReportTab.ALL -> kindFiltered
+            ReportTab.PENDING -> kindFiltered.filter { it.status.equals("pending", ignoreCase = true) }
+            ReportTab.RESOLVED -> kindFiltered.filter { it.status.equals("resolved", ignoreCase = true) }
+        }
+
+        // Filter by report type (video vs playlist) — not applicable to user reports
+        val typeFiltered = if (currentKindTab == ReportKindTab.USER) {
+            statusFiltered
+        } else when (currentTypeTab) {
             ReportTypeTab.ALL -> statusFiltered
             ReportTypeTab.VIDEOS -> statusFiltered.filter { report ->
                 val skillId = extractSkillId(report)
@@ -559,6 +628,7 @@ class AdminReportsActivity : BaseActivity() {
         val skillType = getSkillType(extractSkillId(report))
         val videoId = extractVideoIdFromReport(report)
         val isSpecificVideo = videoId != null && skillType == "playlist"
+        val isUserReport = report.type == "user"
 
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
@@ -628,7 +698,14 @@ class AdminReportsActivity : BaseActivity() {
             setPadding(0, dp(2), 0, 0)
         })
         textCol.addView(TextView(this).apply {
-            text = "Report #$shortId • ${if (isSpecificVideo) "🎬 Specific Video" else if (skillType == "playlist") "📋 Playlist" else "🎬 Video"}"
+            text = "Report #$shortId • ${
+                when {
+                    isUserReport -> "👤 User Report"
+                    isSpecificVideo -> "🎬 Specific Video"
+                    skillType == "playlist" -> "📋 Playlist"
+                    else -> "🎬 Video"
+                }
+            }"
             setTextColor(sheetSecondaryText)
             textSize = 11f
             setPadding(0, dp(2), 0, 0)
@@ -676,12 +753,16 @@ class AdminReportsActivity : BaseActivity() {
         }
 
         addRow("📋", "View Details") { viewReportDetails(report) }
-        addRow("🎬", "View Reported ${if (isSpecificVideo) "Video" else if (skillType == "playlist") "Playlist" else "Video"}") { viewReportedSkill(report) }
+        // "View Reported Video/Playlist" has nothing to point to on a user report.
+        if (!isUserReport) {
+            addRow("🎬", "View Reported ${if (isSpecificVideo) "Video" else if (skillType == "playlist") "Playlist" else "Video"}") { viewReportedSkill(report) }
+        }
         addRow("👤", "View User Profile") { viewUserProfile(report) }
         if (!report.status.equals("resolved", ignoreCase = true)) {
             addRow("✅", "Resolve Report", Color.parseColor("#34D399")) { updateReportStatus(report, "resolved") }
         }
         addRow("🚫", "Block User", sheetDestructive) { confirmBlockUser(report) }
+        addRow("🗑️", "Delete Report", sheetDestructive) { confirmDeleteReport(report) }
 
         dialog.setContentView(root)
         dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
@@ -697,6 +778,7 @@ class AdminReportsActivity : BaseActivity() {
         val skillType = getSkillType(extractSkillId(report))
         val videoId = extractVideoIdFromReport(report)
         val isSpecificVideo = videoId != null && skillType == "playlist"
+        val isUserReport = report.type == "user"
         val root = dialogCard()
 
         root.addView(dialogTitle("Report Details"))
@@ -727,7 +809,15 @@ class AdminReportsActivity : BaseActivity() {
         }
 
         addDetailRow("Report ID", report.id)
-        addDetailRow("Type", if (isSpecificVideo) "🎬 Specific Video (in Playlist)" else if (skillType == "playlist") "📋 Playlist" else "🎬 Video")
+        addDetailRow(
+            "Type",
+            when {
+                isUserReport -> "👤 User Report"
+                isSpecificVideo -> "🎬 Specific Video (in Playlist)"
+                skillType == "playlist" -> "📋 Playlist"
+                else -> "🎬 Video"
+            }
+        )
         if (isSpecificVideo) {
             addDetailRow("Video ID", videoId ?: "N/A")
         }
@@ -742,26 +832,28 @@ class AdminReportsActivity : BaseActivity() {
         dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
 
         val buttonRow = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
-        val btnViewVideo = pillButton(
-            if (isSpecificVideo) "View Video" else if (skillType == "playlist") "View Playlist" else "View Video",
-            Color.parseColor("#EAF1F5"),
-            Color.parseColor("#1B3C53")
-        ).apply {
-            setOnClickListener {
-                dialog.dismiss()
-                viewReportedSkill(report)
+        if (!isUserReport) {
+            val btnViewVideo = pillButton(
+                if (isSpecificVideo) "View Video" else if (skillType == "playlist") "View Playlist" else "View Video",
+                Color.parseColor("#EAF1F5"),
+                Color.parseColor("#1B3C53")
+            ).apply {
+                setOnClickListener {
+                    dialog.dismiss()
+                    viewReportedSkill(report)
+                }
             }
+            buttonRow.addView(
+                btnViewVideo,
+                LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply {
+                    topMargin = dp(16)
+                    marginEnd = dp(8)
+                }
+            )
         }
         val btnOk = pillButton("OK", Color.parseColor("#1B3C53"), Color.WHITE).apply {
             setOnClickListener { dialog.dismiss() }
         }
-        buttonRow.addView(
-            btnViewVideo,
-            LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply {
-                topMargin = dp(16)
-                marginEnd = dp(8)
-            }
-        )
         buttonRow.addView(
             btnOk,
             LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply { topMargin = dp(16) }
@@ -1237,6 +1329,69 @@ class AdminReportsActivity : BaseActivity() {
             }
     }
 
+    // ---------------- NEW: Delete report (themed confirm dialog) ----------------
+
+    private fun confirmDeleteReport(report: Report) {
+        val root = dialogCard()
+        root.addView(TextView(this).apply {
+            text = "🗑️"
+            textSize = 30f
+            gravity = Gravity.CENTER
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply { bottomMargin = dp(8) }
+        })
+        root.addView(TextView(this).apply {
+            text = "Delete Report"
+            setTextColor(Color.parseColor("#1B3C53"))
+            textSize = 17f
+            setTypeface(typeface, Typeface.BOLD)
+            gravity = Gravity.CENTER
+        })
+        root.addView(TextView(this).apply {
+            text = "This permanently removes this report. This can't be undone."
+            setTextColor(Color.parseColor("#456882"))
+            textSize = 13f
+            gravity = Gravity.CENTER
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply {
+                topMargin = dp(8)
+                bottomMargin = dp(18)
+            }
+        })
+
+        val dialog = AlertDialog.Builder(this).setView(root).create()
+        dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
+
+        val buttonRow = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+        val btnCancel = pillButton("Cancel", Color.parseColor("#EAF1F5"), Color.parseColor("#456882")).apply {
+            setOnClickListener { dialog.dismiss() }
+        }
+        val btnDelete = pillButton("Delete", Color.parseColor("#DC2626"), Color.WHITE).apply {
+            setOnClickListener {
+                dialog.dismiss()
+                db.collection("reports").document(report.id).delete()
+                    .addOnSuccessListener {
+                        Toast.makeText(this@AdminReportsActivity, "Report deleted", Toast.LENGTH_SHORT).show()
+                    }
+                    .addOnFailureListener {
+                        Toast.makeText(this@AdminReportsActivity, "Failed to delete", Toast.LENGTH_SHORT).show()
+                    }
+            }
+        }
+        buttonRow.addView(
+            btnCancel,
+            LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply { marginEnd = dp(8) }
+        )
+        buttonRow.addView(btnDelete, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
+        root.addView(buttonRow)
+
+        dialog.show()
+    }
+
     // ---------------- Themed-dialog helpers ----------------
 
     private fun dp(value: Int): Int = (value * resources.displayMetrics.density).toInt()
@@ -1517,6 +1672,7 @@ class AdminReportsActivity : BaseActivity() {
             val skillType = getSkillType(extractSkillId(report))
             val videoId = extractVideoIdFromReport(report)
             val typeLabel = when {
+                report.type == "user" -> "User"
                 videoId != null && skillType == "playlist" -> "Specific Video"
                 skillType == "playlist" -> "Playlist"
                 else -> "Video"
@@ -1823,6 +1979,7 @@ class AdminReportsActivity : BaseActivity() {
             val isSpecificVideo = videoId != null && skillType == "playlist"
 
             val typeIcon = when {
+                report.type == "user" -> "👤"
                 isSpecificVideo -> "🎬"
                 skillType == "playlist" -> "📋"
                 else -> "🎬"

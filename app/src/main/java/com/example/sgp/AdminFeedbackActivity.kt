@@ -37,6 +37,10 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
+// NEW: distinguishes the existing general-app tabs from the new
+// per-video/playlist feedback sourced from the "content_feedback" collection.
+private enum class FeedbackSource { GENERAL, CONTENT }
+
 class AdminFeedbackActivity : BaseActivity() {
 
     private lateinit var db: FirebaseFirestore
@@ -55,6 +59,18 @@ class AdminFeedbackActivity : BaseActivity() {
     private lateinit var tvTabBugReports: TextView
     private lateinit var tvTabComplaints: TextView
     private lateinit var tvTabFeatureRequests: TextView
+
+    // ---- NEW: Content Feedback tab (content_feedback collection) ----
+    private lateinit var tabContentFeedback: MaterialCardView
+    private lateinit var tvTabContentFeedback: TextView
+    private var currentSource = FeedbackSource.GENERAL
+
+    private var contentFeedbackListener: ListenerRegistration? = null
+    private val allContentFeedback = mutableListOf<ContentFeedback>()
+    // skillId -> title/uploader, so rows can show "on <title> by <uploader>" without a live join per row
+    private val skillTitleCache = mutableMapOf<String, Pair<String, String>>() // skillId -> (title, userName)
+    private var skillsForFeedbackListener: ListenerRegistration? = null
+    private lateinit var contentFeedbackAdapter: ContentFeedbackAdapter
 
     // Same chip palette used on the Users/Trades pages, so all admin screens feel identical.
     private val selectedChipBg = Color.parseColor("#F9F3EF")
@@ -128,6 +144,11 @@ class AdminFeedbackActivity : BaseActivity() {
         tvTabComplaints = findViewById(R.id.tvTabComplaints)
         tvTabFeatureRequests = findViewById(R.id.tvTabFeatureRequests)
 
+        // NEW: Content tab
+        tabContentFeedback = findViewById(R.id.tabContentFeedback)
+        tvTabContentFeedback = findViewById(R.id.tvTabContentFeedback)
+        tabContentFeedback.setOnClickListener { selectSource(FeedbackSource.CONTENT) }
+
         recyclerView.layoutManager = LinearLayoutManager(this)
         adapter = FeedbackAdapter(
             items = mutableListOf(),
@@ -135,6 +156,7 @@ class AdminFeedbackActivity : BaseActivity() {
             onMoreClick = { feedback, _ -> showFeedbackOptionsMenu(feedback) }
         )
         recyclerView.adapter = adapter
+        setupContentFeedbackAdapter()
 
         findViewById<View>(R.id.btnExportPdf).setOnClickListener {
             runWithStoragePermission { exportFeedbackToPdf() }
@@ -146,11 +168,15 @@ class AdminFeedbackActivity : BaseActivity() {
         // hand-tinting each icon/card here — one less place for the active-tab logic to drift.
         BottomNav.setup(this, BottomNav.FEEDBACK)
         loadFeedback()
+        loadSkillTitlesForFeedback()
+        loadContentFeedback()
     }
 
     override fun onDestroy() {
         super.onDestroy()
         feedbackListener?.remove()
+        contentFeedbackListener?.remove()
+        skillsForFeedbackListener?.remove()
     }
 
     // ─────────────────────── Filtering ───────────────────────
@@ -165,6 +191,11 @@ class AdminFeedbackActivity : BaseActivity() {
     }
 
     private fun selectCategoryTab(category: FeedbackCategory) {
+        // Switching back to a general category tab always means we're viewing
+        // general feedback again.
+        currentSource = FeedbackSource.GENERAL
+        recyclerView.adapter = adapter
+
         selectedCategory = category
         val tabs = listOf(
             tabAllFeedback to tvTabAllFeedback,
@@ -193,7 +224,48 @@ class AdminFeedbackActivity : BaseActivity() {
                 text.setTextColor(unselectedChipText)
             }
         }
+        // Content tab is a separate source, so it always renders unselected
+        // whenever a general category tab is chosen.
+        tabContentFeedback.setCardBackgroundColor(unselectedChipBg)
+        tabContentFeedback.strokeWidth = strokeWidthPx
+        tabContentFeedback.strokeColor = unselectedChipStroke
+        tvTabContentFeedback.setTextColor(unselectedChipText)
+
         applyFilters()
+    }
+
+    // ---------------- NEW: Source switch (General categories vs Content) ----------------
+
+    private fun selectSource(source: FeedbackSource) {
+        currentSource = source
+
+        // Toggle the existing category tabs' visual selection off when switching
+        // to Content, since those categories don't apply there.
+        val strokeWidthPx = (1 * resources.displayMetrics.density).toInt()
+        if (source == FeedbackSource.CONTENT) {
+            listOf(
+                tabAllFeedback to tvTabAllFeedback,
+                tabSuggestions to tvTabSuggestions,
+                tabBugReports to tvTabBugReports,
+                tabComplaints to tvTabComplaints,
+                tabFeatureRequests to tvTabFeatureRequests
+            ).forEach { (card, text) ->
+                card.setCardBackgroundColor(unselectedChipBg)
+                card.strokeWidth = strokeWidthPx
+                card.strokeColor = unselectedChipStroke
+                text.setTextColor(unselectedChipText)
+            }
+            tabContentFeedback.setCardBackgroundColor(selectedChipBg)
+            tabContentFeedback.strokeWidth = 0
+            tvTabContentFeedback.setTextColor(selectedChipText)
+            applyFilters()
+        } else {
+            tabContentFeedback.setCardBackgroundColor(unselectedChipBg)
+            tabContentFeedback.strokeWidth = strokeWidthPx
+            tabContentFeedback.strokeColor = unselectedChipStroke
+            tvTabContentFeedback.setTextColor(unselectedChipText)
+            selectCategoryTab(FeedbackCategory.ALL)
+        }
     }
 
     private fun setupSearch() {
@@ -207,6 +279,11 @@ class AdminFeedbackActivity : BaseActivity() {
     }
 
     private fun applyFilters() {
+        if (currentSource == FeedbackSource.CONTENT) {
+            applyContentFilters()
+            return
+        }
+
         val query = etSearch.text?.toString()?.trim()?.lowercase(Locale.getDefault()).orEmpty()
 
         val filtered = allFeedback.filter { fb ->
@@ -220,8 +297,79 @@ class AdminFeedbackActivity : BaseActivity() {
             matchesCategory && matchesQuery
         }
 
+        recyclerView.adapter = adapter
         adapter.submitList(filtered)
         tvEmptyState.visibility = if (filtered.isEmpty()) View.VISIBLE else View.GONE
+    }
+
+    // ---------------- NEW: Content feedback filter/adapter feed ----------------
+
+    private fun setupContentFeedbackAdapter() {
+        contentFeedbackAdapter = ContentFeedbackAdapter(
+            items = mutableListOf(),
+            skillTitleCache = skillTitleCache,
+            onDelete = { cf -> showContentFeedbackOptionsMenu(cf) }
+        )
+    }
+
+    private fun applyContentFilters() {
+        val query = etSearch.text?.toString()?.trim()?.lowercase(Locale.getDefault()).orEmpty()
+        val filtered = allContentFeedback.filter { cf ->
+            query.isEmpty() ||
+                    cf.reporterName.lowercase(Locale.getDefault()).contains(query) ||
+                    cf.comment.lowercase(Locale.getDefault()).contains(query) ||
+                    (skillTitleCache[cf.skillId]?.first ?: "").lowercase(Locale.getDefault()).contains(query)
+        }.sortedByDescending { it.timestamp }
+
+        recyclerView.adapter = contentFeedbackAdapter
+        contentFeedbackAdapter.submitList(filtered)
+        tvEmptyState.visibility = if (filtered.isEmpty()) View.VISIBLE else View.GONE
+    }
+
+    private fun confirmDeleteContentFeedback(cf: ContentFeedback) {
+        val root = dialogCard()
+        root.addView(TextView(this).apply {
+            text = "🗑️"; textSize = 30f; gravity = Gravity.CENTER
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply { bottomMargin = dp(8) }
+        })
+        root.addView(TextView(this).apply {
+            text = "Delete Feedback"
+            setTextColor(Color.parseColor("#1B3C53")); textSize = 17f
+            setTypeface(typeface, Typeface.BOLD); gravity = Gravity.CENTER
+        })
+        root.addView(TextView(this).apply {
+            text = "Are you sure you want to delete this feedback? This action cannot be undone."
+            setTextColor(Color.parseColor("#456882")); textSize = 13f; gravity = Gravity.CENTER
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply { topMargin = dp(8); bottomMargin = dp(18) }
+        })
+
+        val dialog = AlertDialog.Builder(this).setView(root).create()
+        dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
+
+        val buttonRow = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+        buttonRow.addView(
+            pillButton("Cancel", Color.parseColor("#EAF1F5"), Color.parseColor("#456882")).apply {
+                setOnClickListener { dialog.dismiss() }
+            },
+            LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply { marginEnd = dp(8) }
+        )
+        buttonRow.addView(
+            pillButton("Delete", Color.parseColor("#DC2626"), Color.WHITE).apply {
+                setOnClickListener {
+                    dialog.dismiss()
+                    db.collection("content_feedback").document(cf.id).delete()
+                        .addOnSuccessListener { Toast.makeText(this@AdminFeedbackActivity, "Feedback deleted", Toast.LENGTH_SHORT).show() }
+                        .addOnFailureListener { Toast.makeText(this@AdminFeedbackActivity, "Failed to delete", Toast.LENGTH_SHORT).show() }
+                }
+            },
+            LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+        )
+        root.addView(buttonRow)
+        dialog.show()
     }
 
     // ─────────────────────── Data loading ───────────────────────
@@ -242,6 +390,38 @@ class AdminFeedbackActivity : BaseActivity() {
                     if (fb != null) allFeedback.add(fb)
                 }
                 applyFilters()
+            }
+    }
+
+    // NEW: skill titles/uploaders used to label content_feedback rows without a per-row join.
+    private fun loadSkillTitlesForFeedback() {
+        skillsForFeedbackListener = db.collection("skills")
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) return@addSnapshotListener
+                skillTitleCache.clear()
+                snapshot?.documents?.forEach { doc ->
+                    val title = doc.getString("title") ?: ""
+                    val userName = doc.getString("userName") ?: ""
+                    skillTitleCache[doc.id] = title to userName
+                }
+                if (currentSource == FeedbackSource.CONTENT) applyContentFilters()
+            }
+    }
+
+    // NEW: loads the content_feedback collection (ratings/comments on videos & playlists).
+    private fun loadContentFeedback() {
+        contentFeedbackListener = db.collection("content_feedback")
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    Toast.makeText(this, error.message, Toast.LENGTH_SHORT).show()
+                    return@addSnapshotListener
+                }
+                allContentFeedback.clear()
+                snapshot?.documents?.forEach { doc ->
+                    val cf = doc.toObject(ContentFeedback::class.java)?.copy(id = doc.id)
+                    if (cf != null) allContentFeedback.add(cf)
+                }
+                if (currentSource == FeedbackSource.CONTENT) applyContentFilters()
             }
     }
 
@@ -361,6 +541,207 @@ class AdminFeedbackActivity : BaseActivity() {
                 ?.setBackgroundColor(Color.TRANSPARENT)
         }
         dialog.show()
+    }
+
+    // ---------------- NEW: Content feedback options menu (View Full / View Profile / Delete) ----------------
+
+    /** Same bottom-sheet pattern as showFeedbackOptionsMenu(), scoped to content_feedback (no status field, so no Mark as Read/Resolved). */
+    private fun showContentFeedbackOptionsMenu(cf: ContentFeedback) {
+        val dialog = com.google.android.material.bottomsheet.BottomSheetDialog(this, R.style.DarkBottomSheetDialog)
+
+        val root = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(0, 0, 0, dp(12))
+            background = GradientDrawable().apply {
+                val r = dp(20).toFloat()
+                cornerRadii = floatArrayOf(r, r, r, r, 0f, 0f, 0f, 0f)
+                setColor(sheetBg)
+            }
+        }
+
+        val (skillTitle, _) = skillTitleCache[cf.skillId] ?: ("Untitled" to "")
+
+        val header = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(dp(20), dp(20), dp(20), dp(20))
+        }
+        val initial = cf.reporterName.trim().firstOrNull()?.uppercaseChar()?.toString() ?: "?"
+        header.addView(MaterialCardView(this).apply {
+            layoutParams = LinearLayout.LayoutParams(dp(44), dp(44))
+            radius = dp(22).toFloat()
+            cardElevation = 0f
+            setCardBackgroundColor(Color.parseColor("#EAE1DA"))
+            addView(TextView(this@AdminFeedbackActivity).apply {
+                layoutParams = ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
+                gravity = Gravity.CENTER
+                text = initial
+                setTextColor(Color.parseColor("#1B3C53"))
+                textSize = 16f
+                setTypeface(typeface, Typeface.BOLD)
+            })
+        })
+        val textCol = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply {
+                marginStart = dp(14)
+            }
+        }
+        textCol.addView(TextView(this).apply {
+            text = cf.reporterName.ifBlank { "Unknown user" }
+            setTextColor(sheetPrimaryText)
+            textSize = 16f
+            setTypeface(typeface, Typeface.BOLD)
+            maxLines = 1
+            ellipsize = android.text.TextUtils.TruncateAt.END
+        })
+        textCol.addView(TextView(this).apply {
+            text = "on \"$skillTitle\""
+            setTextColor(sheetSecondaryText)
+            textSize = 12f
+            setPadding(0, dp(2), 0, 0)
+            maxLines = 1
+            ellipsize = android.text.TextUtils.TruncateAt.END
+        })
+        header.addView(textCol)
+        root.addView(header)
+
+        root.addView(View(this).apply {
+            layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp(1))
+            setBackgroundColor(sheetDivider)
+        })
+
+        fun addRow(emoji: String, label: String, textColor: Int = sheetPrimaryText, action: () -> Unit) {
+            val outValue = android.util.TypedValue()
+            theme.resolveAttribute(android.R.attr.selectableItemBackgroundBorderless, outValue, true)
+            val row = LinearLayout(this).apply {
+                orientation = LinearLayout.HORIZONTAL
+                gravity = Gravity.CENTER_VERTICAL
+                isClickable = true
+                isFocusable = true
+                setPadding(dp(20), dp(14), dp(20), dp(14))
+                setBackgroundResource(outValue.resourceId)
+                setOnClickListener {
+                    dialog.dismiss()
+                    action()
+                }
+            }
+            row.addView(TextView(this).apply {
+                text = emoji
+                textSize = 18f
+                gravity = Gravity.CENTER
+                layoutParams = LinearLayout.LayoutParams(dp(28), LinearLayout.LayoutParams.WRAP_CONTENT)
+            })
+            row.addView(TextView(this).apply {
+                text = label
+                textSize = 15f
+                setTextColor(textColor)
+                layoutParams = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.WRAP_CONTENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+                ).apply { marginStart = dp(14) }
+            })
+            root.addView(row)
+        }
+
+        addRow("👁️", "View Full Feedback") { showFullContentFeedbackDialog(cf) }
+        addRow("👤", "View User Profile") { openContentFeedbackUserProfile(cf) }
+        addRow("🗑️", "Delete Feedback", sheetDestructive) { confirmDeleteContentFeedback(cf) }
+
+        dialog.setContentView(root)
+        dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
+        dialog.setOnShowListener {
+            dialog.findViewById<View>(com.google.android.material.R.id.design_bottom_sheet)
+                ?.setBackgroundColor(Color.TRANSPARENT)
+        }
+        dialog.show()
+    }
+
+    /** Same layout pattern as showFullFeedbackDialog(), for a single content_feedback doc. */
+    private fun showFullContentFeedbackDialog(cf: ContentFeedback) {
+        val dateFormat = SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault())
+        val (skillTitle, uploaderName) = skillTitleCache[cf.skillId] ?: ("Unknown" to "Unknown")
+        val root = dialogCard()
+
+        root.addView(dialogTitle("Content Feedback"))
+        root.addView(dialogDivider())
+
+        fun addDetailRow(label: String, value: String) {
+            val row = LinearLayout(this).apply {
+                orientation = LinearLayout.HORIZONTAL
+                layoutParams = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+                ).apply { bottomMargin = dp(10) }
+            }
+            row.addView(TextView(this).apply {
+                text = label
+                setTextColor(Color.parseColor("#456882"))
+                textSize = 12.5f
+                layoutParams = LinearLayout.LayoutParams(dp(90), LinearLayout.LayoutParams.WRAP_CONTENT)
+            })
+            row.addView(TextView(this).apply {
+                text = value
+                setTextColor(Color.parseColor("#1B3C53"))
+                textSize = 12.5f
+                setTypeface(typeface, Typeface.BOLD)
+                layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+            })
+            root.addView(row)
+        }
+
+        addDetailRow("From", cf.reporterName.ifBlank { "—" })
+        addDetailRow("On", skillTitle.ifBlank { "—" })
+        addDetailRow("Uploader", uploaderName.ifBlank { "—" })
+        addDetailRow("Rating", if (cf.rating > 0) "★".repeat(cf.rating) + "☆".repeat(5 - cf.rating) else "—")
+        addDetailRow("Date", if (cf.timestamp > 0) dateFormat.format(Date(cf.timestamp)) else "—")
+
+        root.addView(dialogDivider())
+        root.addView(TextView(this).apply {
+            text = cf.comment.ifBlank { "—" }
+            setTextColor(Color.parseColor("#1B3C53"))
+            textSize = 13.5f
+        })
+
+        val dialog = AlertDialog.Builder(this).setView(root).create()
+        dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
+
+        val btnClose = pillButton("Close", Color.parseColor("#1B3C53"), Color.WHITE).apply {
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply {
+                topMargin = dp(16)
+                gravity = Gravity.END
+            }
+            setPadding(dp(28), dp(10), dp(28), dp(10))
+            setOnClickListener { dialog.dismiss() }
+        }
+        root.addView(btnClose)
+
+        dialog.show()
+    }
+
+    /** Same lookup pattern as openUserProfile(), keyed off cf.reporterId (an email) instead of feedback.userId. */
+    private fun openContentFeedbackUserProfile(cf: ContentFeedback) {
+        if (cf.reporterId.isBlank()) {
+            Toast.makeText(this, "No user ID on this feedback", Toast.LENGTH_SHORT).show()
+            return
+        }
+        db.collection("users").whereEqualTo("email", cf.reporterId).limit(1).get()
+            .addOnSuccessListener { snapshot ->
+                val doc = snapshot.documents.firstOrNull()
+                val user = doc?.toObject(User::class.java)
+                if (doc == null || user == null) {
+                    Toast.makeText(this, "User not found (may have been deleted)", Toast.LENGTH_SHORT).show()
+                    return@addOnSuccessListener
+                }
+                if (user.uid.isBlank()) user.uid = doc.id
+                showUserProfileDialog(user)
+            }
+            .addOnFailureListener {
+                Toast.makeText(this, "Failed to load user: ${it.message}", Toast.LENGTH_SHORT).show()
+            }
     }
 
     /** Styled like AdminTradesActivity's viewTradeDetails(): white rounded card, label/value rows, pill Close button. */

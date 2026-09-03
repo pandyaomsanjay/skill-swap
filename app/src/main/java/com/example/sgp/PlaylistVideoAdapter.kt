@@ -18,7 +18,10 @@ class PlaylistVideoAdapter(
     private val onVideoClick: (PlaylistVideo) -> Unit,
     // Called when the report flag on a row is tapped. Defaults to a no-op so
     // existing call sites without a handler still compile.
-    private val onReportClick: (PlaylistVideo) -> Unit = {}
+    private val onReportClick: (PlaylistVideo) -> Unit = {},
+    // Called when the feedback flag on a row is tapped. Defaults to a no-op so
+    // existing call sites without a handler still compile.
+    private val onFeedbackClick: (PlaylistVideo) -> Unit = {}
 ) : RecyclerView.Adapter<PlaylistVideoAdapter.ViewHolder>() {
 
     class ViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
@@ -29,6 +32,8 @@ class PlaylistVideoAdapter(
         // FEATURE 2: new checkmark icon, added to item_playlist_video_row.xml — see below.
         val ivCompleted: ImageView = itemView.findViewById(R.id.ivVideoCompleted)
         val btnReport: View = itemView.findViewById(R.id.btnReportVideo)
+        // New: feedback icon, add to item_playlist_video_row.xml next to btnReportVideo.
+        val btnFeedback: View = itemView.findViewById(R.id.btnFeedbackVideo)
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
@@ -56,13 +61,16 @@ class PlaylistVideoAdapter(
             holder.ivCompleted.visibility = View.GONE
         }
 
-        // Report: available on every video except for the playlist owner
-        // viewing their own upload.
+        // Report + Feedback: available on every video except for the playlist
+        // owner viewing their own upload.
         if (isOwner) {
             holder.btnReport.visibility = View.GONE
+            holder.btnFeedback.visibility = View.GONE
         } else {
             holder.btnReport.visibility = View.VISIBLE
             holder.btnReport.setOnClickListener { onReportClick(video) }
+            holder.btnFeedback.visibility = View.VISIBLE
+            holder.btnFeedback.setOnClickListener { onFeedbackClick(video) }
         }
 
         holder.itemView.setOnClickListener { onVideoClick(video) }
