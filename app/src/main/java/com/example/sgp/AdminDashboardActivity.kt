@@ -5,6 +5,8 @@ import android.content.Intent
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
+import android.graphics.Typeface
+import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
 import android.util.AttributeSet
 import android.util.Log
@@ -15,15 +17,16 @@ import android.widget.Button
 import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
+import androidx.appcompat.app.AlertDialog
 import com.google.android.material.card.MaterialCardView
 import com.google.android.material.datepicker.MaterialDatePicker
-import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.firebase.Firebase
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ListenerRegistration
 import com.google.firebase.firestore.Query
 import com.google.firebase.firestore.firestore
+import com.onesignal.OneSignal
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
@@ -36,7 +39,6 @@ class AdminDashboardActivity : BaseActivity() {
     private lateinit var db: FirebaseFirestore
 
     // Header / stats
-
     private lateinit var tvTotalUsers: TextView
     private lateinit var tvTotalTrades: TextView
     private lateinit var tvTotalSkills: TextView
@@ -85,12 +87,19 @@ class AdminDashboardActivity : BaseActivity() {
     private var swapsCustomStart: Long = 0L
     private var swapsCustomEnd: Long = 0L
 
-    // Live Firestore listeners — removed & reattached whenever a range changes
+    // Live Firestore listeners
     private var usersListener: ListenerRegistration? = null
     private var tradesOverviewListener: ListenerRegistration? = null
     private var skillsListener: ListenerRegistration? = null
     private var reportsListener: ListenerRegistration? = null
     private var swapsChartListener: ListenerRegistration? = null
+
+    // Theme palette
+    private val navyDark = Color.parseColor("#1B3C53")
+    private val navyMed = Color.parseColor("#456882")
+    private val cream = Color.parseColor("#F9F3EF")
+    private val lightBg = Color.parseColor("#EAF1F5")
+    private val destructive = Color.parseColor("#DC2626")
 
     private val colorChipSelectedBg = Color.parseColor("#1B3C53")
     private val colorChipUnselectedBg = Color.parseColor("#F9F3EF")
@@ -116,6 +125,12 @@ class AdminDashboardActivity : BaseActivity() {
             return
         }
 
+        // Bind admin's email or UID to OneSignal for targeted pushes & alerts
+        val adminEmail = prefs.getString("user_email", "") ?: ""
+        if (adminEmail.isNotBlank()) {
+            OneSignal.login(adminEmail.trim().lowercase())
+        }
+
         bindViews()
 
         setupOverviewChips()
@@ -136,7 +151,6 @@ class AdminDashboardActivity : BaseActivity() {
     }
 
     private fun bindViews() {
-
         tvTotalUsers = findViewById(R.id.tvTotalUsers)
         tvTotalTrades = findViewById(R.id.tvTotalTrades)
         tvTotalSkills = findViewById(R.id.tvTotalSkills)
@@ -177,13 +191,10 @@ class AdminDashboardActivity : BaseActivity() {
             showLogoutDialog()
         }
 
-        // Hamburger icon (top-left) opens Settings
         findViewById<View>(R.id.btnMenu).setOnClickListener {
             openSettings()
         }
 
-        // Top-right entry point: now opens the Manage Videos screen (list of
-        // every uploaded skill video across all users), not a bare player.
         findViewById<View>(R.id.btnVideos).setOnClickListener {
             startActivity(Intent(this, AdminVideosActivity::class.java))
             overridePendingTransition(R.anim.nav_enter, R.anim.nav_exit)
@@ -191,7 +202,7 @@ class AdminDashboardActivity : BaseActivity() {
     }
 
     private fun setupNavigation() {
-        findViewById<View>(R.id.navDashboard).setOnClickListener { /* already here */ }
+        findViewById<View>(R.id.navDashboard).setOnClickListener { }
         findViewById<View>(R.id.navUsers).setOnClickListener {
             startActivity(Intent(this, AdminUsersActivity::class.java))
             overridePendingTransition(R.anim.nav_enter, R.anim.nav_exit)
@@ -210,7 +221,6 @@ class AdminDashboardActivity : BaseActivity() {
     }
 
     private fun openSettings() {
-        // TODO: replace AdminSettingsActivity with your actual Settings activity class
         try {
             startActivity(Intent(this, AdminSettingsActivity::class.java))
             overridePendingTransition(R.anim.nav_enter, R.anim.nav_exit)
@@ -220,7 +230,6 @@ class AdminDashboardActivity : BaseActivity() {
     }
 
     private fun openFeedback() {
-        // TODO: replace AdminFeedbackActivity with your actual Feedback activity class
         try {
             startActivity(Intent(this, AdminFeedbackActivity::class.java))
             overridePendingTransition(R.anim.nav_enter, R.anim.nav_exit)
@@ -228,8 +237,6 @@ class AdminDashboardActivity : BaseActivity() {
             Toast.makeText(this, "Feedback screen coming soon", Toast.LENGTH_SHORT).show()
         }
     }
-
-    // ---------- Chip wiring ----------
 
     private fun setupOverviewChips() {
         cardOvToday.setOnClickListener { applyOverviewRange(DashboardRange.TODAY) }
@@ -315,7 +322,6 @@ class AdminDashboardActivity : BaseActivity() {
     }
 
     private fun updateChipStyles(chips: List<Pair<MaterialCardView, TextView>>, selectedIndex: Int) {
-
         val strokeWidthPx = (1 * resources.displayMetrics.density).toInt()
         chips.forEachIndexed { index, (card, text) ->
             if (index == selectedIndex) {
@@ -410,15 +416,13 @@ class AdminDashboardActivity : BaseActivity() {
         }
         reportsListener = reportsQuery.addSnapshotListener { snapshot, error ->
             if (error != null) {
-                Log.e(TAG, "reports listener failed (check for missing composite index)", error)
+                Log.e(TAG, "reports listener failed", error)
                 tvPendingReports.text = "0"
                 return@addSnapshotListener
             }
             tvPendingReports.text = (snapshot?.size() ?: 0).toString()
         }
     }
-
-    // ---------- Real-time Swaps chart ----------
 
     private fun attachSwapsChartListener(startMillis: Long, endMillis: Long, range: DashboardRange) {
         swapsChartListener?.remove()
@@ -443,7 +447,6 @@ class AdminDashboardActivity : BaseActivity() {
             } ?: emptyList()
 
             if (isAll) {
-
                 if (docTimestamps.isEmpty()) {
                     renderChart(0L, 1L, emptyList(), 7, range)
                 } else {
@@ -459,11 +462,11 @@ class AdminDashboardActivity : BaseActivity() {
                 }
             } else {
                 val bucketCount = when (range) {
-                    DashboardRange.TODAY -> 6   // ~4-hour buckets
-                    DashboardRange.WEEK -> 7    // daily
-                    DashboardRange.MONTH -> 6   // ~5-day buckets
+                    DashboardRange.TODAY -> 6
+                    DashboardRange.WEEK -> 7
+                    DashboardRange.MONTH -> 6
                     DashboardRange.CUSTOM -> 7
-                    DashboardRange.ALL -> 8     // unreachable here, handled above
+                    DashboardRange.ALL -> 8
                 }
                 renderChart(startMillis, endMillis, docTimestamps, bucketCount, range)
             }
@@ -547,17 +550,75 @@ class AdminDashboardActivity : BaseActivity() {
     }
 
     private fun showLogoutDialog() {
-        MaterialAlertDialogBuilder(this, R.style.DarkAlertDialog)
-            .setTitle("Logout")
-            .setMessage("Are you sure you want to Logout?")
-            .setPositiveButton("Logout") { _, _ ->
+        val root = dialogCard()
+
+        root.addView(TextView(this).apply {
+            text = "👋"
+            textSize = 30f
+            gravity = Gravity.CENTER
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply { bottomMargin = dp(8) }
+        })
+
+        root.addView(TextView(this).apply {
+            text = getString(R.string.logout_confirmation_title)
+            setTextColor(navyDark)
+            textSize = 17f
+            setTypeface(typeface, Typeface.BOLD)
+            gravity = Gravity.CENTER
+        })
+
+        root.addView(TextView(this).apply {
+            text = getString(R.string.logout_confirmation_message)
+            setTextColor(navyMed)
+            textSize = 13f
+            gravity = Gravity.CENTER
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply {
+                topMargin = dp(8)
+                bottomMargin = dp(18)
+            }
+        })
+
+        val dialog = AlertDialog.Builder(this).setView(root).create()
+        dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
+
+        val buttonRow = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+
+        val btnCancel = pillButton(getString(R.string.cancel), lightBg, navyMed).apply {
+            setOnClickListener { dialog.dismiss() }
+        }
+
+        val btnLogout = pillButton(getString(R.string.logout), destructive, cream).apply {
+            setOnClickListener {
+                dialog.dismiss()
                 performLogout()
             }
-            .setNegativeButton("Cancel", null)
-            .show()
+        }
+
+        buttonRow.addView(
+            btnCancel,
+            LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply {
+                marginEnd = dp(8)
+            }
+        )
+        buttonRow.addView(
+            btnLogout,
+            LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+        )
+        root.addView(buttonRow)
+
+        dialog.show()
     }
 
     private fun performLogout() {
+        // Disassociate device from the admin user in OneSignal
+        OneSignal.logout()
+
         FirebaseAuth.getInstance().signOut()
 
         getSharedPreferences("SkillSwapPrefs", MODE_PRIVATE)
@@ -571,6 +632,36 @@ class AdminDashboardActivity : BaseActivity() {
         startActivity(intent)
         finish()
     }
+
+    private fun dp(value: Int): Int = (value * resources.displayMetrics.density).toInt()
+
+    private fun dialogCard(): LinearLayout {
+        return LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(20), dp(22), dp(20), dp(20))
+            background = GradientDrawable().apply {
+                cornerRadius = dp(20).toFloat()
+                setColor(Color.WHITE)
+            }
+        }
+    }
+
+    private fun pillButton(text: String, bgColor: Int, textColor: Int): TextView {
+        return TextView(this).apply {
+            this.text = text
+            setTextColor(textColor)
+            textSize = 14f
+            setTypeface(typeface, Typeface.BOLD)
+            gravity = Gravity.CENTER
+            setPadding(0, dp(12), 0, dp(12))
+            background = GradientDrawable().apply {
+                cornerRadius = dp(24).toFloat()
+                setColor(bgColor)
+            }
+            isClickable = true
+            isFocusable = true
+        }
+    }
 }
 
 class SwapsTrendView @JvmOverloads constructor(
@@ -580,12 +671,8 @@ class SwapsTrendView @JvmOverloads constructor(
 
     private var points: List<Float> = listOf(0f, 0f)
     private var labels: List<String> = listOf("", "")
-
-    // When set (> 0), bars scale against this instead of their own local max —
-    // keeps the bars in sync with the activity's y-axis labels.
     private var axisMax: Float = -1f
 
-    // Cached pixel geometry of each bar, recomputed in onDraw
     private var barCenters: FloatArray = floatArrayOf()
     private var barTops: FloatArray = floatArrayOf()
     private var barLefts: FloatArray = floatArrayOf()

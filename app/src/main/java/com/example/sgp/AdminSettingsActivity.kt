@@ -16,6 +16,7 @@ import android.text.Editable
 import android.text.InputType
 import android.text.TextUtils
 import android.text.TextWatcher
+import android.util.Log
 import android.util.TypedValue
 import android.view.Gravity
 import android.view.View
@@ -28,6 +29,7 @@ import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.lifecycleScope
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.card.MaterialCardView
 import com.google.firebase.Firebase
@@ -35,7 +37,16 @@ import com.google.firebase.auth.EmailAuthProvider
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.firestore
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import org.json.JSONArray
+import org.json.JSONObject
+import java.io.BufferedReader
+import java.io.InputStreamReader
 import java.io.OutputStream
+import java.net.HttpURLConnection
+import java.net.URL
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -56,12 +67,22 @@ class AdminSettingsActivity : BaseActivity() {
         pendingExport = null
     }
 
-    // Same dark palette used by AdminReportsActivity's bottom sheets, so all admin
-    // screens feel consistent.
+    // Palette matching Profile.kt and Admin reports
+    private val navyDark = Color.parseColor("#1B3C53")
+    private val navyMed = Color.parseColor("#456882")
+    private val cream = Color.parseColor("#F9F3EF")
+    private val lightBg = Color.parseColor("#EAF1F5")
+    private val destructive = Color.parseColor("#DC2626")
+
     private val sheetBg = Color.parseColor("#16263A")
     private val sheetDivider = Color.parseColor("#28405A")
     private val sheetPrimaryText = Color.parseColor("#F5EDE4")
     private val sheetSecondaryText = Color.parseColor("#9FB3C8")
+
+    companion object {
+        private const val TAG = "AdminSettings"
+        private const val EDGE_FUNCTION_URL = "https://ghrxltlstncjcizyyqfo.supabase.co/functions/v1/send-admin-notification"
+    }
 
     private fun runWithStoragePermission(action: () -> Unit) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
@@ -83,9 +104,6 @@ class AdminSettingsActivity : BaseActivity() {
 
         db = Firebase.firestore
 
-        // FIX: top-left is now a back button that returns to the Admin
-        // Dashboard, replacing the old static settings-gear icon that had
-        // no click handler.
         findViewById<View>(R.id.btnBack).setOnClickListener {
             val intent = Intent(this, AdminDashboardActivity::class.java).apply {
                 flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
@@ -134,14 +152,11 @@ class AdminSettingsActivity : BaseActivity() {
             cardChangePassword.visibility = View.VISIBLE
             cardChangePassword.setOnClickListener { showChangePasswordDialog() }
         } else {
-            // Google-signed-in admins manage their password through Google, not here.
             cardChangePassword.visibility = View.GONE
         }
     }
 
     private fun bindDataExportSection() {
-        // "Export Reports (PDF)" now opens a picker: Reports Summary or Users List,
-        // matching the same choice available on the Manage Reports screen.
         findViewById<MaterialCardView>(R.id.cardExportReportsPdf).setOnClickListener {
             showReportsExportOptionsDialog()
         }
@@ -156,11 +171,13 @@ class AdminSettingsActivity : BaseActivity() {
         }
     }
 
+    // ---------- Themed Logout Confirmation Dialog ----------
+
     private fun confirmLogout() {
         val root = dialogCard()
 
         root.addView(TextView(this).apply {
-            text = "🚪"
+            text = "👋"
             textSize = 30f
             gravity = Gravity.CENTER
             layoutParams = LinearLayout.LayoutParams(
@@ -168,16 +185,18 @@ class AdminSettingsActivity : BaseActivity() {
                 LinearLayout.LayoutParams.WRAP_CONTENT
             ).apply { bottomMargin = dp(8) }
         })
+
         root.addView(TextView(this).apply {
-            text = "Log Out"
-            setTextColor(Color.parseColor("#1B3C53"))
+            text = getString(R.string.logout_confirmation_title)
+            setTextColor(navyDark)
             textSize = 17f
             setTypeface(typeface, Typeface.BOLD)
             gravity = Gravity.CENTER
         })
+
         root.addView(TextView(this).apply {
-            text = "Are you sure you want to log out?"
-            setTextColor(Color.parseColor("#456882"))
+            text = getString(R.string.logout_confirmation_message)
+            setTextColor(navyMed)
             textSize = 13f
             gravity = Gravity.CENTER
             layoutParams = LinearLayout.LayoutParams(
@@ -193,10 +212,12 @@ class AdminSettingsActivity : BaseActivity() {
         dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
 
         val buttonRow = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
-        val btnCancel = pillButton("Cancel", Color.parseColor("#EAF1F5"), Color.parseColor("#456882")).apply {
+
+        val btnCancel = pillButton(getString(R.string.cancel), lightBg, navyMed).apply {
             setOnClickListener { dialog.dismiss() }
         }
-        val btnLogout = pillButton("Log Out", Color.parseColor("#DC2626"), Color.WHITE).apply {
+
+        val btnLogout = pillButton(getString(R.string.logout), destructive, cream).apply {
             setOnClickListener {
                 dialog.dismiss()
                 FirebaseAuth.getInstance().signOut()
@@ -208,13 +229,21 @@ class AdminSettingsActivity : BaseActivity() {
                 finish()
             }
         }
-        buttonRow.addView(btnCancel, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply { marginEnd = dp(8) })
-        buttonRow.addView(btnLogout, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
+
+        buttonRow.addView(
+            btnCancel,
+            LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply {
+                marginEnd = dp(8)
+            }
+        )
+        buttonRow.addView(
+            btnLogout,
+            LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+        )
         root.addView(buttonRow)
 
         dialog.show()
     }
-
 
     // ---------------- Send Notification: multi-select users, then title + message ----------------
 
@@ -250,7 +279,6 @@ class AdminSettingsActivity : BaseActivity() {
         }
         root.addView(scroll)
 
-        // Selected-count + Next button, shown once at least one user is selected.
         val selectedBar = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
@@ -277,7 +305,6 @@ class AdminSettingsActivity : BaseActivity() {
         dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
 
         var cachedUsers: List<User> = emptyList()
-        // Keyed by uid (falls back to email if uid is blank) so re-renders keep selection state.
         val selectedUsers = LinkedHashMap<String, User>()
 
         fun userKey(u: User) = u.uid.ifBlank { u.email }
@@ -413,7 +440,6 @@ class AdminSettingsActivity : BaseActivity() {
         })
         row.addView(textCol)
 
-        // Selection indicator (checkbox-style circle)
         row.addView(MaterialCardView(this).apply {
             layoutParams = LinearLayout.LayoutParams(dp(24), dp(24)).apply { marginStart = dp(8) }
             radius = dp(12).toFloat()
@@ -499,7 +525,7 @@ class AdminSettingsActivity : BaseActivity() {
         val btnCancel = pillButton("Cancel", Color.parseColor("#EAF1F5"), Color.parseColor("#456882")).apply {
             setOnClickListener { dialog.dismiss() }
         }
-        // Call site — inside showComposeNotificationDialog's btnSend click listener
+
         val btnSend = pillButton("Send", Color.parseColor("#1B3C53"), Color.WHITE).apply {
             setOnClickListener {
                 val title = titleInput.text.toString().trim()
@@ -513,7 +539,7 @@ class AdminSettingsActivity : BaseActivity() {
                     return@setOnClickListener
                 }
                 dialog.dismiss()
-                sendPushNotification(users, title, message)
+                sendNotificationViaEdgeFunction(users, title, message)
             }
         }
         buttonRow.addView(
@@ -526,46 +552,89 @@ class AdminSettingsActivity : BaseActivity() {
         dialog.show()
     }
 
-    // FIX: signature takes (users: List<User>, title: String, message: String) —
-// must match the 3-arg call above exactly. If your file still has an older
-// version with (user: User, message: String) or (users: List<User>, message: String),
-// that mismatch is the red underline.
-    private fun sendPushNotification(users: List<User>, title: String, message: String) {
-        val usersWithoutToken = users.count { it.fcmToken.isBlank() }
-        if (usersWithoutToken > 0) {
-            Toast.makeText(
-                this,
-                "$usersWithoutToken user(s) have no device token on file",
-                Toast.LENGTH_SHORT
-            ).show()
+    /**
+     * Dispatches notification via the Supabase Edge Function (send-admin-notification).
+     * The Edge Function securely holds the ONESIGNAL_REST_API_KEY in its backend environment.
+     */
+    private fun sendNotificationViaEdgeFunction(users: List<User>, title: String, message: String) {
+        val targetEmails = users.map { it.email.trim().lowercase() }.filter { it.isNotBlank() }.distinct()
+
+        if (targetEmails.isEmpty()) {
+            Toast.makeText(this, "No valid user emails selected", Toast.LENGTH_SHORT).show()
+            return
         }
 
-        val targetUids = users.map { it.uid }.filter { it.isNotBlank() }
-        val userEmails = users.map { it.email }.filter { it.isNotBlank() }
-
-        val notification = hashMapOf(
-            "userIds" to userEmails,
-            "targetUids" to targetUids,
+        // Record in Firestore for history/audit
+        val notificationRecord = hashMapOf(
+            "userIds" to targetEmails,
             "title" to title,
             "message" to message,
             "timestamp" to System.currentTimeMillis(),
             "sentByAdmin" to true,
-            "recipientCount" to users.size
+            "recipientCount" to targetEmails.size
         )
+        db.collection("notifications").add(notificationRecord)
 
-        db.collection("notifications").add(notification)
-            .addOnSuccessListener {
+        lifecycleScope.launch {
+            val (success, responseMsg) = withContext(Dispatchers.IO) {
+                var conn: HttpURLConnection? = null
+                try {
+                    val url = URL(EDGE_FUNCTION_URL)
+                    conn = url.openConnection() as HttpURLConnection
+                    conn.requestMethod = "POST"
+                    conn.setRequestProperty("Content-Type", "application/json; charset=UTF-8")
+                    conn.doOutput = true
+                    conn.connectTimeout = 15000
+                    conn.readTimeout = 15000
+
+                    val targetArray = JSONArray()
+                    targetEmails.forEach { targetArray.put(it) }
+
+                    val payload = JSONObject().apply {
+                        put("title", title)
+                        put("message", message)
+                        put("targetEmails", targetArray)
+                    }
+
+                    conn.outputStream.use { os: OutputStream ->
+                        os.write(payload.toString().toByteArray(Charsets.UTF_8))
+                        os.flush()
+                    }
+
+                    val responseCode = conn.responseCode
+                    val isSuccess = responseCode in 200..299
+
+                    val stream = if (isSuccess) conn.inputStream else conn.errorStream
+                    val responseStr = stream?.let {
+                        BufferedReader(InputStreamReader(it)).use { r -> r.readText() }
+                    } ?: ""
+
+                    Log.d(TAG, "Edge Function Response ($responseCode): $responseStr")
+                    Pair(isSuccess, responseStr)
+                } catch (e: Exception) {
+                    Log.e(TAG, "Edge Function POST error", e)
+                    Pair(false, e.message ?: "Network error")
+                } finally {
+                    conn?.disconnect()
+                }
+            }
+
+            if (success) {
                 Toast.makeText(
-                    this,
-                    "Notification sent to ${users.size} user(s)",
+                    this@AdminSettingsActivity,
+                    "Notification sent to ${targetEmails.size} user(s)",
                     Toast.LENGTH_SHORT
                 ).show()
+            } else {
+                Log.e(TAG, "Edge Function error response: $responseMsg")
+                Toast.makeText(
+                    this@AdminSettingsActivity,
+                    "Dispatch failed: $responseMsg",
+                    Toast.LENGTH_LONG
+                ).show()
             }
-            .addOnFailureListener { e ->
-                Toast.makeText(this, "Failed to send notification: ${e.message}", Toast.LENGTH_LONG).show()
-            }
+        }
     }
-
 
     private fun showAdminManagementDialog() {
         val root = dialogCard()
@@ -671,7 +740,6 @@ class AdminSettingsActivity : BaseActivity() {
         }
         return block
     }
-
 
     private fun showChangePasswordDialog() {
         val root = dialogCard()
@@ -802,7 +870,6 @@ class AdminSettingsActivity : BaseActivity() {
             }
         }
 
-        // ---- Header ----
         val header = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
@@ -826,7 +893,6 @@ class AdminSettingsActivity : BaseActivity() {
         })
         root.addView(header)
 
-        // ---- Divider ----
         root.addView(View(this).apply {
             layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp(1))
             setBackgroundColor(sheetDivider)
@@ -902,8 +968,6 @@ class AdminSettingsActivity : BaseActivity() {
                     }
                 }
 
-                // reports store reportedUserId as an email, while users/{uid} docs are
-                // keyed by uid, so build an email -> Users map to resolve display names.
                 db.collection("users").get()
                     .addOnSuccessListener { usersSnapshot ->
                         val emailToUser = mutableMapOf<String, Users>()
@@ -1257,6 +1321,7 @@ class AdminSettingsActivity : BaseActivity() {
         }
     }
 
+    // ---------------- Export 3: Feedback PDF ----------------
 
     private fun exportFeedbackToPdf() {
         db.collection("feedback").get()
@@ -1439,6 +1504,8 @@ class AdminSettingsActivity : BaseActivity() {
             java.io.FileOutputStream(file)
         }
     }
+
+    // ---------- Themed UI Helper Functions ----------
 
     private fun dp(value: Int): Int = (value * resources.displayMetrics.density).toInt()
 

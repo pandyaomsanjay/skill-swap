@@ -70,8 +70,7 @@ class AdminUsersActivity : BaseActivity() {
     private val unselectedChipText = Color.parseColor("#FFFFFF")
     private val unselectedChipStroke = Color.parseColor("#FFFFFF")
 
-    // Dark palette for the options bottom sheet, so it matches the navy app theme
-    // instead of sitting on the page as a stark white card.
+    // Dark palette for the options bottom sheet, matching the navy app theme
     private val sheetBg = Color.parseColor("#16263A")
     private val sheetDivider = Color.parseColor("#28405A")
     private val sheetPrimaryText = Color.parseColor("#F5EDE4")
@@ -250,7 +249,7 @@ class AdminUsersActivity : BaseActivity() {
         tradesListener?.remove()
     }
 
-    // ---------- Bottom-sheet options menu (built entirely in code, matches Trades page) ----------
+    // ---------- Bottom-sheet options menu ----------
 
     private fun showUserOptionsMenu(user: User) {
         val dialog = BottomSheetDialog(this, R.style.DarkBottomSheetDialog)
@@ -297,7 +296,6 @@ class AdminUsersActivity : BaseActivity() {
             })
         }
         header.addView(avatar)
-        // (avatar chip stays light so the initial/photo reads clearly against the dark sheet)
 
         val textCol = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
@@ -373,7 +371,6 @@ class AdminUsersActivity : BaseActivity() {
 
         addRow("🧩", "View Skills") { viewSkills(user) }
         addRow("🔄", "Swap History") { viewSwapHistory(user) }
-        addRow("🔔", "Send Notification") { sendNotificationDialog(user) }
         addRow("🗑️", "Delete Account", sheetDestructive) { confirmDelete(user) }
 
         dialog.setContentView(root)
@@ -393,7 +390,6 @@ class AdminUsersActivity : BaseActivity() {
 
         val content = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
 
-        // Avatar + name + status badge, centered
         val avatarContainer = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             gravity = Gravity.CENTER
@@ -465,7 +461,6 @@ class AdminUsersActivity : BaseActivity() {
         )
         content.addView(dividerLine())
 
-        // Stats row: rating / swaps / credits
         val statsRow = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT)
@@ -818,116 +813,7 @@ class AdminUsersActivity : BaseActivity() {
         updateUserField(user, "isBlocked", !user.isBlocked, "Block status updated")
     }
 
-    private fun suspendTemporarily(user: User) {
-        val root = dialogCard()
-        root.addView(dialogTitle("Suspend Account"))
-        root.addView(TextView(this).apply {
-            text = "Temporarily suspend ${user.name.ifBlank { user.email }}? They won't be able to log in until reinstated."
-            setTextColor(Color.parseColor("#456882"))
-            textSize = 13f
-            setPadding(0, dp(10), 0, dp(18))
-        })
-
-        val dialog = AlertDialog.Builder(this).setView(root).create()
-        dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
-
-        val buttonRow = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
-        val btnCancel = pillButton("Cancel", Color.parseColor("#EAF1F5"), Color.parseColor("#456882")).apply {
-            setOnClickListener { dialog.dismiss() }
-        }
-        val btnSuspend = pillButton("Suspend", Color.parseColor("#F59E0B"), Color.WHITE).apply {
-            setOnClickListener {
-                dialog.dismiss()
-                updateUserField(user, "isBlocked", true, "${user.name.ifBlank { user.email }} suspended")
-            }
-        }
-        buttonRow.addView(btnCancel, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply { marginEnd = dp(8) })
-        buttonRow.addView(btnSuspend, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
-        root.addView(buttonRow)
-
-        dialog.show()
-    }
-
-    // ---------- Notifications ----------
-
-    private fun sendNotificationDialog(user: User) {
-        val root = dialogCard()
-        root.addView(dialogTitle("Notify ${user.name.ifBlank { user.email }}"))
-        root.addView(dividerLine())
-
-        val titleInput = styledInput("Notification title", "")
-        root.addView(
-            titleInput,
-            LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply {
-                topMargin = dp(12)
-            }
-        )
-
-        val messageInput = styledInput("Message", "", multiline = true)
-        root.addView(
-            messageInput,
-            LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply {
-                topMargin = dp(10)
-                bottomMargin = dp(18)
-            }
-        )
-
-        val dialog = AlertDialog.Builder(this).setView(root).create()
-        dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
-
-        val buttonRow = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
-        val btnCancel = pillButton("Cancel", Color.parseColor("#EAF1F5"), Color.parseColor("#456882")).apply {
-            setOnClickListener { dialog.dismiss() }
-        }
-        val btnSend = pillButton("Send", Color.parseColor("#1B3C53"), Color.WHITE).apply {
-            setOnClickListener {
-                val title = titleInput.text.toString().trim()
-                val message = messageInput.text.toString().trim()
-                if (title.isEmpty()) {
-                    Toast.makeText(this@AdminUsersActivity, "Title can't be empty", Toast.LENGTH_SHORT).show()
-                    return@setOnClickListener
-                }
-                if (message.isEmpty()) {
-                    Toast.makeText(this@AdminUsersActivity, "Message can't be empty", Toast.LENGTH_SHORT).show()
-                    return@setOnClickListener
-                }
-                dialog.dismiss()
-                sendPushNotification(user, title, message)
-            }
-        }
-        buttonRow.addView(btnCancel, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply { marginEnd = dp(8) })
-        buttonRow.addView(btnSend, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
-        root.addView(buttonRow)
-
-        dialog.show()
-    }
-
-    // FIX: signature now takes `title` as well — this must match the 3-arg
-// call above (user, title, message). If this still reads
-// `sendPushNotification(user: User, message: String)` anywhere in your
-// file, that's the mismatch causing the red underline.
-    private fun sendPushNotification(user: User, title: String, message: String) {
-        if (user.fcmToken.isBlank()) {
-            Toast.makeText(this, "User has no device token on file", Toast.LENGTH_SHORT).show()
-        }
-        val notification = hashMapOf(
-            "userId" to user.email,
-            "targetUid" to user.uid,
-            "title" to title,
-            "message" to message,
-            "timestamp" to System.currentTimeMillis(),
-            "sentByAdmin" to true
-        )
-        db.collection("notifications").add(notification)
-            .addOnSuccessListener {
-                Toast.makeText(this, "Notification sent", Toast.LENGTH_SHORT).show()
-            }
-            .addOnFailureListener { e ->
-                Toast.makeText(this, "Failed to send notification: ${e.message}", Toast.LENGTH_LONG).show()
-            }
-    }
-
-    // ---------- Delete account (cascading Firestore delete — no backend required) ----------
+    // ---------- Delete account (cascading Firestore delete) ----------
 
     private fun confirmDelete(user: User) {
         val root = dialogCard()
@@ -950,7 +836,7 @@ class AdminUsersActivity : BaseActivity() {
         })
         root.addView(TextView(this).apply {
             text = "Delete all Firestore data for ${user.name.ifBlank { user.email }} " +
-                    "(skills, trades, reports, notifications, ratings, videos)? " +
+                    "(skills, trades, reports, ratings, videos)? " +
                     "Cannot be undone. Auth record is unaffected."
             setTextColor(Color.parseColor("#456882"))
             textSize = 13f
@@ -1040,14 +926,6 @@ class AdminUsersActivity : BaseActivity() {
             }
         cleanupTasks.add(reportsFiled)
 
-        val notifications = db.collection("notifications").whereEqualTo("userId", email).get()
-            .continueWithTask { task ->
-                val batch = db.batch()
-                task.result?.documents?.forEach { doc -> batch.delete(doc.reference) }
-                batch.commit()
-            }
-        cleanupTasks.add(notifications)
-
         val ratingDelete = db.collection("ratings").document(uid).delete()
         cleanupTasks.add(ratingDelete)
 
@@ -1089,7 +967,7 @@ class AdminUsersActivity : BaseActivity() {
             }
     }
 
-    // ---------- Themed-dialog helpers (shared white rounded card + pill buttons, same as Trades page) ----------
+    // ---------- Themed-dialog helpers ----------
 
     private fun dp(value: Int): Int = (value * resources.displayMetrics.density).toInt()
 
@@ -1126,7 +1004,6 @@ class AdminUsersActivity : BaseActivity() {
         }
     }
 
-    /** Same as dividerLine() but tuned for the dark options bottom sheet. */
     private fun sheetDividerLine(): View {
         return View(this).apply {
             layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp(1))

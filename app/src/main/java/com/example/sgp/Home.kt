@@ -4,7 +4,10 @@ import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
 import android.graphics.Color
+import android.graphics.Typeface
+import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
+import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.Menu
 import android.view.MenuItem
@@ -121,12 +124,10 @@ class Home : BaseActivity(), NavigationView.OnNavigationItemSelectedListener {
             }
 
             override fun onDrawerOpened(drawerView: View) {
-                // Update UI when drawer opens
                 supportActionBar?.title = "Menu"
             }
 
             override fun onDrawerClosed(drawerView: View) {
-                // Update UI when drawer closes
                 supportActionBar?.title = "SkillSwap"
             }
 
@@ -390,14 +391,7 @@ class Home : BaseActivity(), NavigationView.OnNavigationItemSelectedListener {
 
     // ===================== Realtime "Recent swaps" (current user only) =====================
 
-    /**
-     * Sets up two realtime Firestore listeners scoped to [userId] — one for trades where
-     * this user is the requester, one where they're the receiver — since Firestore can't
-     * OR-query two different fields in a single query. Results are merged and re-rendered
-     * on every snapshot from either listener.
-     */
     private fun listenForRecentSwaps(userId: String) {
-        // Tear down any previous listeners (e.g. on user switch / re-login / onResume)
         requesterSwapsListener?.remove()
         receiverSwapsListener?.remove()
         requesterSwaps = emptyList()
@@ -460,7 +454,6 @@ class Home : BaseActivity(), NavigationView.OnNavigationItemSelectedListener {
         for (swap in swaps) {
             val card = inflater.inflate(R.layout.item_recent_swap, container, false)
 
-            // Show the *other* participant relative to the signed-in user
             val isCurrentUserRequester = swap.requesterId == currentUserIdForSwaps
             val otherName = if (isCurrentUserRequester) swap.receiverName else swap.requesterName
             val mySkill = if (isCurrentUserRequester) swap.requesterSkill else swap.receiverSkill
@@ -481,7 +474,6 @@ class Home : BaseActivity(), NavigationView.OnNavigationItemSelectedListener {
 
             container.addView(card)
 
-            // Small spacer between cards
             val spacer = View(this)
             spacer.layoutParams = LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT, 12
@@ -524,7 +516,6 @@ class Home : BaseActivity(), NavigationView.OnNavigationItemSelectedListener {
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
         menuInflater.inflate(R.menu.home_toolbar_menu, menu)
-        // Tint the toolbar's action icons cream so they read clearly on the navy background
         for (i in 0 until menu.size()) {
             menu.getItem(i)?.icon?.setTint(Color.parseColor(THEME_CREAM))
         }
@@ -545,23 +536,124 @@ class Home : BaseActivity(), NavigationView.OnNavigationItemSelectedListener {
         }
     }
 
+    // ===================== Themed Logout Confirmation Dialog =====================
+
     private fun performLogout() {
-        AlertDialog.Builder(this)
-            .setTitle(getString(R.string.logout_confirmation_title))
-            .setMessage(getString(R.string.logout_confirmation_message))
-            .setPositiveButton(getString(R.string.logout)) { _, _ ->
-                requesterSwapsListener?.remove()
-                receiverSwapsListener?.remove()
-                skillsCategoryListener?.remove()
-                FirebaseAuth.getInstance().signOut()
-                sharedPreferences.edit().clear().apply()
-                val intent = Intent(this, Login::class.java)
-                intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-                startActivity(intent)
-                finish()
+        val root = dialogCard()
+
+        root.addView(TextView(this).apply {
+            text = "👋"
+            textSize = 30f
+            gravity = Gravity.CENTER
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply { bottomMargin = dp(8) }
+        })
+
+        root.addView(TextView(this).apply {
+            text = getString(R.string.logout_confirmation_title)
+            setTextColor(Color.parseColor(THEME_DARK_NAVY))
+            textSize = 17f
+            setTypeface(typeface, Typeface.BOLD)
+            gravity = Gravity.CENTER
+        })
+
+        root.addView(TextView(this).apply {
+            text = getString(R.string.logout_confirmation_message)
+            setTextColor(Color.parseColor(THEME_STEEL_BLUE))
+            textSize = 13f
+            gravity = Gravity.CENTER
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply {
+                topMargin = dp(8)
+                bottomMargin = dp(18)
             }
-            .setNegativeButton(getString(R.string.cancel), null)
-            .show()
+        })
+
+        val dialog = AlertDialog.Builder(this).setView(root).create()
+        dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
+
+        val buttonRow = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+
+        val btnCancel = pillButton(
+            getString(R.string.cancel),
+            Color.parseColor(THEME_BACKGROUND),
+            Color.parseColor(THEME_STEEL_BLUE)
+        ).apply {
+            setOnClickListener { dialog.dismiss() }
+        }
+
+        val btnLogout = pillButton(
+            getString(R.string.logout),
+            Color.parseColor("#DC2626"),
+            Color.parseColor(THEME_CREAM)
+        ).apply {
+            setOnClickListener {
+                dialog.dismiss()
+                logoutUser()
+            }
+        }
+
+        buttonRow.addView(
+            btnCancel,
+            LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply {
+                marginEnd = dp(8)
+            }
+        )
+        buttonRow.addView(
+            btnLogout,
+            LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+        )
+        root.addView(buttonRow)
+
+        dialog.show()
+    }
+
+    private fun logoutUser() {
+        requesterSwapsListener?.remove()
+        receiverSwapsListener?.remove()
+        skillsCategoryListener?.remove()
+        FirebaseAuth.getInstance().signOut()
+        sharedPreferences.edit().clear().apply()
+
+        val intent = Intent(this, Login::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+        }
+        startActivity(intent)
+        finish()
+    }
+
+    private fun dp(value: Int): Int = (value * resources.displayMetrics.density).toInt()
+
+    private fun dialogCard(): LinearLayout {
+        return LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(20), dp(22), dp(20), dp(20))
+            background = GradientDrawable().apply {
+                cornerRadius = dp(20).toFloat()
+                setColor(Color.WHITE)
+            }
+        }
+    }
+
+    private fun pillButton(text: String, bgColor: Int, textColor: Int): TextView {
+        return TextView(this).apply {
+            this.text = text
+            setTextColor(textColor)
+            textSize = 14f
+            setTypeface(typeface, Typeface.BOLD)
+            gravity = Gravity.CENTER
+            setPadding(0, dp(12), 0, dp(12))
+            background = GradientDrawable().apply {
+                cornerRadius = dp(24).toFloat()
+                setColor(bgColor)
+            }
+            isClickable = true
+            isFocusable = true
+        }
     }
 
     private fun showMessage(message: String) {
