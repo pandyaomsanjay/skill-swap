@@ -1,10 +1,10 @@
 package com.example.sgp
 
 import android.os.Bundle
+import android.view.View
 import android.widget.RatingBar
 import android.widget.TextView
 import android.widget.Toast
-import androidx.appcompat.widget.Toolbar
 import com.google.android.material.button.MaterialButton
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FieldValue
@@ -25,10 +25,7 @@ class RateUsActivity : BaseActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_rate_us)
 
-        val toolbar = findViewById<Toolbar>(R.id.toolbar)
-        setSupportActionBar(toolbar)
-        supportActionBar?.setDisplayHomeAsUpEnabled(true)
-        supportActionBar?.setDisplayShowTitleEnabled(true)
+        findViewById<View>(R.id.btnBack)?.setOnClickListener { finish() }
 
         ratingBar = findViewById(R.id.ratingBar)
         tvRatingLabel = findViewById(R.id.tvRatingLabel)
@@ -89,13 +86,5 @@ class RateUsActivity : BaseActivity() {
                 hashMapOf("remindRatingLaterAt" to FieldValue.serverTimestamp()),
                 SetOptions.merge()
             )
-    }
-
-    override fun onOptionsItemSelected(item: android.view.MenuItem): Boolean {
-        if (item.itemId == android.R.id.home) {
-            finish()
-            return true
-        }
-        return super.onOptionsItemSelected(item)
     }
 }

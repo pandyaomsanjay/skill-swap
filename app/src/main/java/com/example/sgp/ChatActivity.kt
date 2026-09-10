@@ -1,14 +1,17 @@
 package com.example.sgp
 
+import android.graphics.Typeface
 import android.os.Bundle
 import android.text.TextUtils
 import android.util.Log
+import android.view.HapticFeedbackConstants
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageButton
 import android.widget.TextView
 import android.widget.Toast
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.widget.Toolbar
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
@@ -20,6 +23,7 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ListenerRegistration
+import com.google.firebase.firestore.MetadataChanges
 import com.google.firebase.firestore.Query
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.android.Android
@@ -32,15 +36,23 @@ import io.ktor.serialization.kotlinx.json.json
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+import java.text.SimpleDateFormat
+import java.util.Calendar
+import java.util.Date
+import java.util.Locale
+
+sealed class ChatListItem {
+    data class DateHeader(val label: String) : ChatListItem()
+    data class MessageItem(val message: ChatMessage) : ChatListItem()
+}
 
 class ChatActivity : BaseActivity() {
 
     companion object {
         private const val TAG = "ChatActivity"
-
-        // Your deployed Supabase Edge Function URL
         private const val NOTIFY_FUNCTION_URL =
             "https://ghrxltlstncjcizyyqfo.supabase.co/functions/v1/send-chat-notification"
+        private const val DELETE_FOR_EVERYONE_WINDOW_MS = 60 * 60 * 1000L // 1 hour
     }
 
     private lateinit var db: FirebaseFirestore
@@ -50,6 +62,7 @@ class ChatActivity : BaseActivity() {
     private lateinit var adapter: MessageAdapter
 
     private val messages = mutableListOf<ChatMessage>()
+    private val chatItems = mutableListOf<ChatListItem>()
     private var messagesListener: ListenerRegistration? = null
 
     private lateinit var conversationId: String
@@ -58,12 +71,8 @@ class ChatActivity : BaseActivity() {
     private var otherName: String = ""
     private var skillId: String? = null
     private var skillTitle: String? = null
-
-    // My display name pulled from the "users" collection (falls back to email until it loads / if missing)
     private var myDisplayName: String = ""
 
-    // Ktor client reused for the lifetime of this activity, used only to call
-    // our Supabase Edge Function that relays push notifications to OneSignal.
     private val httpClient by lazy {
         HttpClient(Android) {
             install(ContentNegotiation) {
@@ -92,7 +101,7 @@ class ChatActivity : BaseActivity() {
             return
         }
         myEmail = currentEmail
-        myDisplayName = myEmail // fallback until Firestore lookup finishes
+        myDisplayName = myEmail
 
         val other = intent.getStringExtra("otherUserEmail")
         if (other.isNullOrEmpty()) {
@@ -118,11 +127,8 @@ class ChatActivity : BaseActivity() {
         setSupportActionBar(toolbar)
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
         supportActionBar?.setDisplayShowTitleEnabled(false)
-
         toolbar.navigationIcon?.setTint(android.graphics.Color.WHITE)
 
-        // Apply status bar inset on top of the toolbar's existing padding, since
-        // BaseActivity now draws edge-to-edge.
         val toolbarBasePaddingTop = toolbar.paddingTop
         val toolbarBasePaddingBottom = toolbar.paddingBottom
         ViewCompat.setOnApplyWindowInsetsListener(toolbar) { v, insets ->
@@ -131,9 +137,6 @@ class ChatActivity : BaseActivity() {
             insets
         }
 
-        // Keyboard-covers-input fix: with edge-to-edge on, the system no longer
-        // auto-resizes the layout for the IME or the nav bar — push the whole
-        // screen up by whichever inset (keyboard or nav bar) is currently larger.
         val rootLayout = findViewById<View>(R.id.rootChatLayout)
         ViewCompat.setOnApplyWindowInsetsListener(rootLayout) { v, insets ->
             val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
@@ -156,7 +159,7 @@ class ChatActivity : BaseActivity() {
         val layoutManager = LinearLayoutManager(this)
         layoutManager.stackFromEnd = true
         recyclerView.layoutManager = layoutManager
-        adapter = MessageAdapter(messages, myEmail)
+        adapter = MessageAdapter(chatItems, myEmail) { message -> showMessageOptionsDialog(message) }
         recyclerView.adapter = adapter
 
         etMessage = findViewById(R.id.etMessage)
@@ -168,9 +171,6 @@ class ChatActivity : BaseActivity() {
         }
     }
 
-    // Listener is attached every time the screen becomes visible, and torn down
-    // the moment it's not — this is what guarantees it's always live while open,
-    // and never silently stale from a leftover onCreate-only registration.
     override fun onStart() {
         super.onStart()
         listenForMessages()
@@ -193,9 +193,6 @@ class ChatActivity : BaseActivity() {
         return super.onOptionsItemSelected(item)
     }
 
-    /**
-     * Looks up my real display name from the "users" collection (doc ID = auth uid).
-     */
     private fun loadMyDisplayName(onDone: () -> Unit) {
         val uid = FirebaseAuth.getInstance().currentUser?.uid
         if (uid.isNullOrEmpty()) {
@@ -211,19 +208,10 @@ class ChatActivity : BaseActivity() {
                 onDone()
             }
             .addOnFailureListener {
-                onDone() // keep the email fallback already set
+                onDone()
             }
     }
 
-    /**
-     * Creates the parent conversation doc if it doesn't exist yet, without clobbering existing data.
-     *
-     * IMPORTANT: participants must be stored in a consistent (sorted) order regardless of who
-     * opens the chat first — otherwise the Firestore rule's exact-array-equality check on update
-     * (`request.resource.data.participants == resource.data.participants`) fails for whichever
-     * person opens the chat second, since myEmail/otherEmail swap positions between the two users.
-     * That mismatch was causing "PERMISSION_DENIED: Missing or insufficient permissions" for the receiver.
-     */
     private fun ensureConversationExists() {
         val convoRef = db.collection("chats").document(conversationId)
         val sortedParticipants = listOf(myEmail, otherEmail).sorted()
@@ -240,31 +228,37 @@ class ChatActivity : BaseActivity() {
             }
     }
 
-    /** Clears the unread flag for me when I open this conversation. */
     private fun markAsRead() {
         db.collection("chats").document(conversationId)
             .update("unreadFor", FieldValue.arrayRemove(myEmail))
     }
 
     private fun listenForMessages() {
-        // Guard against double-attaching if onStart somehow fires twice without an onStop between
         messagesListener?.remove()
 
         messagesListener = db.collection("chats").document(conversationId)
             .collection("messages")
-            .orderBy("timestamp", Query.Direction.ASCENDING)
-            .addSnapshotListener { snapshot, error ->
+            .addSnapshotListener(MetadataChanges.INCLUDE) { snapshot, error ->
                 if (error != null) {
                     Toast.makeText(this, error.message, Toast.LENGTH_SHORT).show()
                     return@addSnapshotListener
                 }
-                messages.clear()
-                snapshot?.documents?.forEach { doc ->
-                    doc.toObject(ChatMessage::class.java)?.let { messages.add(it) }
-                }
-                adapter.notifyDataSetChanged()
-                if (messages.isNotEmpty()) {
-                    recyclerView.scrollToPosition(messages.size - 1)
+
+                if (snapshot != null) {
+                    val freshMessages = mutableListOf<ChatMessage>()
+                    for (doc in snapshot.documents) {
+                        doc.toObject(ChatMessage::class.java)?.let { freshMessages.add(it) }
+                    }
+
+                    // Replace list and sort completely by authoritative time
+                    messages.clear()
+                    messages.addAll(freshMessages)
+
+                    rebuildDisplayList()
+                    adapter.notifyDataSetChanged()
+                    if (chatItems.isNotEmpty()) {
+                        recyclerView.scrollToPosition(chatItems.size - 1)
+                    }
                 }
             }
     }
@@ -275,32 +269,45 @@ class ChatActivity : BaseActivity() {
 
         val messagesRef = db.collection("chats").document(conversationId).collection("messages")
         val docRef = messagesRef.document()
-        val message = ChatMessage(
+        val clientTimestamp = System.currentTimeMillis()
+
+        val optimisticMessage = ChatMessage(
             id = docRef.id,
             senderId = myEmail,
             senderName = myDisplayName,
             receiverId = otherEmail,
             text = text,
-            timestamp = System.currentTimeMillis()
+            timestamp = clientTimestamp,
+            serverTimestamp = null
         )
 
         etMessage.setText("")
 
-        // Optimistic UI: show the bubble instantly instead of waiting on the
-        // Firestore round trip. The listener's next snapshot will include this
-        // same message (same id) and cleanly rebuild the list, so there's no
-        // duplicate — this just removes the visible lag on the sender's screen.
-        messages.add(message)
-        adapter.notifyItemInserted(messages.size - 1)
-        recyclerView.scrollToPosition(messages.size - 1)
+        // Optimistic display insertion
+        messages.add(optimisticMessage)
+        rebuildDisplayList()
+        adapter.notifyDataSetChanged()
+        if (chatItems.isNotEmpty()) {
+            recyclerView.scrollToPosition(chatItems.size - 1)
+        }
 
-        docRef.set(message)
+        val messageData = hashMapOf(
+            "id" to docRef.id,
+            "senderId" to myEmail,
+            "senderName" to myDisplayName,
+            "receiverId" to otherEmail,
+            "text" to text,
+            "timestamp" to clientTimestamp,
+            "serverTimestamp" to FieldValue.serverTimestamp()
+        )
+
+        docRef.set(messageData)
             .addOnSuccessListener {
                 db.collection("chats").document(conversationId)
                     .set(
                         mapOf(
                             "lastMessage" to text,
-                            "lastTimestamp" to message.timestamp,
+                            "lastTimestamp" to clientTimestamp,
                             "lastSenderId" to myEmail,
                             "unreadFor" to listOf(otherEmail)
                         ),
@@ -309,21 +316,16 @@ class ChatActivity : BaseActivity() {
                 sendPushNotification(text)
             }
             .addOnFailureListener { e ->
-                // Roll back the optimistic bubble if the write genuinely failed
-                val idx = messages.indexOfFirst { it.id == message.id }
+                val idx = messages.indexOfFirst { it.id == optimisticMessage.id }
                 if (idx != -1) {
                     messages.removeAt(idx)
-                    adapter.notifyItemRemoved(idx)
+                    rebuildDisplayList()
+                    adapter.notifyDataSetChanged()
                 }
                 Toast.makeText(this, "Failed to send: ${e.message}", Toast.LENGTH_SHORT).show()
             }
     }
 
-    /**
-     * Calls our Supabase Edge Function, which relays a push notification to the
-     * recipient via OneSignal. Fire-and-forget: a failure here should never block
-     * or roll back the chat message itself, so we only log on error.
-     */
     private fun sendPushNotification(text: String) {
         lifecycleScope.launch {
             try {
@@ -346,16 +348,123 @@ class ChatActivity : BaseActivity() {
         }
     }
 
+    // ---------------- Ordering & Date Grouping ----------------
+
+    private fun effectiveMillis(message: ChatMessage): Long {
+        return message.serverTimestamp?.toDate()?.time ?: message.timestamp
+    }
+
+    private fun rebuildDisplayList() {
+        chatItems.clear()
+        var lastDateLabel: String? = null
+
+        // Sort messages strictly by effective time, falling back to client timestamp
+        val sortedList = messages
+            .filter { !it.deletedFor.contains(myEmail) }
+            .sortedWith(
+                compareBy<ChatMessage> { effectiveMillis(it) }
+                    .thenBy { it.timestamp }
+            )
+
+        sortedList.forEach { message ->
+            val label = dateLabelFor(effectiveMillis(message))
+            if (label != lastDateLabel) {
+                chatItems.add(ChatListItem.DateHeader(label))
+                lastDateLabel = label
+            }
+            chatItems.add(ChatListItem.MessageItem(message))
+        }
+    }
+
+    private fun dateLabelFor(timestamp: Long): String {
+        val messageCal = Calendar.getInstance().apply { timeInMillis = timestamp }
+        val todayCal = Calendar.getInstance()
+        val yesterdayCal = Calendar.getInstance().apply { add(Calendar.DAY_OF_YEAR, -1) }
+
+        fun isSameDay(a: Calendar, b: Calendar) =
+            a.get(Calendar.YEAR) == b.get(Calendar.YEAR) && a.get(Calendar.DAY_OF_YEAR) == b.get(Calendar.DAY_OF_YEAR)
+
+        return when {
+            isSameDay(messageCal, todayCal) -> "Today"
+            isSameDay(messageCal, yesterdayCal) -> "Yesterday"
+            else -> SimpleDateFormat("d MMMM yyyy", Locale.getDefault()).format(Date(timestamp))
+        }
+    }
+
+    // ---------------- Delete Message (WhatsApp-style) ----------------
+
+    private fun showMessageOptionsDialog(message: ChatMessage) {
+        if (message.deleted) return
+
+        val isMine = message.senderId == myEmail
+        val withinDeleteForEveryoneWindow =
+            System.currentTimeMillis() - effectiveMillis(message) <= DELETE_FOR_EVERYONE_WINDOW_MS
+
+        val options = mutableListOf("Delete for me")
+        if (isMine && withinDeleteForEveryoneWindow) {
+            options.add("Delete for everyone")
+        }
+
+        AlertDialog.Builder(this)
+            .setTitle("Delete message?")
+            .setItems(options.toTypedArray()) { _, which ->
+                when (options[which]) {
+                    "Delete for me" -> deleteForMe(message)
+                    "Delete for everyone" -> confirmDeleteForEveryone(message)
+                }
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
+    }
+
+    private fun confirmDeleteForEveryone(message: ChatMessage) {
+        AlertDialog.Builder(this)
+            .setTitle("Delete for everyone?")
+            .setMessage("This message will be deleted for everyone in this chat.")
+            .setPositiveButton("Delete") { _, _ -> deleteForEveryone(message) }
+            .setNegativeButton("Cancel", null)
+            .show()
+    }
+
+    private fun deleteForMe(message: ChatMessage) {
+        db.collection("chats").document(conversationId)
+            .collection("messages").document(message.id)
+            .update("deletedFor", FieldValue.arrayUnion(myEmail))
+            .addOnFailureListener { e ->
+                Toast.makeText(this, "Failed to delete: ${e.message}", Toast.LENGTH_SHORT).show()
+            }
+    }
+
+    private fun deleteForEveryone(message: ChatMessage) {
+        db.collection("chats").document(conversationId)
+            .collection("messages").document(message.id)
+            .update(
+                mapOf(
+                    "deleted" to true,
+                    "text" to "This message was deleted"
+                )
+            )
+            .addOnFailureListener { e ->
+                Toast.makeText(this, "Failed to delete: ${e.message}", Toast.LENGTH_SHORT).show()
+            }
+    }
+
     // ---------------- Adapter ----------------
 
     class MessageAdapter(
-        private val messages: List<ChatMessage>,
-        private val myEmail: String
+        private val items: List<ChatListItem>,
+        private val myEmail: String,
+        private val onMessageLongClick: (ChatMessage) -> Unit
     ) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
 
         companion object {
+            const val VIEW_TYPE_DATE_HEADER = 0
             const val VIEW_TYPE_SENT = 1
             const val VIEW_TYPE_RECEIVED = 2
+        }
+
+        inner class DateHeaderViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
+            val tvDateHeader: TextView = itemView.findViewById(R.id.tvDateHeader)
         }
 
         inner class SentViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
@@ -370,34 +479,64 @@ class ChatActivity : BaseActivity() {
         }
 
         override fun getItemViewType(position: Int): Int {
-            return if (messages[position].senderId == myEmail) VIEW_TYPE_SENT else VIEW_TYPE_RECEIVED
+            return when (val item = items[position]) {
+                is ChatListItem.DateHeader -> VIEW_TYPE_DATE_HEADER
+                is ChatListItem.MessageItem ->
+                    if (item.message.senderId == myEmail) VIEW_TYPE_SENT else VIEW_TYPE_RECEIVED
+            }
         }
 
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
             val inflater = LayoutInflater.from(parent.context)
-            return if (viewType == VIEW_TYPE_SENT) {
-                SentViewHolder(inflater.inflate(R.layout.item_message_sent, parent, false))
-            } else {
-                ReceivedViewHolder(inflater.inflate(R.layout.item_message_received, parent, false))
+            return when (viewType) {
+                VIEW_TYPE_DATE_HEADER ->
+                    DateHeaderViewHolder(inflater.inflate(R.layout.item_chat_date_header, parent, false))
+                VIEW_TYPE_SENT ->
+                    SentViewHolder(inflater.inflate(R.layout.item_message_sent, parent, false))
+                else ->
+                    ReceivedViewHolder(inflater.inflate(R.layout.item_message_received, parent, false))
             }
         }
 
         override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
-            val message = messages[position]
-            val timeStr = android.text.format.DateFormat.format("h:mm a", message.timestamp).toString()
-            when (holder) {
-                is SentViewHolder -> {
-                    holder.tvText.text = message.text
-                    holder.tvTime.text = timeStr
+            when (val item = items[position]) {
+                is ChatListItem.DateHeader -> {
+                    (holder as DateHeaderViewHolder).tvDateHeader.text = item.label
                 }
-                is ReceivedViewHolder -> {
-                    holder.tvText.text = message.text
-                    holder.tvTime.text = timeStr
-                    holder.tvSender.text = message.senderName
+                is ChatListItem.MessageItem -> {
+                    val message = item.message
+                    val displayTimestamp = message.serverTimestamp?.toDate()?.time ?: message.timestamp
+                    val timeStr = android.text.format.DateFormat.format("h:mm a", displayTimestamp).toString()
+                    val displayText = if (message.deleted) "This message was deleted" else message.text
+                    val style = if (message.deleted) Typeface.ITALIC else Typeface.NORMAL
+
+                    val longClickListener = View.OnLongClickListener {
+                        if (!message.deleted) {
+                            it.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+                            onMessageLongClick(message)
+                        }
+                        true
+                    }
+
+                    when (holder) {
+                        is SentViewHolder -> {
+                            holder.tvText.text = displayText
+                            holder.tvText.setTypeface(holder.tvText.typeface, style)
+                            holder.tvTime.text = timeStr
+                            holder.itemView.setOnLongClickListener(longClickListener)
+                        }
+                        is ReceivedViewHolder -> {
+                            holder.tvText.text = displayText
+                            holder.tvText.setTypeface(holder.tvText.typeface, style)
+                            holder.tvTime.text = timeStr
+                            holder.tvSender.text = message.senderName
+                            holder.itemView.setOnLongClickListener(longClickListener)
+                        }
+                    }
                 }
             }
         }
 
-        override fun getItemCount() = messages.size
+        override fun getItemCount() = items.size
     }
 }

@@ -1,17 +1,10 @@
 package com.example.sgp
 
-import android.content.Intent
-import android.graphics.Color
-import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
 import android.view.MotionEvent
 import android.widget.Button
-import android.widget.ImageButton
-import android.widget.ImageView
-import android.widget.LinearLayout
-import android.widget.TextView
 import android.widget.Toast
-import androidx.appcompat.app.AppCompatActivity
+import com.google.android.material.card.MaterialCardView
 import com.google.android.material.textfield.TextInputLayout
 import com.google.firebase.Firebase
 import com.google.firebase.firestore.FirebaseFirestore
@@ -21,17 +14,11 @@ class EditProfileActivity : BaseActivity() {
 
     private lateinit var db: FirebaseFirestore
 
-    private val navyDark = Color.parseColor("#1B3C53")
-    private val navyMed = Color.parseColor("#456882")
-    private val cream = Color.parseColor("#F9F3EF")
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_edit_profile)
 
         db = Firebase.firestore
-
-        styleHeader()
 
         var currentUserEmail = intent.getStringExtra("email")
         if (currentUserEmail.isNullOrEmpty()) {
@@ -48,32 +35,8 @@ class EditProfileActivity : BaseActivity() {
         initializeViews(currentUserEmail)
     }
 
-    /**
-     * Paints the header navy with rounded-bottom corners (matching Profile's
-     * header card) and gives the pencil icon its own soft translucent circle,
-     * both done in code so no new shape/drawable resources are needed beyond
-     * the vector icon itself.
-     */
-    private fun styleHeader() {
-        val header = findViewById<LinearLayout>(R.id.headerCard)
-        header.background = GradientDrawable().apply {
-            setColor(navyDark)
-            cornerRadii = floatArrayOf(0f, 0f, 0f, 0f, dp(28).toFloat(), dp(28).toFloat(), dp(28).toFloat(), dp(28).toFloat())
-        }
-        header.elevation = dp(4).toFloat()
-
-        val icon = findViewById<ImageView>(R.id.ivEditIcon)
-        icon.background = GradientDrawable().apply {
-            shape = GradientDrawable.OVAL
-            setColor(Color.parseColor("#22FFFFFF"))
-            setStroke(dp(1), Color.parseColor("#40FFFFFF"))
-        }
-    }
-
-    private fun dp(value: Int): Int = (value * resources.displayMetrics.density).toInt()
-
     private fun initializeViews(email: String) {
-        val btnBack = findViewById<ImageButton>(R.id.btnBack)
+        val btnBack = findViewById<MaterialCardView>(R.id.btnBack)
         val btnSave = findViewById<Button>(R.id.btnSave)
 
         val nameInput = findViewById<TextInputLayout>(R.id.name)

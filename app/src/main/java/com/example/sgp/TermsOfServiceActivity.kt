@@ -1,11 +1,11 @@
 package com.example.sgp
 
 import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
+import android.view.View
 import android.widget.Button
 import android.widget.TextView
-import androidx.appcompat.widget.Toolbar
-import androidx.core.content.ContextCompat
 
 class TermsOfServiceActivity : BaseActivity() {
 
@@ -13,21 +13,25 @@ class TermsOfServiceActivity : BaseActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_terms_of_service)
 
-        val toolbar = findViewById<Toolbar>(R.id.toolbar)
-        setSupportActionBar(toolbar)
-        supportActionBar?.setDisplayHomeAsUpEnabled(true)
-        supportActionBar?.setDisplayShowTitleEnabled(true)
-
-        // Update toolbar title color
-        toolbar.setTitleTextColor(ContextCompat.getColor(this, R.color.text_inverse))
+        findViewById<View>(R.id.btnBack)?.setOnClickListener {
+            setResult(RESULT_CANCELED)
+            finish()
+        }
 
         findViewById<TextView>(R.id.tvLastUpdated).text = "Last updated: ${getCurrentDate()}"
         findViewById<TextView>(R.id.tvTermsContent).text = buildTermsText()
 
+        findViewById<View>(R.id.layoutEmailSupport).setOnClickListener {
+            val intent = Intent(Intent.ACTION_SENDTO).apply {
+                data = Uri.parse("mailto:skillswap23@gmail.com")
+                putExtra(Intent.EXTRA_SUBJECT, "SkillSwap Terms Question")
+            }
+            startActivity(Intent.createChooser(intent, "Contact Support"))
+        }
+
         // Accept button - go back to Create Account with terms accepted
         val btnAccept = findViewById<Button>(R.id.btnAccept)
         btnAccept.setOnClickListener {
-            // Set result to indicate terms were accepted
             val intent = Intent()
             intent.putExtra("terms_accepted", true)
             setResult(RESULT_OK, intent)
@@ -59,14 +63,5 @@ class TermsOfServiceActivity : BaseActivity() {
     private fun getCurrentDate(): String {
         val dateFormat = java.text.SimpleDateFormat("MMMM dd, yyyy", java.util.Locale.getDefault())
         return dateFormat.format(java.util.Date())
-    }
-
-    override fun onOptionsItemSelected(item: android.view.MenuItem): Boolean {
-        if (item.itemId == android.R.id.home) {
-            setResult(RESULT_CANCELED)
-            finish()
-            return true
-        }
-        return super.onOptionsItemSelected(item)
     }
 }

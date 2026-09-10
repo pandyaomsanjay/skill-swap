@@ -1,8 +1,9 @@
 package com.example.sgp
 
 import android.os.Bundle
+import android.view.View
 import android.widget.TextView
-import androidx.appcompat.widget.Toolbar
+import com.google.android.material.card.MaterialCardView
 
 class PrivacyPolicyActivity : BaseActivity() {
 
@@ -10,10 +11,7 @@ class PrivacyPolicyActivity : BaseActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_privacy_policy)
 
-        val toolbar = findViewById<Toolbar>(R.id.toolbar)
-        setSupportActionBar(toolbar)
-        supportActionBar?.setDisplayHomeAsUpEnabled(true)
-        supportActionBar?.setDisplayShowTitleEnabled(true)
+        findViewById<MaterialCardView>(R.id.btnBack)?.setOnClickListener { finish() }
 
         findViewById<TextView>(R.id.tvLastUpdated).text = "Last updated: ${getCurrentDate()}"
         findViewById<TextView>(R.id.tvPrivacyContent).text = buildPrivacyPolicyText()
@@ -46,13 +44,5 @@ class PrivacyPolicyActivity : BaseActivity() {
     private fun getCurrentDate(): String {
         val dateFormat = java.text.SimpleDateFormat("MMMM dd, yyyy", java.util.Locale.getDefault())
         return dateFormat.format(java.util.Date())
-    }
-
-    override fun onOptionsItemSelected(item: android.view.MenuItem): Boolean {
-        if (item.itemId == android.R.id.home) {
-            finish()
-            return true
-        }
-        return super.onOptionsItemSelected(item)
     }
 }

@@ -23,6 +23,7 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.drawerlayout.widget.DrawerLayout
+import androidx.lifecycle.lifecycleScope
 import com.bumptech.glide.Glide
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.navigation.NavigationView
@@ -31,6 +32,8 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ListenerRegistration
 import com.google.firebase.firestore.Query
+import com.onesignal.OneSignal
+import kotlinx.coroutines.launch
 
 class Home : BaseActivity(), NavigationView.OnNavigationItemSelectedListener {
 
@@ -40,12 +43,10 @@ class Home : BaseActivity(), NavigationView.OnNavigationItemSelectedListener {
     private lateinit var ivProfilePicture: ImageView
     private val db: FirebaseFirestore by lazy { FirebaseFirestore.getInstance() }
 
-    // Realtime listeners for the current user's swaps — must be removed in onDestroy
     private var requesterSwapsListener: ListenerRegistration? = null
     private var receiverSwapsListener: ListenerRegistration? = null
     private var skillsCategoryListener: ListenerRegistration? = null
 
-    // Buffers so we can merge both queries (Firestore can't OR two different fields)
     private var requesterSwaps: List<Trade> = emptyList()
     private var receiverSwaps: List<Trade> = emptyList()
     private var currentUserIdForSwaps: String = ""
@@ -65,7 +66,6 @@ class Home : BaseActivity(), NavigationView.OnNavigationItemSelectedListener {
         const val KEY_USER_TOTAL_SKILLS = "user_total_skills"
         const val KEY_USER_PROFILE_IMAGE = "user_profile_image"
 
-        // Theme palette — matches AdminSkillsActivity / the rest of the admin screens
         private const val THEME_DARK_NAVY = "#1B3C53"
         private const val THEME_STEEL_BLUE = "#456882"
         private const val THEME_CREAM = "#F9F3EF"
@@ -89,14 +89,12 @@ class Home : BaseActivity(), NavigationView.OnNavigationItemSelectedListener {
         setSupportActionBar(toolbar)
         supportActionBar?.setDisplayShowTitleEnabled(false)
 
-        // Better padding for status bar
         ViewCompat.setOnApplyWindowInsetsListener(toolbar) { view, insets ->
             val statusBarInsets = insets.getInsets(WindowInsetsCompat.Type.statusBars())
             view.setPadding(view.paddingLeft, statusBarInsets.top, view.paddingRight, view.paddingBottom)
             insets
         }
 
-        // Custom toggle with better styling and animation support
         val toggle = ActionBarDrawerToggle(
             this,
             drawerLayout,
@@ -107,14 +105,11 @@ class Home : BaseActivity(), NavigationView.OnNavigationItemSelectedListener {
         drawerLayout.addDrawerListener(toggle)
         toggle.syncState()
 
-        // Make the hamburger icon cream-colored on the navy toolbar
         toggle.drawerArrowDrawable.color = Color.parseColor(THEME_CREAM)
         toggle.drawerArrowDrawable.setColorFilter(Color.parseColor(THEME_CREAM), android.graphics.PorterDuff.Mode.SRC_ATOP)
 
-        // Step 6: Add drawer listener for animations and effects (Option 3)
         drawerLayout.addDrawerListener(object : DrawerLayout.DrawerListener {
             override fun onDrawerSlide(drawerView: View, slideOffset: Float) {
-                // Get the main content view (the LinearLayout inside DrawerLayout)
                 val contentView = drawerLayout.getChildAt(0)
                 contentView?.apply {
                     translationX = drawerView.width * slideOffset * 0.3f
@@ -131,9 +126,7 @@ class Home : BaseActivity(), NavigationView.OnNavigationItemSelectedListener {
                 supportActionBar?.title = "SkillSwap"
             }
 
-            override fun onDrawerStateChanged(newState: Int) {
-                // Handle state changes if needed
-            }
+            override fun onDrawerStateChanged(newState: Int) { }
         })
 
         navigationView.setNavigationItemSelectedListener(this)
@@ -150,8 +143,30 @@ class Home : BaseActivity(), NavigationView.OnNavigationItemSelectedListener {
         BottomNavHelper.setup(this, BottomNavItem.HOME)
     }
 
-    /** Extends the navy toolbar behind the status bar so its color is always correct,
-     *  regardless of whether the OS honors window.statusBarColor (ignored on API 35+ edge-to-edge). */
+    override fun onStart() {
+        super.onStart()
+        // Ensure OneSignal stays subscribed for users who were auto-logged in
+        syncOneSignalPushSubscription()
+    }
+
+    private fun syncOneSignalPushSubscription() {
+        val userEmail = sharedPreferences.getString(KEY_USER_EMAIL, null)
+            ?: FirebaseAuth.getInstance().currentUser?.email
+
+        if (!userEmail.isNullOrEmpty() && userEmail != "user@example.com") {
+            // 1. Link active email to OneSignal
+            OneSignal.login(userEmail)
+
+            // 2. Clear unsubscribed state
+            OneSignal.User.pushSubscription.optIn()
+
+            // 3. Prompt Android 13+ permission dialog if not yet granted
+            lifecycleScope.launch {
+                OneSignal.Notifications.requestPermission(true)
+            }
+        }
+    }
+
     private fun applyThemeSystemBars() {
         WindowCompat.setDecorFitsSystemWindows(window, false)
 
@@ -164,7 +179,6 @@ class Home : BaseActivity(), NavigationView.OnNavigationItemSelectedListener {
     }
 
     private fun setupQuickActions() {
-        // Material Buttons
         findViewById<MaterialButton>(R.id.btnNearby).setOnClickListener {
             showMessage("Show nearby skills")
         }
@@ -173,7 +187,6 @@ class Home : BaseActivity(), NavigationView.OnNavigationItemSelectedListener {
             showMessage("Open filters")
         }
 
-        // Quick action cards
         findViewById<LinearLayout>(R.id.cardFindSkills).setOnClickListener {
             startActivity(Intent(this, ExploreActivity::class.java))
         }
@@ -186,7 +199,6 @@ class Home : BaseActivity(), NavigationView.OnNavigationItemSelectedListener {
             startActivity(Intent(this, CreateTradeActivity::class.java))
         }
 
-        // TextViews
         findViewById<TextView>(R.id.tvSeeAll).setOnClickListener {
             startActivity(Intent(this, ExploreActivity::class.java))
         }
@@ -236,7 +248,6 @@ class Home : BaseActivity(), NavigationView.OnNavigationItemSelectedListener {
 
             container.addView(card)
 
-            // Spacing between cards (skip after the last one)
             if (index != skillCategories.lastIndex) {
                 val spacer = View(this)
                 spacer.layoutParams = LinearLayout.LayoutParams(12, LinearLayout.LayoutParams.MATCH_PARENT)
@@ -389,8 +400,6 @@ class Home : BaseActivity(), NavigationView.OnNavigationItemSelectedListener {
         greetingTextView.text = greeting
     }
 
-    // ===================== Realtime "Recent swaps" (current user only) =====================
-
     private fun listenForRecentSwaps(userId: String) {
         requesterSwapsListener?.remove()
         receiverSwapsListener?.remove()
@@ -494,8 +503,6 @@ class Home : BaseActivity(), NavigationView.OnNavigationItemSelectedListener {
         }
     }
 
-    // ===================== Nav drawer / menu / logout =====================
-
     override fun onNavigationItemSelected(item: MenuItem): Boolean {
         when (item.itemId) {
             R.id.nav_home -> { }
@@ -507,7 +514,7 @@ class Home : BaseActivity(), NavigationView.OnNavigationItemSelectedListener {
             R.id.nav_history -> showMessage("History")
             R.id.nav_settings -> startActivity(Intent(this, SettingsActivity::class.java))
             R.id.nav_help -> startActivity(Intent(this, HelpSupportActivity::class.java))
-            R.id.nav_about -> showMessage("About")
+            R.id.nav_about -> startActivity(Intent(this, AboutActivity::class.java))   // ← changed
             R.id.nav_logout -> performLogout()
         }
         drawerLayout.closeDrawer(GravityCompat.START)
@@ -516,6 +523,10 @@ class Home : BaseActivity(), NavigationView.OnNavigationItemSelectedListener {
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
         menuInflater.inflate(R.menu.home_toolbar_menu, menu)
+
+        // Remove the notification action completely from the toolbar.
+        menu.removeItem(R.id.action_notifications)
+
         for (i in 0 until menu.size()) {
             menu.getItem(i)?.icon?.setTint(Color.parseColor(THEME_CREAM))
         }
@@ -524,10 +535,6 @@ class Home : BaseActivity(), NavigationView.OnNavigationItemSelectedListener {
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         return when (item.itemId) {
-            R.id.action_notifications -> {
-                startActivity(Intent(this, NotificationsActivity::class.java))
-                true
-            }
             R.id.action_search -> {
                 showMessage("Search")
                 true
@@ -535,8 +542,6 @@ class Home : BaseActivity(), NavigationView.OnNavigationItemSelectedListener {
             else -> super.onOptionsItemSelected(item)
         }
     }
-
-    // ===================== Themed Logout Confirmation Dialog =====================
 
     private fun performLogout() {
         val root = dialogCard()
@@ -616,6 +621,10 @@ class Home : BaseActivity(), NavigationView.OnNavigationItemSelectedListener {
         requesterSwapsListener?.remove()
         receiverSwapsListener?.remove()
         skillsCategoryListener?.remove()
+
+        // Unlink device from OneSignal so subsequent messages for this user are not pushed to this device
+        OneSignal.logout()
+
         FirebaseAuth.getInstance().signOut()
         sharedPreferences.edit().clear().apply()
 

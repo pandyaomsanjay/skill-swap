@@ -1,154 +1,351 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
     android:fitsSystemWindows="true"
-    android:background="@color/background">
+    android:background="#EAF1F5"
+    tools:context=".CreateTradeActivity">
 
-    <com.google.android.material.appbar.MaterialToolbar
-        android:id="@+id/toolbar"
+    <!-- ===================== Header ===================== -->
+    <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="?attr/actionBarSize"
-        android:background="@color/primary"
-        app:title="Propose Trade"
-        app:titleTextColor="@color/text_white"
-        app:navigationIcon="@drawable/outline_arrow_back_24" />
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:background="#1B3C53"
+        android:paddingStart="20dp"
+        android:paddingEnd="20dp"
+        android:paddingTop="22dp"
+        android:paddingBottom="22dp">
 
-    <ScrollView
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/btnBack"
+            android:layout_width="44dp"
+            android:layout_height="44dp"
+            app:cardCornerRadius="14dp"
+            app:cardElevation="0dp"
+            app:strokeWidth="1dp"
+            app:strokeColor="#456882"
+            app:cardBackgroundColor="#456882"
+            android:clickable="true"
+            android:focusable="true"
+            android:foreground="?attr/selectableItemBackground">
+
+            <ImageView
+                android:layout_width="20dp"
+                android:layout_height="20dp"
+                android:layout_gravity="center"
+                android:src="@drawable/outline_arrow_back_24"
+                app:tint="#F9F3EF"
+                android:contentDescription="@null"/>
+        </com.google.android.material.card.MaterialCardView>
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="16dp"
+            android:text="Propose Trade"
+            android:textColor="#F9F3EF"
+            android:textSize="19sp"
+            android:fontFamily="sans-serif-medium"
+            android:textStyle="bold"
+            android:letterSpacing="0.01"/>
+
+    </LinearLayout>
+
+    <androidx.core.widget.NestedScrollView
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:padding="@dimen/spacing_lg"
-        android:fillViewport="true">
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:clipToPadding="false"
+        android:overScrollMode="never"
+        android:scrollbars="none"
+        android:fillViewport="true"
+        android:paddingHorizontal="20dp"
+        android:paddingTop="20dp"
+        android:paddingBottom="24dp">
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical">
 
-            <!-- Info Card -->
-            <androidx.cardview.widget.CardView
+            <!-- Intro card -->
+            <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="@dimen/spacing_xl"
-                app:cardCornerRadius="@dimen/radius_lg"
-                app:cardBackgroundColor="@color/primary_soft"
-                app:cardElevation="0dp">
+                android:layout_marginBottom="24dp"
+                app:cardCornerRadius="22dp"
+                app:cardElevation="0dp"
+                app:strokeWidth="1dp"
+                app:strokeColor="#D2C1B6"
+                app:cardBackgroundColor="#FFFFFF">
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="horizontal"
-                    android:padding="@dimen/spacing_lg"
-                    android:gravity="center_vertical">
+                    android:gravity="center_vertical"
+                    android:padding="16dp">
 
-                    <ImageView
-                        android:layout_width="@dimen/icon_size_md"
-                        android:layout_height="@dimen/icon_size_md"
-                        android:src="@drawable/outline_handshake_24"
-                        android:hint="@color/primary" />
+                    <com.google.android.material.card.MaterialCardView
+                        android:layout_width="48dp"
+                        android:layout_height="48dp"
+                        app:cardCornerRadius="16dp"
+                        app:cardElevation="0dp"
+                        app:cardBackgroundColor="#EAE1DA">
 
-                    <TextView
+                        <ImageView
+                            android:layout_width="24dp"
+                            android:layout_height="24dp"
+                            android:layout_gravity="center"
+                            android:src="@drawable/outline_handshake_24"
+                            app:tint="#1B3C53"
+                            android:contentDescription="@null"/>
+                    </com.google.android.material.card.MaterialCardView>
+
+                    <LinearLayout
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
-                        android:layout_marginStart="@dimen/spacing_md"
-                        android:text="Find a trading partner and propose a skill exchange"
-                        android:textColor="@color/primary_dark"
-                        android:textSize="@dimen/text_body_medium" />
+                        android:layout_marginStart="16dp"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Find a trading partner"
+                            android:textColor="#1B3C53"
+                            android:textSize="16sp"
+                            android:fontFamily="sans-serif-medium"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="2dp"
+                            android:text="Propose a fair skill exchange in a few steps."
+                            android:textColor="#456882"
+                            android:textSize="12sp" />
+                    </LinearLayout>
+
                 </LinearLayout>
-            </androidx.cardview.widget.CardView>
+            </com.google.android.material.card.MaterialCardView>
 
-            <!-- Your Skill -->
-            <com.google.android.material.textfield.TextInputLayout
-                android:id="@+id/yourSkillLayout"
-                style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+            <!-- SECTION: Trade details -->
+            <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="@dimen/spacing_lg"
-                android:hint="Your Skill (what you offer)"
-                app:startIconDrawable="@drawable/outline_school_24"
-                app:startIconTint="@color/primary">
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:layout_marginBottom="14dp">
 
-                <com.google.android.material.textfield.TextInputEditText
-                    android:id="@+id/etYourSkill"
-                    android:layout_width="match_parent"
+                <View
+                    android:layout_width="4dp"
+                    android:layout_height="16dp"
+                    android:background="#1B3C53"
+                    android:layout_marginEnd="8dp"/>
+
+                <TextView
+                    android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:textSize="@dimen/text_body_large" />
-            </com.google.android.material.textfield.TextInputLayout>
+                    android:text="Trade details"
+                    android:textColor="#1B3C53"
+                    android:textSize="14.5sp"
+                    android:fontFamily="sans-serif-medium"
+                    android:textStyle="bold" />
+            </LinearLayout>
 
-            <!-- Partner's Email -->
-            <com.google.android.material.textfield.TextInputLayout
-                android:id="@+id/partnerEmailLayout"
-                style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+            <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="@dimen/spacing_lg"
-                android:hint="Partner's Email"
-                app:startIconDrawable="@drawable/outline_mail_24"
-                app:startIconTint="@color/primary"
-                app:endIconMode="clear_text">
+                android:layout_marginBottom="16dp"
+                app:cardCornerRadius="22dp"
+                app:cardElevation="0dp"
+                app:strokeWidth="1dp"
+                app:strokeColor="#D2C1B6"
+                app:cardBackgroundColor="#FFFFFF">
 
-                <com.google.android.material.textfield.TextInputEditText
-                    android:id="@+id/etPartnerEmail"
+                <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:inputType="textEmailAddress"
-                    android:textSize="@dimen/text_body_large" />
-            </com.google.android.material.textfield.TextInputLayout>
+                    android:orientation="vertical"
+                    android:padding="18dp">
 
-            <!-- Partner's Skill -->
-            <com.google.android.material.textfield.TextInputLayout
-                android:id="@+id/partnerSkillLayout"
-                style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginBottom="@dimen/spacing_xl"
-                android:hint="Partner's Skill (what you want)"
-                app:startIconDrawable="@drawable/outline_psychology_24"
-                app:startIconTint="@color/primary">
+                    <!-- Your skill -->
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Your skill (what you offer)"
+                        android:textColor="#1B3C53"
+                        android:textSize="13.5sp"
+                        android:fontFamily="sans-serif-medium"
+                        android:textStyle="bold"
+                        android:layout_marginBottom="6dp" />
 
-                <com.google.android.material.textfield.TextInputEditText
-                    android:id="@+id/etPartnerSkill"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:textSize="@dimen/text_body_large" />
-            </com.google.android.material.textfield.TextInputLayout>
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:id="@+id/yourSkillLayout"
+                        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="16dp"
+                        app:boxCornerRadiusTopStart="14dp"
+                        app:boxCornerRadiusTopEnd="14dp"
+                        app:boxCornerRadiusBottomStart="14dp"
+                        app:boxCornerRadiusBottomEnd="14dp"
+                        app:boxStrokeColor="#1B3C53"
+                        app:hintTextColor="#456882"
+                        app:startIconDrawable="@drawable/outline_school_24"
+                        app:startIconTint="#456882">
 
-            <!-- Message (Optional) -->
-            <com.google.android.material.textfield.TextInputLayout
-                android:id="@+id/messageLayout"
-                style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginBottom="@dimen/spacing_xl"
-                android:hint="Add a message (optional)"
-                app:startIconDrawable="@drawable/baseline_message_24"
-                app:startIconTint="@color/primary">
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/etYourSkill"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:textColor="#1B3C53"
+                            android:hint="Select a skill"
+                            android:inputType="none"
+                            android:focusable="false"
+                            android:clickable="true"
+                            android:cursorVisible="false"
+                            android:maxLines="1" />
+                    </com.google.android.material.textfield.TextInputLayout>
 
-                <com.google.android.material.textfield.TextInputEditText
-                    android:id="@+id/etMessage"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:minLines="3"
-                    android:inputType="textMultiLine"
-                    android:textSize="@dimen/text_body_large" />
-            </com.google.android.material.textfield.TextInputLayout>
+                    <!-- Partner email -->
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Partner's email"
+                        android:textColor="#1B3C53"
+                        android:textSize="13.5sp"
+                        android:fontFamily="sans-serif-medium"
+                        android:textStyle="bold"
+                        android:layout_marginBottom="6dp" />
 
-            <!-- Propose Button -->
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnPropose"
-                android:layout_width="match_parent"
-                android:layout_height="@dimen/button_height"
-                android:text="Propose Trade"
-                android:textAllCaps="false"
-                android:textColor="@color/text_white"
-                android:textSize="@dimen/text_body_large"
-                android:textStyle="bold"
-                app:cornerRadius="@dimen/radius_lg"
-                app:backgroundTint="@color/primary"
-                android:layout_marginBottom="@dimen/spacing_xl" />
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:id="@+id/partnerEmailLayout"
+                        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="16dp"
+                        app:boxCornerRadiusTopStart="14dp"
+                        app:boxCornerRadiusTopEnd="14dp"
+                        app:boxCornerRadiusBottomStart="14dp"
+                        app:boxCornerRadiusBottomEnd="14dp"
+                        app:boxStrokeColor="#1B3C53"
+                        app:hintTextColor="#456882"
+                        app:startIconDrawable="@drawable/outline_mail_24"
+                        app:startIconTint="#456882"
+                        app:endIconMode="clear_text">
+
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/etPartnerEmail"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:textColor="#1B3C53"
+                            android:hint="name@example.com"
+                            android:inputType="textEmailAddress"
+                            android:maxLines="1" />
+                    </com.google.android.material.textfield.TextInputLayout>
+
+                    <!-- Partner skill -->
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Partner's skill (what you want)"
+                        android:textColor="#1B3C53"
+                        android:textSize="13.5sp"
+                        android:fontFamily="sans-serif-medium"
+                        android:textStyle="bold"
+                        android:layout_marginBottom="6dp" />
+
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:id="@+id/partnerSkillLayout"
+                        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="16dp"
+                        app:boxCornerRadiusTopStart="14dp"
+                        app:boxCornerRadiusTopEnd="14dp"
+                        app:boxCornerRadiusBottomStart="14dp"
+                        app:boxCornerRadiusBottomEnd="14dp"
+                        app:boxStrokeColor="#1B3C53"
+                        app:hintTextColor="#456882"
+                        app:startIconDrawable="@drawable/outline_psychology_24"
+                        app:startIconTint="#456882">
+
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/etPartnerSkill"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:textColor="#1B3C53"
+                            android:hint="Select a skill"
+                            android:inputType="none"
+                            android:focusable="false"
+                            android:clickable="true"
+                            android:cursorVisible="false"
+                            android:maxLines="1" />
+                    </com.google.android.material.textfield.TextInputLayout>
+
+                    <!-- Message -->
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Message (optional)"
+                        android:textColor="#1B3C53"
+                        android:textSize="13.5sp"
+                        android:fontFamily="sans-serif-medium"
+                        android:textStyle="bold"
+                        android:layout_marginBottom="6dp" />
+
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:id="@+id/messageLayout"
+                        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="22dp"
+                        app:boxCornerRadiusTopStart="14dp"
+                        app:boxCornerRadiusTopEnd="14dp"
+                        app:boxCornerRadiusBottomStart="14dp"
+                        app:boxCornerRadiusBottomEnd="14dp"
+                        app:boxStrokeColor="#1B3C53"
+                        app:hintTextColor="#456882">
+
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/etMessage"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:textColor="#1B3C53"
+                            android:hint="Add a note for your partner…"
+                            android:inputType="textMultiLine"
+                            android:minLines="4"
+                            android:gravity="top" />
+                    </com.google.android.material.textfield.TextInputLayout>
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnPropose"
+                        android:layout_width="match_parent"
+                        android:layout_height="56dp"
+                        android:text="Propose Trade"
+                        android:textAllCaps="false"
+                        android:textColor="#F9F3EF"
+                        android:textSize="16sp"
+                        android:fontFamily="sans-serif-medium"
+                        app:cornerRadius="16dp"
+                        app:backgroundTint="#1B3C53"
+                        app:elevation="0dp"
+                        app:rippleColor="#456882" />
+
+                </LinearLayout>
+
+            </com.google.android.material.card.MaterialCardView>
+
         </LinearLayout>
-    </ScrollView>
+
+    </androidx.core.widget.NestedScrollView>
+
 </LinearLayout>

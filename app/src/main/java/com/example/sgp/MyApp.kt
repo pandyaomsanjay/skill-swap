@@ -5,6 +5,8 @@ import android.content.Context
 import androidx.appcompat.app.AppCompatDelegate
 import com.onesignal.OneSignal
 import com.onesignal.debug.LogLevel
+import com.onesignal.notifications.INotificationLifecycleListener
+import com.onesignal.notifications.INotificationWillDisplayEvent
 
 class MyApp : Application() {
 
@@ -24,10 +26,14 @@ class MyApp : Application() {
         )
 
         // OneSignal initialization
-        OneSignal.Debug.logLevel = LogLevel.VERBOSE // remove/lower for release builds
+        OneSignal.Debug.logLevel = LogLevel.VERBOSE
         OneSignal.initWithContext(this, "68ee31c3-5a74-48c8-bf07-7751b4306618")
 
-        // Notification permission is now requested from the Login screen,
-        // not here, so the OS prompt doesn't appear over the splash screen.
+        // Foreground notification display listener
+        OneSignal.Notifications.addForegroundLifecycleListener(object : INotificationLifecycleListener {
+            override fun onWillDisplay(event: INotificationWillDisplayEvent) {
+                event.notification.display()
+            }
+        })
     }
 }

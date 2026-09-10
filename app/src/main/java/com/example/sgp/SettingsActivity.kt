@@ -3,22 +3,25 @@ package com.example.sgp
 import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
+import android.graphics.Color
+import android.graphics.Typeface
+import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
 import android.util.Log
-import android.view.MenuItem
+import android.view.Gravity
 import android.view.View
 import android.widget.ImageView
+import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatDelegate
-import androidx.appcompat.widget.Toolbar
 import com.bumptech.glide.Glide
 import com.bumptech.glide.load.DataSource
 import com.bumptech.glide.load.engine.GlideException
 import com.bumptech.glide.request.RequestListener
 import com.bumptech.glide.request.target.Target
 import com.google.android.material.button.MaterialButton
-import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.materialswitch.MaterialSwitch
 import com.google.firebase.auth.EmailAuthProvider
 import com.google.firebase.auth.FirebaseAuth
@@ -30,6 +33,13 @@ class SettingsActivity : BaseActivity() {
     private lateinit var sharedPreferences: SharedPreferences
     private val auth: FirebaseAuth by lazy { FirebaseAuth.getInstance() }
     private val db: FirebaseFirestore by lazy { FirebaseFirestore.getInstance() }
+
+    // Theme palette (matches AdminDashboardActivity)
+    private val navyDark = Color.parseColor("#1B3C53")
+    private val navyMed = Color.parseColor("#456882")
+    private val cream = Color.parseColor("#F9F3EF")
+    private val lightBg = Color.parseColor("#EAF1F5")
+    private val destructive = Color.parseColor("#DC2626")
 
     companion object {
         private const val TAG = "SettingsActivity"
@@ -55,12 +65,7 @@ class SettingsActivity : BaseActivity() {
 
         sharedPreferences = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
 
-        val toolbar: Toolbar? = findViewById(R.id.toolbar)
-        if (toolbar != null) {
-            setSupportActionBar(toolbar)
-            supportActionBar?.setDisplayHomeAsUpEnabled(true)
-            supportActionBar?.setDisplayShowTitleEnabled(false)
-        }
+        findViewById<View>(R.id.btnBack)?.setOnClickListener { finish() }
 
         loadProfileData()
         fetchUserDataFromFirestore()
@@ -117,13 +122,50 @@ class SettingsActivity : BaseActivity() {
 
     private fun showProviderRestrictedDialog() {
         val provider = getSignInProviderLabel()
+        val root = dialogCard()
 
-        MaterialAlertDialogBuilder(this)
-            .setTitle("Action Not Supported 🚫")
-            .setMessage(
-                "This feature is not available in SkillSwap for accounts signed in through $provider.")
-            .setPositiveButton("Got it", null)
-            .show()
+        root.addView(TextView(this).apply {
+            text = "🚫"
+            textSize = 30f
+            gravity = Gravity.CENTER
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply { bottomMargin = dp(8) }
+        })
+
+        root.addView(TextView(this).apply {
+            text = "Action Not Supported"
+            setTextColor(navyDark)
+            textSize = 17f
+            setTypeface(typeface, Typeface.BOLD)
+            gravity = Gravity.CENTER
+        })
+
+        root.addView(TextView(this).apply {
+            text = "This feature is not available in SkillSwap for accounts signed in through $provider."
+            setTextColor(navyMed)
+            textSize = 13f
+            gravity = Gravity.CENTER
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply {
+                topMargin = dp(8)
+                bottomMargin = dp(18)
+            }
+        })
+
+        val dialog = AlertDialog.Builder(this).setView(root).create()
+        dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
+
+        root.addView(
+            pillButton("Got it", navyDark, cream).apply {
+                setOnClickListener { dialog.dismiss() }
+            }
+        )
+
+        dialog.show()
     }
 
     // ---------------------------------------------------------------------
@@ -144,12 +186,55 @@ class SettingsActivity : BaseActivity() {
             return
         }
 
-        MaterialAlertDialogBuilder(this)
-            .setTitle("Reset Password")
-            .setMessage("Send a password reset link to $email?")
-            .setPositiveButton("Send") { _, _ -> sendPasswordResetEmail(email) }
-            .setNegativeButton("Cancel", null)
-            .show()
+        val root = dialogCard()
+
+        root.addView(TextView(this).apply {
+            text = "Reset Password"
+            setTextColor(navyDark)
+            textSize = 17f
+            setTypeface(typeface, Typeface.BOLD)
+            gravity = Gravity.CENTER
+        })
+
+        root.addView(TextView(this).apply {
+            text = "Send a password reset link to $email?"
+            setTextColor(navyMed)
+            textSize = 13f
+            gravity = Gravity.CENTER
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply {
+                topMargin = dp(8)
+                bottomMargin = dp(18)
+            }
+        })
+
+        val dialog = AlertDialog.Builder(this).setView(root).create()
+        dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
+
+        val buttonRow = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+
+        val btnCancel = pillButton("Cancel", lightBg, navyMed).apply {
+            setOnClickListener { dialog.dismiss() }
+        }
+        val btnSend = pillButton("Send", navyDark, cream).apply {
+            setOnClickListener {
+                dialog.dismiss()
+                sendPasswordResetEmail(email)
+            }
+        }
+
+        buttonRow.addView(
+            btnCancel,
+            LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply {
+                marginEnd = dp(8)
+            }
+        )
+        buttonRow.addView(btnSend, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
+        root.addView(buttonRow)
+
+        dialog.show()
     }
 
     private fun sendPasswordResetEmail(email: String) {
@@ -164,7 +249,7 @@ class SettingsActivity : BaseActivity() {
     }
 
     // ---------------------------------------------------------------------
-    // Profile loading (unchanged from before)
+    // Profile loading
     // ---------------------------------------------------------------------
 
     private fun loadProfileData() {
@@ -289,7 +374,6 @@ class SettingsActivity : BaseActivity() {
             openEditProfile()
         }
 
-        // Change Password -> gated to Email/Password sign-in only
         findViewById<View>(R.id.layoutChangePassword)?.setOnClickListener {
             if (isEmailPasswordUser()) {
                 startActivity(Intent(this, ChangePasswordActivity::class.java))
@@ -298,7 +382,6 @@ class SettingsActivity : BaseActivity() {
             }
         }
 
-        // Forgot Password -> gated to Email/Password sign-in only
         findViewById<View>(R.id.layoutForgotPassword)?.setOnClickListener {
             handleForgotPasswordClick()
         }
@@ -348,14 +431,45 @@ class SettingsActivity : BaseActivity() {
     }
 
     private fun showImagePickerOptions() {
-        val options = arrayOf("Choose from Gallery", "Take Photo")
-        MaterialAlertDialogBuilder(this)
-            .setTitle("Change Profile Picture")
-            .setItems(options) { _, _ ->
-                openEditProfile()
+        val root = dialogCard()
+
+        root.addView(TextView(this).apply {
+            text = "Change Profile Picture"
+            setTextColor(navyDark)
+            textSize = 17f
+            setTypeface(typeface, Typeface.BOLD)
+            gravity = Gravity.CENTER
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply { bottomMargin = dp(18) }
+        })
+
+        val dialog = AlertDialog.Builder(this).setView(root).create()
+        dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
+
+        root.addView(
+            pillButton("Choose from Gallery", navyDark, cream).apply {
+                setOnClickListener {
+                    dialog.dismiss()
+                    openEditProfile()
+                }
+                layoutParams = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+                ).apply { bottomMargin = dp(8) }
             }
-            .setNegativeButton("Cancel", null)
-            .show()
+        )
+        root.addView(
+            pillButton("Take Photo", lightBg, navyMed).apply {
+                setOnClickListener {
+                    dialog.dismiss()
+                    openEditProfile()
+                }
+            }
+        )
+
+        dialog.show()
     }
 
     private fun openEditProfile() {
@@ -400,17 +514,76 @@ class SettingsActivity : BaseActivity() {
     }
 
     private fun showLogoutDialog() {
-        MaterialAlertDialogBuilder(this)
-            .setTitle(R.string.logout_confirmation_title)
-            .setMessage(R.string.logout_confirmation_message)
-            .setPositiveButton(R.string.logout) { _, _ ->
-                auth.signOut()
-                OneSignal.logout()
-                clearUserData()
-                navigateToLogin()
+        val root = dialogCard()
+
+        root.addView(TextView(this).apply {
+            text = "👋"
+            textSize = 30f
+            gravity = Gravity.CENTER
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply { bottomMargin = dp(8) }
+        })
+
+        root.addView(TextView(this).apply {
+            text = getString(R.string.logout_confirmation_title)
+            setTextColor(navyDark)
+            textSize = 17f
+            setTypeface(typeface, Typeface.BOLD)
+            gravity = Gravity.CENTER
+        })
+
+        root.addView(TextView(this).apply {
+            text = getString(R.string.logout_confirmation_message)
+            setTextColor(navyMed)
+            textSize = 13f
+            gravity = Gravity.CENTER
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply {
+                topMargin = dp(8)
+                bottomMargin = dp(18)
             }
-            .setNegativeButton(R.string.cancel, null)
-            .show()
+        })
+
+        val dialog = AlertDialog.Builder(this).setView(root).create()
+        dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
+
+        val buttonRow = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+
+        val btnCancel = pillButton(getString(R.string.cancel), lightBg, navyMed).apply {
+            setOnClickListener { dialog.dismiss() }
+        }
+
+        val btnLogout = pillButton(getString(R.string.logout), destructive, cream).apply {
+            setOnClickListener {
+                dialog.dismiss()
+                performLogout()
+            }
+        }
+
+        buttonRow.addView(
+            btnCancel,
+            LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply {
+                marginEnd = dp(8)
+            }
+        )
+        buttonRow.addView(
+            btnLogout,
+            LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+        )
+        root.addView(buttonRow)
+
+        dialog.show()
+    }
+
+    private fun performLogout() {
+        auth.signOut()
+        OneSignal.logout()
+        clearUserData()
+        navigateToLogin()
     }
 
     private fun navigateToLogin() {
@@ -439,11 +612,37 @@ class SettingsActivity : BaseActivity() {
         Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
     }
 
-    override fun onOptionsItemSelected(item: MenuItem): Boolean {
-        if (item.itemId == android.R.id.home) {
-            finish()
-            return true
+    // ---------------------------------------------------------------------
+    // Dialog styling helpers (matches AdminDashboardActivity)
+    // ---------------------------------------------------------------------
+
+    private fun dp(value: Int): Int = (value * resources.displayMetrics.density).toInt()
+
+    private fun dialogCard(): LinearLayout {
+        return LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(20), dp(22), dp(20), dp(20))
+            background = GradientDrawable().apply {
+                cornerRadius = dp(20).toFloat()
+                setColor(Color.WHITE)
+            }
         }
-        return super.onOptionsItemSelected(item)
+    }
+
+    private fun pillButton(text: String, bgColor: Int, textColor: Int): TextView {
+        return TextView(this).apply {
+            this.text = text
+            setTextColor(textColor)
+            textSize = 14f
+            setTypeface(typeface, Typeface.BOLD)
+            gravity = Gravity.CENTER
+            setPadding(0, dp(12), 0, dp(12))
+            background = GradientDrawable().apply {
+                cornerRadius = dp(24).toFloat()
+                setColor(bgColor)
+            }
+            isClickable = true
+            isFocusable = true
+        }
     }
 }

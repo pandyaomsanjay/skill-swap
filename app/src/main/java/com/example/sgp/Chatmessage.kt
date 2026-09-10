@@ -1,12 +1,19 @@
 package com.example.sgp
 
+import com.google.firebase.Timestamp
+import com.google.firebase.firestore.ServerTimestamp
+
 data class ChatMessage(
     val id: String = "",
     val senderId: String = "",
     val senderName: String = "",
     val receiverId: String = "",
     val text: String = "",
-    val timestamp: Long = 0L
+    val timestamp: Long = 0L,
+    @ServerTimestamp
+    val serverTimestamp: Timestamp? = null,
+    val deleted: Boolean = false,
+    val deletedFor: List<String> = emptyList()
 )
 
 data class Conversation(
@@ -18,7 +25,7 @@ data class Conversation(
     val lastMessage: String = "",
     val lastTimestamp: Long = 0L,
     val lastSenderId: String = "",
-    val unreadFor: List<String> = emptyList() // emails that have NOT read the latest message
+    val unreadFor: List<String> = emptyList()
 )
 
 fun buildConversationId(emailA: String, emailB: String, skillId: String? = null): String {

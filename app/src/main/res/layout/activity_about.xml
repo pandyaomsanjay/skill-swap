@@ -6,129 +6,189 @@
     android:layout_height="match_parent"
     android:orientation="vertical"
     android:fitsSystemWindows="true"
-    android:background="#F3F6F4"
+    android:background="#EAF1F5"
     tools:context=".AboutActivity">
 
-    <!-- Toolbar -->
-    <com.google.android.material.appbar.MaterialToolbar
-        android:id="@+id/toolbar"
+    <!-- ===================== Header ===================== -->
+    <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="?attr/actionBarSize"
-        android:background="#2E7D32"
-        android:elevation="4dp"
-        app:title="About SkillSwap"
-        app:titleTextColor="@android:color/white"
-        app:navigationIcon="@drawable/outline_arrow_back_24"
-        app:navigationIconTint="@android:color/white" />
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:background="#1B3C53"
+        android:paddingStart="20dp"
+        android:paddingEnd="20dp"
+        android:paddingTop="22dp"
+        android:paddingBottom="22dp">
 
-    <ScrollView
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/btnBack"
+            android:layout_width="44dp"
+            android:layout_height="44dp"
+            app:cardCornerRadius="14dp"
+            app:cardElevation="0dp"
+            app:strokeWidth="1dp"
+            app:strokeColor="#456882"
+            app:cardBackgroundColor="#456882"
+            android:clickable="true"
+            android:focusable="true"
+            android:foreground="?attr/selectableItemBackground">
+
+            <ImageView
+                android:layout_width="20dp"
+                android:layout_height="20dp"
+                android:layout_gravity="center"
+                android:src="@drawable/outline_arrow_back_24"
+                app:tint="#F9F3EF"
+                android:contentDescription="@null"/>
+        </com.google.android.material.card.MaterialCardView>
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="16dp"
+            android:text="About SkillSwap"
+            android:textColor="#F9F3EF"
+            android:textSize="19sp"
+            android:fontFamily="sans-serif-medium"
+            android:textStyle="bold"
+            android:letterSpacing="0.01"/>
+
+    </LinearLayout>
+
+    <androidx.core.widget.NestedScrollView
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:clipToPadding="false"
         android:overScrollMode="never"
-        android:scrollbars="none">
+        android:scrollbars="none"
+        android:paddingHorizontal="20dp"
+        android:paddingTop="20dp"
+        android:paddingBottom="24dp">
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:paddingBottom="32dp">
+            android:orientation="vertical">
 
-            <!-- Hero header -->
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:gravity="center_horizontal"
-                android:background="#2E7D32"
-                android:paddingTop="12dp"
-                android:paddingBottom="32dp"
-                android:paddingHorizontal="24dp">
-
-                <com.google.android.material.card.MaterialCardView
-                    android:layout_width="72dp"
-                    android:layout_height="72dp"
-                    app:cardCornerRadius="20dp"
-                    app:cardBackgroundColor="#43974A"
-                    app:cardElevation="0dp"
-                    app:strokeWidth="0dp">
-
-                    <ImageView
-                        android:layout_width="48dp"
-                        android:layout_height="48dp"
-                        android:layout_gravity="center"
-                        android:src="@drawable/logo2"
-                        android:scaleType="centerInside" />
-
-                </com.google.android.material.card.MaterialCardView>
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="14dp"
-                    android:text="SkillSwap"
-                    android:textColor="@android:color/white"
-                    android:textSize="20sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:id="@+id/tvVersion"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="4dp"
-                    android:text="Version 1.0.0"
-                    android:textColor="#D9EEDA"
-                    android:textSize="13sp" />
-
-            </LinearLayout>
-
-            <!-- Description card, overlapping the header -->
+            <!-- Brand card -->
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginHorizontal="16dp"
-                android:layout_marginTop="-20dp"
-                app:cardCornerRadius="16dp"
-                app:cardElevation="6dp"
-                app:cardBackgroundColor="@android:color/white"
-                app:strokeWidth="0dp">
+                android:layout_marginBottom="24dp"
+                app:cardCornerRadius="22dp"
+                app:cardElevation="0dp"
+                app:strokeWidth="1dp"
+                app:strokeColor="#D2C1B6"
+                app:cardBackgroundColor="#FFFFFF">
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="vertical"
+                    android:gravity="center_horizontal"
                     android:padding="20dp">
+
+                    <com.google.android.material.card.MaterialCardView
+                        android:layout_width="64dp"
+                        android:layout_height="64dp"
+                        app:cardCornerRadius="18dp"
+                        app:cardElevation="0dp"
+                        app:cardBackgroundColor="#EAE1DA">
+
+                        <ImageView
+                            android:layout_width="40dp"
+                            android:layout_height="40dp"
+                            android:layout_gravity="center"
+                            android:src="@drawable/logo2"
+                            android:scaleType="centerInside" />
+
+                    </com.google.android.material.card.MaterialCardView>
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="14dp"
+                        android:text="SkillSwap"
+                        android:textColor="#1B3C53"
+                        android:textSize="17sp"
+                        android:fontFamily="sans-serif-medium"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/tvVersion"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp"
+                        android:text="Version 1.0.0"
+                        android:textColor="#456882"
+                        android:textSize="12.5sp" />
+
+                    <View
+                        android:layout_width="36dp"
+                        android:layout_height="1dp"
+                        android:background="#D2C1B6"
+                        android:layout_marginTop="16dp"
+                        android:layout_marginBottom="14dp" />
 
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="Trade skills, not cash."
-                        android:textColor="#2E7D32"
-                        android:textSize="15sp"
+                        android:textColor="#1B3C53"
+                        android:textSize="14.5sp"
+                        android:fontFamily="sans-serif-medium"
                         android:textStyle="bold"
                         android:layout_marginBottom="8dp" />
 
                     <TextView
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
+                        android:gravity="center"
                         android:text="SkillSwap connects people who want to learn with people who want to teach. Earn credits by sharing what you know, then spend them to pick up something new — no money changes hands."
-                        android:textColor="#37474F"
+                        android:textColor="#456882"
                         android:lineSpacingExtra="5dp"
-                        android:textSize="14sp" />
+                        android:textSize="13.5sp" />
 
                 </LinearLayout>
 
             </com.google.android.material.card.MaterialCardView>
 
-            <!-- Links list -->
+            <!-- SECTION: Links -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:layout_marginBottom="14dp">
+
+                <View
+                    android:layout_width="4dp"
+                    android:layout_height="16dp"
+                    android:background="#1B3C53"
+                    android:layout_marginEnd="8dp"/>
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="More"
+                    android:textColor="#1B3C53"
+                    android:textSize="14.5sp"
+                    android:fontFamily="sans-serif-medium"
+                    android:textStyle="bold" />
+            </LinearLayout>
+
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginHorizontal="16dp"
-                android:layout_marginTop="16dp"
-                app:cardCornerRadius="16dp"
-                app:cardElevation="2dp"
-                app:cardBackgroundColor="@android:color/white"
-                app:strokeWidth="0dp">
+                android:layout_marginBottom="20dp"
+                app:cardCornerRadius="22dp"
+                app:cardElevation="0dp"
+                app:strokeWidth="1dp"
+                app:strokeColor="#D2C1B6"
+                app:cardBackgroundColor="#FFFFFF">
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -142,16 +202,27 @@
                         android:layout_height="wrap_content"
                         android:orientation="horizontal"
                         android:gravity="center_vertical"
-                        android:padding="12dp"
+                        android:minHeight="56dp"
+                        android:paddingHorizontal="12dp"
+                        android:paddingVertical="10dp"
                         android:background="?attr/selectableItemBackground"
                         android:clickable="true"
                         android:focusable="true">
 
-                        <ImageView
-                            android:layout_width="22dp"
-                            android:layout_height="22dp"
-                            android:src="@drawable/outline_privacy_tip_24"
-                            android:tint="#616161" />
+                        <com.google.android.material.card.MaterialCardView
+                            android:layout_width="40dp"
+                            android:layout_height="40dp"
+                            app:cardCornerRadius="13dp"
+                            app:cardElevation="0dp"
+                            app:cardBackgroundColor="#EAE1DA">
+
+                            <ImageView
+                                android:layout_width="20dp"
+                                android:layout_height="20dp"
+                                android:layout_gravity="center"
+                                android:src="@drawable/outline_privacy_tip_24"
+                                app:tint="#1B3C53" />
+                        </com.google.android.material.card.MaterialCardView>
 
                         <TextView
                             android:layout_width="0dp"
@@ -159,21 +230,22 @@
                             android:layout_weight="1"
                             android:layout_marginStart="14dp"
                             android:text="Privacy Policy"
-                            android:textColor="#212121"
-                            android:textSize="14.5sp" />
+                            android:textColor="#1B3C53"
+                            android:textSize="14sp" />
 
                         <ImageView
-                            android:layout_width="18dp"
-                            android:layout_height="18dp"
+                            android:layout_width="20dp"
+                            android:layout_height="20dp"
+                            android:importantForAccessibility="no"
                             android:src="@drawable/outline_chevron_right_24"
-                            android:tint="#9E9E9E" />
+                            app:tint="#456882" />
 
                     </LinearLayout>
 
                     <View
                         android:layout_width="match_parent"
                         android:layout_height="1dp"
-                        android:background="#EEEEEE"
+                        android:background="#EAE1DA"
                         android:layout_marginStart="12dp" />
 
                     <LinearLayout
@@ -182,16 +254,27 @@
                         android:layout_height="wrap_content"
                         android:orientation="horizontal"
                         android:gravity="center_vertical"
-                        android:padding="12dp"
+                        android:minHeight="56dp"
+                        android:paddingHorizontal="12dp"
+                        android:paddingVertical="10dp"
                         android:background="?attr/selectableItemBackground"
                         android:clickable="true"
                         android:focusable="true">
 
-                        <ImageView
-                            android:layout_width="22dp"
-                            android:layout_height="22dp"
-                            android:src="@drawable/outline_conditions_24"
-                            android:tint="#616161" />
+                        <com.google.android.material.card.MaterialCardView
+                            android:layout_width="40dp"
+                            android:layout_height="40dp"
+                            app:cardCornerRadius="13dp"
+                            app:cardElevation="0dp"
+                            app:cardBackgroundColor="#EAE1DA">
+
+                            <ImageView
+                                android:layout_width="20dp"
+                                android:layout_height="20dp"
+                                android:layout_gravity="center"
+                                android:src="@drawable/outline_conditions_24"
+                                app:tint="#1B3C53" />
+                        </com.google.android.material.card.MaterialCardView>
 
                         <TextView
                             android:layout_width="0dp"
@@ -199,21 +282,22 @@
                             android:layout_weight="1"
                             android:layout_marginStart="14dp"
                             android:text="Terms of Service"
-                            android:textColor="#212121"
-                            android:textSize="14.5sp" />
+                            android:textColor="#1B3C53"
+                            android:textSize="14sp" />
 
                         <ImageView
-                            android:layout_width="18dp"
-                            android:layout_height="18dp"
+                            android:layout_width="20dp"
+                            android:layout_height="20dp"
+                            android:importantForAccessibility="no"
                             android:src="@drawable/outline_chevron_right_24"
-                            android:tint="#9E9E9E" />
+                            app:tint="#456882" />
 
                     </LinearLayout>
 
                     <View
                         android:layout_width="match_parent"
                         android:layout_height="1dp"
-                        android:background="#EEEEEE"
+                        android:background="#EAE1DA"
                         android:layout_marginStart="12dp" />
 
                     <LinearLayout
@@ -222,16 +306,27 @@
                         android:layout_height="wrap_content"
                         android:orientation="horizontal"
                         android:gravity="center_vertical"
-                        android:padding="12dp"
+                        android:minHeight="56dp"
+                        android:paddingHorizontal="12dp"
+                        android:paddingVertical="10dp"
                         android:background="?attr/selectableItemBackground"
                         android:clickable="true"
                         android:focusable="true">
 
-                        <ImageView
-                            android:layout_width="22dp"
-                            android:layout_height="22dp"
-                            android:src="@drawable/outline_help_24"
-                            android:tint="#616161" />
+                        <com.google.android.material.card.MaterialCardView
+                            android:layout_width="40dp"
+                            android:layout_height="40dp"
+                            app:cardCornerRadius="13dp"
+                            app:cardElevation="0dp"
+                            app:cardBackgroundColor="#EAE1DA">
+
+                            <ImageView
+                                android:layout_width="20dp"
+                                android:layout_height="20dp"
+                                android:layout_gravity="center"
+                                android:src="@drawable/outline_help_24"
+                                app:tint="#1B3C53" />
+                        </com.google.android.material.card.MaterialCardView>
 
                         <TextView
                             android:layout_width="0dp"
@@ -239,14 +334,15 @@
                             android:layout_weight="1"
                             android:layout_marginStart="14dp"
                             android:text="Help &amp; Support"
-                            android:textColor="#212121"
-                            android:textSize="14.5sp" />
+                            android:textColor="#1B3C53"
+                            android:textSize="14sp" />
 
                         <ImageView
-                            android:layout_width="18dp"
-                            android:layout_height="18dp"
+                            android:layout_width="20dp"
+                            android:layout_height="20dp"
+                            android:importantForAccessibility="no"
                             android:src="@drawable/outline_chevron_right_24"
-                            android:tint="#9E9E9E" />
+                            app:tint="#456882" />
 
                     </LinearLayout>
 
@@ -257,14 +353,13 @@
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="20dp"
                 android:gravity="center"
                 android:text="Made with care by the SkillSwap team"
-                android:textColor="#9E9E9E"
+                android:textColor="#456882"
                 android:textSize="12sp" />
 
         </LinearLayout>
 
-    </ScrollView>
+    </androidx.core.widget.NestedScrollView>
 
 </LinearLayout>

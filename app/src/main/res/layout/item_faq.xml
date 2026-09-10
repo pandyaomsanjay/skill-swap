@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/root"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
@@ -23,8 +24,9 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:text="Question"
-            android:textColor="#212121"
+            android:textColor="#1B3C53"
             android:textSize="15sp"
+            android:fontFamily="sans-serif-medium"
             android:textStyle="bold" />
 
         <ImageView
@@ -32,7 +34,7 @@
             android:layout_width="20dp"
             android:layout_height="20dp"
             android:src="@drawable/outline_chevron_right_24"
-            android:tint="#757575"
+            android:tint="#456882"
             android:rotation="90" />
 
     </LinearLayout>
@@ -45,14 +47,13 @@
         android:paddingBottom="12dp"
         android:paddingEnd="28dp"
         android:lineSpacingExtra="3dp"
-        android:textColor="#616161"
+        android:textColor="#456882"
         android:textSize="13.5sp"
-        tools:text="Answer text goes here."
-        xmlns:tools="http://schemas.android.com/tools" />
+        tools:text="Answer text goes here." />
 
     <View
         android:layout_width="match_parent"
         android:layout_height="1dp"
-        android:background="#EEEEEE" />
+        android:background="#D2C1B6" />
 
 </LinearLayout>

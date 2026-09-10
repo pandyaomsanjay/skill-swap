@@ -11,10 +11,9 @@ import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
-import androidx.appcompat.widget.Toolbar
 import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.FieldValue
+import com.google.firebase.firestore.FirebaseFirestore
 
 class HelpSupportActivity : BaseActivity() {
 
@@ -75,10 +74,7 @@ class HelpSupportActivity : BaseActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_help_support)
 
-        val toolbar = findViewById<Toolbar>(R.id.toolbar)
-        setSupportActionBar(toolbar)
-        supportActionBar?.setDisplayHomeAsUpEnabled(true)
-        supportActionBar?.setDisplayShowTitleEnabled(true)
+        findViewById<View>(R.id.btnBack)?.setOnClickListener { finish() }
 
         buildFaqList()
         setupAskQuestionBox()
@@ -144,7 +140,7 @@ class HelpSupportActivity : BaseActivity() {
             btnSubmit.isEnabled = false
 
             db.collection("users").document(currentUser.uid)
-                .update("supportQuestions", com.google.firebase.firestore.FieldValue.arrayUnion(questionMap))
+                .update("supportQuestions", FieldValue.arrayUnion(questionMap))
                 .addOnSuccessListener {
                     btnSubmit.isEnabled = true
                     etQuestion.text.clear()
@@ -155,13 +151,5 @@ class HelpSupportActivity : BaseActivity() {
                     Toast.makeText(this, "Failed to submit: ${e.message}", Toast.LENGTH_SHORT).show()
                 }
         }
-    }
-
-    override fun onOptionsItemSelected(item: android.view.MenuItem): Boolean {
-        if (item.itemId == android.R.id.home) {
-            finish()
-            return true
-        }
-        return super.onOptionsItemSelected(item)
     }
 }

@@ -39,8 +39,6 @@ class Login : BaseActivity() {
     private lateinit var googleSignInClient: GoogleSignInClient
 
     // ⭐ Lockout countdown UI + timer handle
-    // cardLockTimer = the MaterialCardView wrapper (toggle THIS view's visibility)
-    // tvLockTimer   = the inner TextView (only its text changes, never its own visibility)
     private var cardLockTimer: View? = null
     private var tvLockTimer: TextView? = null
     private var lockCountDownTimer: CountDownTimer? = null
@@ -82,7 +80,6 @@ class Login : BaseActivity() {
         db = Firebase.firestore
         progressBar = findViewById(R.id.progressBar)
 
-        // ⭐ Bind the lock-timer card + its inner text view
         cardLockTimer = findViewById(R.id.cardLockTimer)
         tvLockTimer = findViewById(R.id.tvLockTimer)
 
@@ -94,7 +91,7 @@ class Login : BaseActivity() {
             .build()
         googleSignInClient = GoogleSignIn.getClient(this, gso)
 
-        // Auto-login check for Google-authenticated users
+        // Auto-login check
         if (auth.currentUser != null) {
             Log.d(TAG, "Auto-login: currentUser already set, uid=${auth.currentUser?.uid}")
             startActivity(Intent(this, Home::class.java))
@@ -113,23 +110,16 @@ class Login : BaseActivity() {
             }
         }
 
-        // Prompt first-time users on login screen to select their preferred language
         if (!LocaleHelper.isLanguagePrompted(this)) {
             LocaleHelper.showLanguageDialog(this, cancelable = true) {
                 tvCurrentLanguage?.text = LocaleHelper.getLanguageDisplayName(this)
             }
         }
-    
+
         initializeViews()
         requestNotificationPermission()
     }
 
-    /**
-     * Prompts for notification permission here on the login screen, instead of
-     * at app startup (MyApp.onCreate), so the OS popup doesn't appear over the
-     * splash screen. Skipped entirely when auto-login above short-circuits
-     * onCreate before this point.
-     */
     private fun requestNotificationPermission() {
         lifecycleScope.launch {
             OneSignal.Notifications.requestPermission(true)
@@ -199,7 +189,6 @@ class Login : BaseActivity() {
         return isValid
     }
 
-    // ---------- Email/password login via Supabase ----------
     private fun loginUser(email: String, password: String) {
         showLoading(true)
         Log.d(TAG, "loginUser: calling AuthRepository.loginWithPassword for '$email'")
@@ -209,9 +198,7 @@ class Login : BaseActivity() {
 
             if (result.success) {
                 Log.d(TAG, "AuthRepository.loginWithPassword SUCCESS for '${result.email}'")
-                hideLockTimer() // ⭐ clear any stale lock UI on a successful login
-
-                // ⭐ CRITICAL: Create Firebase user for this Supabase user
+                hideLockTimer()
                 createFirebaseUserForSupabase(email, password)
             } else {
                 showLoading(false)
@@ -220,8 +207,6 @@ class Login : BaseActivity() {
                         "message=${result.message}")
                 showError(result.message)
 
-                // ⭐ if locked, start the countdown using the REAL value from
-                // check_login_lock / record_failed_login (already returned by AuthRepository)
                 if (result.isLocked && result.secondsRemaining > 0) {
                     startLockCountdown(result.secondsRemaining.toLong())
                 } else {
@@ -231,10 +216,6 @@ class Login : BaseActivity() {
         }
     }
 
-    /**
-     * ⭐ Starts a visible countdown showing time left on the lock (15 min or 24 hr).
-     * Disables the login button until the timer reaches zero.
-     */
     private fun startLockCountdown(totalSeconds: Long) {
         if (totalSeconds <= 0) {
             hideLockTimer()
@@ -260,7 +241,6 @@ class Login : BaseActivity() {
         }.start()
     }
 
-    /** ⭐ hides/cancels the lock countdown and re-enables the login button */
     private fun hideLockTimer() {
         lockCountDownTimer?.cancel()
         lockCountDownTimer = null
@@ -268,7 +248,6 @@ class Login : BaseActivity() {
         findViewById<Button>(R.id.btnLogin).isEnabled = true
     }
 
-    /** ⭐ formats seconds as HH:MM:SS or MM:SS depending on length (15 min vs 24 hr locks) */
     private fun formatDuration(totalSeconds: Long): String {
         val hours = totalSeconds / 3600
         val minutes = (totalSeconds % 3600) / 60
@@ -280,14 +259,9 @@ class Login : BaseActivity() {
         }
     }
 
-    /**
-     * ⭐ Creates a Firebase user for Supabase-authenticated users
-     * This ensures Firestore rules work correctly (request.auth.uid will exist)
-     */
     private fun createFirebaseUserForSupabase(email: String, password: String) {
         Log.d(TAG, "createFirebaseUserForSupabase: creating Firebase user for $email")
 
-        // Try to sign in with Firebase first (in case user already exists in Firebase)
         auth.signInWithEmailAndPassword(email, password)
             .addOnSuccessListener { authResult ->
                 Log.d(TAG, "Firebase signIn successful for $email, uid=${authResult.user?.uid}")
@@ -296,7 +270,6 @@ class Login : BaseActivity() {
             .addOnFailureListener { signInError ->
                 Log.d(TAG, "Firebase signIn failed: ${signInError.message}, trying to create new user")
 
-                // User doesn't exist in Firebase, create them
                 auth.createUserWithEmailAndPassword(email, password)
                     .addOnSuccessListener { createResult ->
                         Log.d(TAG, "✅ Firebase user CREATED for $email, uid=${createResult.user?.uid}")
@@ -306,8 +279,6 @@ class Login : BaseActivity() {
                         showLoading(false)
                         Log.e(TAG, "❌ Failed to create Firebase user: ${createError.message}")
 
-                        // Even if Firebase user creation fails, we still have Supabase user
-                        // Load user by email (but Firestore rules might not work)
                         Toast.makeText(
                             this,
                             "Login successful, but some features may be limited",
@@ -318,9 +289,6 @@ class Login : BaseActivity() {
             }
     }
 
-    /**
-     * Loads user and navigates. If firebaseUid is provided, use it for Firestore lookup.
-     */
     private fun loadUserAndNavigateByEmail(email: String, firebaseUid: String? = null) {
         Log.d(TAG, "loadUserAndNavigateByEmail: querying users where email == $email")
 
@@ -336,10 +304,7 @@ class Login : BaseActivity() {
                 if (doc != null) {
                     val userData = doc.toObject(Users::class.java)
                     if (userData != null) {
-                        // Update the user document with Firebase UID if available
                         if (firebaseUid != null && doc.id != firebaseUid) {
-                            // The user document ID might be different from Firebase UID
-                            // Update the document to include Firebase UID
                             db.collection("users").document(doc.id)
                                 .update("firebaseUid", firebaseUid)
                                 .addOnSuccessListener {
@@ -356,8 +321,6 @@ class Login : BaseActivity() {
                         showError("Failed to parse user data")
                     }
                 } else {
-                    // User exists in Supabase but not in Firestore
-                    // Create Firestore profile
                     Log.d(TAG, "Creating Firestore profile for email=$email")
                     createFirestoreProfileForUser(email, firebaseUid)
                 }
@@ -369,9 +332,6 @@ class Login : BaseActivity() {
             }
     }
 
-    /**
-     * Creates a Firestore profile for a user who exists in Supabase but not Firestore
-     */
     private fun createFirestoreProfileForUser(email: String, firebaseUid: String? = null) {
         val userDocId = firebaseUid ?: email.replace(".", "_").replace("@", "_at_")
 
@@ -409,9 +369,6 @@ class Login : BaseActivity() {
             }
     }
 
-    /**
-     * Saves user data to SharedPreferences and navigates to appropriate activity
-     */
     private fun saveUserDataAndNavigate(userData: Users) {
         val userLang = userData.language
         if (userLang.isNotBlank()) {
@@ -427,8 +384,14 @@ class Login : BaseActivity() {
             .putString("user_type", userData.userType)
             .apply()
 
-        // Tie this device's push subscription to the logged-in user
+        // 1. Link email to OneSignal External ID
         OneSignal.login(userData.email)
+        // 2. Clear unsubscribed status
+        OneSignal.User.pushSubscription.optIn()
+        // 3. Request runtime push permission
+        lifecycleScope.launch {
+            OneSignal.Notifications.requestPermission(true)
+        }
 
         Toast.makeText(this@Login, "Login successful", Toast.LENGTH_SHORT).show()
 
@@ -442,7 +405,6 @@ class Login : BaseActivity() {
         finish()
     }
 
-    // ---------- Google login ----------
     private fun loadUserAndNavigate(uid: String, isGoogle: Boolean = false) {
         Log.d(TAG, "loadUserAndNavigate: querying users/$uid (isGoogle=$isGoogle)")
         db.collection("users").document(uid).get()
@@ -508,6 +470,6 @@ class Login : BaseActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
-        lockCountDownTimer?.cancel() // ⭐ prevent leaked timer callbacks
+        lockCountDownTimer?.cancel()
     }
 }
