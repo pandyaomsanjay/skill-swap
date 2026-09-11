@@ -122,190 +122,204 @@
                 android:textSize="13.5sp"
                 android:fontFamily="sans-serif-light"
                 android:letterSpacing="0.02"
-                android:layout_marginBottom="32dp" />
+                android:layout_marginBottom="28dp" />
 
-            <!-- ===================== Main Card ===================== -->
-            <com.google.android.material.card.MaterialCardView
+            <!-- Profile Picture -->
+            <RelativeLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="24dp">
+
+                <ImageView
+                    android:id="@+id/profileImage"
+                    android:layout_width="100dp"
+                    android:layout_height="100dp"
+                    android:src="@drawable/ic_default_profile"
+                    android:scaleType="centerCrop"
+                    android:background="@drawable/bg_circle_white"
+                    android:padding="4dp" />
+
+                <ImageButton
+                    android:id="@+id/btnChangePhoto"
+                    android:layout_width="32dp"
+                    android:layout_height="32dp"
+                    android:layout_alignBottom="@id/profileImage"
+                    android:layout_alignEnd="@id/profileImage"
+                    android:background="@drawable/bg_circle_primary"
+                    android:src="@drawable/outline_photo_camera_24"
+                    android:contentDescription="@string/cd_change_photo"
+                    android:padding="6dp" />
+            </RelativeLayout>
+
+            <!-- ===================== Full Name (icon outside, left) ===================== -->
+            <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                app:cardCornerRadius="22dp"
-                app:cardBackgroundColor="@color/surface"
-                app:strokeColor="@color/brand_tan"
-                app:strokeWidth="1.5dp"
-                app:cardElevation="8dp">
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:layout_marginBottom="16dp">
 
-                <LinearLayout
-                    android:layout_width="match_parent"
+                <ImageView
+                    android:id="@+id/ivNameIcon"
+                    android:layout_width="28dp"
+                    android:layout_height="28dp"
+                    android:src="@drawable/outline_person_24"
+                    app:tint="@color/brand_navy"
+                    android:contentDescription="@null"
+                    android:layout_marginEnd="12dp" />
+
+                <com.google.android.material.textfield.TextInputLayout
+                    android:id="@+id/nameLayout"
+                    style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                    android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:padding="24dp">
+                    android:layout_weight="1"
+                    android:hint="@string/full_name"
+                    app:boxCornerRadiusTopStart="14dp"
+                    app:boxCornerRadiusTopEnd="14dp"
+                    app:boxCornerRadiusBottomStart="14dp"
+                    app:boxCornerRadiusBottomEnd="14dp"
+                    app:boxStrokeColor="@color/brand_navy"
+                    app:boxStrokeWidth="1.5dp"
+                    app:boxStrokeWidthFocused="2dp"
+                    app:hintTextColor="@color/text_secondary">
 
-                    <!-- Profile Picture -->
-                    <RelativeLayout
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_gravity="center_horizontal"
-                        android:layout_marginBottom="24dp">
-
-                        <ImageView
-                            android:id="@+id/profileImage"
-                            android:layout_width="100dp"
-                            android:layout_height="100dp"
-                            android:src="@drawable/ic_default_profile"
-                            android:scaleType="centerCrop"
-                            android:background="@drawable/bg_circle_white"
-                            android:padding="4dp" />
-
-                        <ImageButton
-                            android:id="@+id/btnChangePhoto"
-                            android:layout_width="32dp"
-                            android:layout_height="32dp"
-                            android:layout_alignBottom="@id/profileImage"
-                            android:layout_alignEnd="@id/profileImage"
-                            android:background="@drawable/bg_circle_primary"
-                            android:src="@drawable/outline_photo_camera_24"
-                            android:contentDescription="@string/cd_change_photo"
-                            android:padding="6dp" />
-                    </RelativeLayout>
-
-                    <!-- Full Name -->
-                    <com.google.android.material.textfield.TextInputLayout
-                        android:id="@+id/nameLayout"
-                        style="@style/Widget.MaterialComponents.TextInputLayout.FilledBox"
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/etName"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:hint="@string/full_name"
-                        app:boxBackgroundColor="@color/surface"
-                        app:boxCornerRadiusTopStart="26dp"
-                        app:boxCornerRadiusTopEnd="26dp"
-                        app:boxCornerRadiusBottomStart="26dp"
-                        app:boxCornerRadiusBottomEnd="26dp"
-                        app:boxStrokeColor="@color/brand_navy"
-                        app:boxStrokeWidth="0dp"
-                        app:boxStrokeWidthFocused="2.5dp"
-                        app:hintTextColor="@color/text_secondary"
-                        app:startIconDrawable="@drawable/outline_person_24"
-                        app:startIconTint="@color/brand_navy"
-                        android:layout_marginBottom="16dp">
+                        android:inputType="textPersonName"
+                        android:maxLines="1"
+                        android:paddingStart="12dp"
+                        android:textColor="@color/text_primary"
+                        android:textColorHint="@color/text_hint" />
+                </com.google.android.material.textfield.TextInputLayout>
+            </LinearLayout>
 
-                        <com.google.android.material.textfield.TextInputEditText
-                            android:id="@+id/etName"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:inputType="textPersonName"
-                            android:maxLines="1"
-                            android:paddingStart="4dp"
-                            android:textColor="@color/text_primary"
-                            android:textColorHint="@color/text_hint" />
-                    </com.google.android.material.textfield.TextInputLayout>
+            <!-- ===================== Location (icon outside, left) ===================== -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:layout_marginBottom="4dp">
 
-                    <!-- Location with auto-detect -->
-                    <LinearLayout
+                <ImageView
+                    android:id="@+id/ivLocationIcon"
+                    android:layout_width="28dp"
+                    android:layout_height="28dp"
+                    android:src="@drawable/outline_location_on_24"
+                    app:tint="@color/brand_navy"
+                    android:contentDescription="@null"
+                    android:layout_marginEnd="12dp" />
+
+                <com.google.android.material.textfield.TextInputLayout
+                    android:id="@+id/locationLayout"
+                    style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:hint="@string/current_location"
+                    app:boxCornerRadiusTopStart="14dp"
+                    app:boxCornerRadiusTopEnd="14dp"
+                    app:boxCornerRadiusBottomStart="14dp"
+                    app:boxCornerRadiusBottomEnd="14dp"
+                    app:boxStrokeColor="@color/brand_navy"
+                    app:boxStrokeWidth="1.5dp"
+                    app:boxStrokeWidthFocused="2dp"
+                    app:hintTextColor="@color/text_secondary"
+                    android:layout_marginEnd="8dp">
+
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/etLocation"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:orientation="horizontal"
-                        android:gravity="center_vertical"
-                        android:layout_marginBottom="8dp">
+                        android:inputType="textPostalAddress"
+                        android:maxLines="1"
+                        android:paddingStart="12dp"
+                        android:textColor="@color/text_primary"
+                        android:textColorHint="@color/text_hint" />
+                </com.google.android.material.textfield.TextInputLayout>
 
-                        <com.google.android.material.textfield.TextInputLayout
-                            android:id="@+id/locationLayout"
-                            style="@style/Widget.MaterialComponents.TextInputLayout.FilledBox"
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:hint="@string/current_location"
-                            app:boxBackgroundColor="@color/surface"
-                            app:boxCornerRadiusTopStart="26dp"
-                            app:boxCornerRadiusTopEnd="26dp"
-                            app:boxCornerRadiusBottomStart="26dp"
-                            app:boxCornerRadiusBottomEnd="26dp"
-                            app:boxStrokeColor="@color/brand_navy"
-                            app:boxStrokeWidth="0dp"
-                            app:boxStrokeWidthFocused="2.5dp"
-                            app:hintTextColor="@color/text_secondary"
-                            app:startIconDrawable="@drawable/outline_location_on_24"
-                            app:startIconTint="@color/brand_navy"
-                            android:layout_marginEnd="8dp">
+                <ImageButton
+                    android:id="@+id/btnAutoDetect"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:src="@drawable/outline_my_location_24"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:contentDescription="@string/auto_detect_location"
+                    app:tint="@color/brand_navy" />
+            </LinearLayout>
 
-                            <com.google.android.material.textfield.TextInputEditText
-                                android:id="@+id/etLocation"
-                                android:layout_width="match_parent"
-                                android:layout_height="wrap_content"
-                                android:inputType="textPostalAddress"
-                                android:maxLines="1"
-                                android:paddingStart="4dp"
-                                android:textColor="@color/text_primary"
-                                android:textColorHint="@color/text_hint" />
-                        </com.google.android.material.textfield.TextInputLayout>
+            <!-- Validation icon -->
+            <ImageView
+                android:id="@+id/locationValidationIcon"
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:layout_gravity="end"
+                android:visibility="gone"
+                android:layout_marginBottom="16dp" />
 
-                        <ImageButton
-                            android:id="@+id/btnAutoDetect"
-                            android:layout_width="48dp"
-                            android:layout_height="48dp"
-                            android:src="@drawable/outline_my_location_24"
-                            android:background="?attr/selectableItemBackground"
-                            android:contentDescription="@string/auto_detect_location"
-                            android:tint="@color/brand_navy" />
-                    </LinearLayout>
+            <!-- ===================== Language (icon outside, left) ===================== -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:layout_marginBottom="28dp">
 
-                    <!-- Validation icon -->
-                    <ImageView
-                        android:id="@+id/locationValidationIcon"
-                        android:layout_width="24dp"
-                        android:layout_height="24dp"
-                        android:layout_gravity="end"
-                        android:visibility="gone"
-                        android:layout_marginBottom="16dp" />
+                <ImageView
+                    android:id="@+id/ivLanguageIcon"
+                    android:layout_width="28dp"
+                    android:layout_height="28dp"
+                    android:src="@drawable/outline_language_24"
+                    app:tint="@color/brand_navy"
+                    android:contentDescription="@null"
+                    android:layout_marginEnd="12dp" />
 
-                    <!-- Language (dropdown) -->
-                    <com.google.android.material.textfield.TextInputLayout
-                        android:id="@+id/languageLayout"
-                        style="@style/Widget.MaterialComponents.TextInputLayout.FilledBox.ExposedDropdownMenu"
+                <com.google.android.material.textfield.TextInputLayout
+                    android:id="@+id/languageLayout"
+                    style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:hint="@string/preferred_language"
+                    app:boxCornerRadiusTopStart="14dp"
+                    app:boxCornerRadiusTopEnd="14dp"
+                    app:boxCornerRadiusBottomStart="14dp"
+                    app:boxCornerRadiusBottomEnd="14dp"
+                    app:boxStrokeColor="@color/brand_navy"
+                    app:boxStrokeWidth="1.5dp"
+                    app:boxStrokeWidthFocused="2dp"
+                    app:hintTextColor="@color/text_secondary">
+
+                    <AutoCompleteTextView
+                        android:id="@+id/etLanguage"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:hint="@string/preferred_language"
-                        app:boxBackgroundColor="@color/surface"
-                        app:boxCornerRadiusTopStart="26dp"
-                        app:boxCornerRadiusTopEnd="26dp"
-                        app:boxCornerRadiusBottomStart="26dp"
-                        app:boxCornerRadiusBottomEnd="26dp"
-                        app:boxStrokeColor="@color/brand_navy"
-                        app:boxStrokeWidth="0dp"
-                        app:boxStrokeWidthFocused="2.5dp"
-                        app:hintTextColor="@color/text_secondary"
-                        app:startIconDrawable="@drawable/outline_language_24"
-                        app:startIconTint="@color/brand_navy"
-                        android:layout_marginBottom="16dp">
+                        android:inputType="none"
+                        android:paddingStart="12dp"
+                        android:textColor="@color/text_primary"
+                        android:textColorHint="@color/text_hint" />
+                </com.google.android.material.textfield.TextInputLayout>
+            </LinearLayout>
 
-                        <AutoCompleteTextView
-                            android:id="@+id/etLanguage"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:inputType="none"
-                            android:paddingStart="4dp"
-                            android:textColor="@color/text_primary"
-                            android:textColorHint="@color/text_hint" />
-                    </com.google.android.material.textfield.TextInputLayout>
-
-                    <!-- Save Button -->
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/btnSave"
-                        android:layout_width="match_parent"
-                        android:layout_height="58dp"
-                        android:text="@string/save_profile"
-                        android:textAllCaps="false"
-                        android:textColor="@color/text_inverse"
-                        android:textSize="16sp"
-                        android:fontFamily="sans-serif-medium"
-                        android:letterSpacing="0.01"
-                        app:backgroundTint="@color/brand_navy"
-                        app:cornerRadius="29dp"
-                        app:elevation="8dp"
-                        app:rippleColor="@color/overlay_light"
-                        android:enabled="false" />
-
-                </LinearLayout>
-            </com.google.android.material.card.MaterialCardView>
+            <!-- Save Button -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnSave"
+                android:layout_width="match_parent"
+                android:layout_height="58dp"
+                android:text="@string/save_profile"
+                android:textAllCaps="false"
+                android:textColor="@color/text_inverse"
+                android:textSize="16sp"
+                android:fontFamily="sans-serif-medium"
+                android:letterSpacing="0.01"
+                app:backgroundTint="@color/brand_navy"
+                app:cornerRadius="29dp"
+                app:elevation="8dp"
+                app:rippleColor="@color/overlay_light"
+                android:enabled="false" />
 
         </LinearLayout>
     </ScrollView>

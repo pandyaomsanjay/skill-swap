@@ -3,7 +3,7 @@ package com.example.sgp
 import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.location.Geocoder   // built-in Android SDK class that converts coordinates to a readable address and back
+import android.location.Geocoder
 import android.location.Location
 import android.net.Uri
 import android.os.Bundle
@@ -16,10 +16,9 @@ import androidx.activity.result.ActivityResultLauncher
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import com.bumptech.glide.Glide
-import com.google.android.gms.location.FusedLocationProviderClient //Google Play Services library that fetches the device's raw GPS coordinates
+import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationServices
 import com.google.android.material.button.MaterialButton
-import com.google.android.material.card.MaterialCardView
 import com.google.android.material.textfield.TextInputEditText
 import com.google.android.material.textfield.TextInputLayout
 import com.google.firebase.auth.FirebaseAuth
@@ -42,7 +41,7 @@ class CompleteProfileActivity : BaseActivity() {
     private lateinit var storageRef: StorageReference
     private lateinit var fusedLocationClient: FusedLocationProviderClient
 
-    private lateinit var stepIndicator: LinearLayout // dots
+    private lateinit var stepIndicator: LinearLayout
     private lateinit var profileImage: ImageView
     private lateinit var btnChangePhoto: ImageButton
     private lateinit var etName: TextInputEditText
@@ -55,7 +54,6 @@ class CompleteProfileActivity : BaseActivity() {
     private lateinit var locationLayout: TextInputLayout
     private lateinit var languageLayout: TextInputLayout
 
-    // Activity Result Launchers
     private lateinit var galleryLauncher: ActivityResultLauncher<String>
     private lateinit var cameraLauncher: ActivityResultLauncher<Void?>
 
@@ -64,7 +62,6 @@ class CompleteProfileActivity : BaseActivity() {
     private var isLocationValid = false
     private var locationValidationJob: Job? = null
 
-    // Intent extras
     private var email = ""
     private var nameFromIntent = ""
     private var password = ""
@@ -79,34 +76,27 @@ class CompleteProfileActivity : BaseActivity() {
         storageRef = FirebaseStorage.getInstance().reference
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
 
-        // Get extras
         email = intent.getStringExtra("email") ?: ""
         nameFromIntent = intent.getStringExtra("name") ?: ""
         password = intent.getStringExtra("password") ?: ""
         isGoogle = intent.getBooleanExtra("isGoogle", false)
 
-        // The OTP -> CompleteProfile chain doesn't currently forward a "name" extra,
-        // so for Google sign-ins, recover the display name Createaccount.kt stashed in TempPrefs
         if (nameFromIntent.isEmpty() && isGoogle) {
             val tempPrefs = getSharedPreferences("TempPrefs", MODE_PRIVATE)
             nameFromIntent = tempPrefs.getString("google_name", "") ?: ""
             tempPrefs.edit().clear().apply()
         }
 
-        // Initialize activity result launchers
         initializeLaunchers()
-
         bindViews()
         setupListeners()
 
-        // Pre-fill name if provided from Google
         if (nameFromIntent.isNotEmpty()) {
             etName.setText(nameFromIntent)
         }
     }
 
     private fun initializeLaunchers() {
-        // Gallery launcher
         galleryLauncher = registerForActivityResult(
             ActivityResultContracts.GetContent()
         ) { uri: Uri? ->
@@ -116,7 +106,6 @@ class CompleteProfileActivity : BaseActivity() {
             }
         }
 
-        // Camera launcher
         cameraLauncher = registerForActivityResult(
             ActivityResultContracts.TakePicturePreview()
         ) { bitmap ->
@@ -168,12 +157,7 @@ class CompleteProfileActivity : BaseActivity() {
             LocaleHelper.saveLanguage(this, standardKey)
         }
 
-        btnSave.isEnabled = false // locked until location is verified valid
-
-        // Apply styling to match OTP page
-        nameLayout.boxBackgroundColor = ContextCompat.getColor(this, R.color.surface)
-        locationLayout.boxBackgroundColor = ContextCompat.getColor(this, R.color.surface)
-        languageLayout.boxBackgroundColor = ContextCompat.getColor(this, R.color.surface)
+        btnSave.isEnabled = false
     }
 
     private fun setupListeners() {
@@ -191,7 +175,6 @@ class CompleteProfileActivity : BaseActivity() {
             }
         }
 
-        // Validate location on text change — debounced, off the main thread
         etLocation.addTextChangedListener(object : android.text.TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
@@ -204,12 +187,11 @@ class CompleteProfileActivity : BaseActivity() {
                     btnSave.isEnabled = false
                     return
                 }
-                // Lock Save immediately while we (re)validate — don't let a stale valid state slip through
                 isLocationValid = false
                 btnSave.isEnabled = false
                 locationValidationIcon.visibility = View.GONE
                 locationValidationJob = lifecycleScope.launch {
-                    delay(600) // debounce: wait for typing to pause before hitting the network
+                    delay(600)
                     validateLocation(text)
                 }
             }
@@ -222,14 +204,8 @@ class CompleteProfileActivity : BaseActivity() {
             .setTitle("Profile Picture")
             .setItems(options) { _, which ->
                 when (which) {
-                    0 -> {
-                        // Launch camera
-                        cameraLauncher.launch(null)
-                    }
-                    1 -> {
-                        // Launch gallery
-                        galleryLauncher.launch("image/*")
-                    }
+                    0 -> cameraLauncher.launch(null)
+                    1 -> galleryLauncher.launch("image/*")
                 }
             }
             .show()
@@ -252,7 +228,7 @@ class CompleteProfileActivity : BaseActivity() {
                         }
                         if (!addresses.isNullOrEmpty()) {
                             val address = addresses[0].getAddressLine(0)
-                            etLocation.setText(address) // triggers the debounced TextWatcher validation
+                            etLocation.setText(address)
                         }
                     } catch (e: IOException) {
                         Toast.makeText(this@CompleteProfileActivity, "Geocoder error: ${e.message}", Toast.LENGTH_SHORT).show()
@@ -292,7 +268,6 @@ class CompleteProfileActivity : BaseActivity() {
                 Toast.makeText(this@CompleteProfileActivity, "Please enter a valid location", Toast.LENGTH_SHORT).show()
             }
         } catch (e: IOException) {
-            // Network/geocoder unavailable — treat as unverified, keep Save locked
             locationValidationIcon.visibility = View.VISIBLE
             locationValidationIcon.setImageResource(R.drawable.ic_error_red)
             isLocationValid = false
@@ -335,7 +310,7 @@ class CompleteProfileActivity : BaseActivity() {
                         context = this@CompleteProfileActivity,
                         imageUri = selectedImageUri!!,
                         userId = userId,
-                        oldImagePath = null // brand-new profile, nothing to delete yet
+                        oldImagePath = null
                     )
                     imageUrl = url
                     imagePath = path
