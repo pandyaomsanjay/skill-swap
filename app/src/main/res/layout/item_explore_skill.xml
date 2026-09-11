@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/rootCard"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:layout_marginBottom="12dp"
@@ -8,7 +9,7 @@
     app:cardElevation="0dp"
     app:strokeWidth="1dp"
     app:strokeColor="#D2C1B6"
-    android:background="#EAF1F5">
+    app:cardBackgroundColor="#FFFFFF">
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -116,6 +117,7 @@
                 android:visibility="gone">
 
                 <ImageView
+                    android:id="@+id/ivReportIcon"
                     android:layout_width="16dp"
                     android:layout_height="16dp"
                     android:layout_gravity="center"
@@ -125,7 +127,7 @@
             </com.google.android.material.card.MaterialCardView>
         </LinearLayout>
 
-        <!-- Posted by + View Profile chip (visible for all skills) -->
+        <!-- Posted by + View Profile chip -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -197,7 +199,6 @@
             android:layout_marginTop="12dp"
             android:visibility="gone">
 
-            <!-- Video count & Total duration -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -222,9 +223,6 @@
                     android:textSize="12sp" />
             </LinearLayout>
 
-            <!-- FEATURE 1: uploader-only "X people have access" pill.
-                 Visibility toggled in SkillAdapter.onBindViewHolder based on
-                 isOwnUpload; GONE for every other viewer. -->
             <TextView
                 android:id="@+id/tvAccessCount"
                 android:layout_width="wrap_content"
@@ -235,10 +233,6 @@
                 android:textSize="11sp"
                 android:textStyle="bold"
                 android:visibility="gone" />
-
-            <!-- FEATURE 2: learner-only progress.
-                 Kept live by ExploreActivity's playlistProgress snapshot listener.
-                 GONE for owners and non-purchasers. -->
 
             <TextView
                 android:id="@+id/tvCardProgressLabel"
@@ -283,6 +277,7 @@
                     android:foreground="?attr/selectableItemBackground">
 
                     <TextView
+                        android:id="@+id/tvBtnPreview"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:gravity="center"
@@ -308,6 +303,7 @@
                     android:foreground="?attr/selectableItemBackground">
 
                     <TextView
+                        android:id="@+id/tvBtnUnlock"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:gravity="center"
@@ -321,7 +317,7 @@
             </LinearLayout>
         </LinearLayout>
 
-        <!-- ===================== SINGLE VIDEO INFO (always visible for singles) ===================== -->
+        <!-- ===================== SINGLE VIDEO INFO ===================== -->
         <LinearLayout
             android:id="@+id/singleInfoLayout"
             android:layout_width="match_parent"

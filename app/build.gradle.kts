@@ -65,7 +65,7 @@ dependencies {
     implementation("com.google.firebase:firebase-functions-ktx")
 
     // OneSignal (push notifications)
-    implementation("com.onesignal:OneSignal:5.1.27")
+    implementation("com.onesignal:OneSignal:5.9.8")
 
     // Google Sign In
     implementation("com.google.android.gms:play-services-auth:21.6.0")

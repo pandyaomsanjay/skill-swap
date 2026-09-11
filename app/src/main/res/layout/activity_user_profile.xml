@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/rootLayout"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="#EAF1F5">
@@ -30,10 +31,6 @@
                     android:layout_height="150dp"
                     android:background="@drawable/bg_profile_cover" />
 
-                <!--
-                  Moved slightly lower (was 16dp top margin) so it doesn't
-                  sit flush against the status bar / notch area.
-                -->
                 <FrameLayout
                     android:id="@+id/btnBack"
                     android:layout_width="40dp"
@@ -93,7 +90,6 @@
                 android:paddingEnd="20dp"
                 android:paddingTop="52dp">
 
-                <!-- Name + online status -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
@@ -130,7 +126,6 @@
                     android:textColor="#456882"
                     android:textSize="13.5sp" />
 
-                <!-- Location row -->
                 <LinearLayout
                     android:id="@+id/llLocation"
                     android:layout_width="wrap_content"
@@ -148,7 +143,6 @@
                         android:textSize="12.5sp" />
                 </LinearLayout>
 
-                <!-- Skills they want to learn -->
                 <LinearLayout
                     android:id="@+id/llSkillsLearn"
                     android:layout_width="match_parent"
@@ -166,7 +160,6 @@
                         android:textSize="12.5sp" />
                 </LinearLayout>
 
-                <!-- Stats line: skills shared only -->
                 <TextView
                     android:id="@+id/tvStats"
                     android:layout_width="wrap_content"
@@ -178,7 +171,6 @@
                     android:fontFamily="sans-serif-medium"
                     android:textStyle="bold" />
 
-                <!-- Message / More buttons -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
@@ -224,11 +216,6 @@
                         </LinearLayout>
                     </com.google.android.material.card.MaterialCardView>
 
-                    <!--
-                      "..." (more) button. Opens the "User Statistics"
-                      popup (rating, credits, trades, member since) that
-                      used to live as a persistent card on the page.
-                    -->
                     <com.google.android.material.card.MaterialCardView
                         android:id="@+id/btnReportUser"
                         android:layout_width="44dp"
@@ -243,6 +230,7 @@
                         android:foreground="?attr/selectableItemBackground">
 
                         <ImageView
+                            android:id="@+id/ivReportUserIcon"
                             android:layout_width="18dp"
                             android:layout_height="18dp"
                             android:layout_gravity="center"
@@ -253,17 +241,11 @@
             </LinearLayout>
 
             <View
+                android:id="@+id/dividerGap"
                 android:layout_width="match_parent"
                 android:layout_height="8dp"
                 android:background="#EAF1F5"
                 android:layout_marginTop="20dp" />
-
-            <!--
-              ===================== Stats card — REMOVED =====================
-              The rating / credits / trades / joined card that used to sit
-              here has been removed from the page. That info now shows in
-              the "User Statistics" popup opened via the "..." button above.
-            -->
 
             <!-- ===================== About ===================== -->
             <LinearLayout
@@ -275,6 +257,7 @@
                 android:visibility="gone">
 
                 <TextView
+                    android:id="@+id/tvAboutTitle"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="About"
@@ -304,6 +287,7 @@
                 android:paddingTop="4dp">
 
                 <TextView
+                    android:id="@+id/tvSkillsOfferedTitle"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="Skills offered"

@@ -56,7 +56,6 @@ class Home : BaseActivity(), NavigationView.OnNavigationItemSelectedListener {
     private var receiverSwaps: List<Trade> = emptyList()
     private var currentUserIdForSwaps: String = ""
 
-    /** Shared with SettingsActivity — flipping dark mode there is reflected here on next resume. */
     private var isDarkModeEnabled = false
 
     private val skillCategories = listOf(
@@ -93,9 +92,8 @@ class Home : BaseActivity(), NavigationView.OnNavigationItemSelectedListener {
     private val darkOutlineStroke = Color.parseColor("#2A3B48")
     private val darkOutlineText = Color.parseColor("#8FA6B8")
 
-    // Fixed brand colors used regardless of theme
     private val cream = Color.parseColor("#F9F3EF")
-    private val headerTitleColor = Color.parseColor("#F9F3EF") // header is always dark, title always cream
+    private val headerTitleColor = Color.parseColor("#F9F3EF")
 
     companion object {
         const val SHARED_PREFS_NAME = "SkillSwapPrefs"
@@ -107,10 +105,8 @@ class Home : BaseActivity(), NavigationView.OnNavigationItemSelectedListener {
         const val KEY_USER_RATING = "user_rating"
         const val KEY_USER_TOTAL_SKILLS = "user_total_skills"
         const val KEY_USER_PROFILE_IMAGE = "user_profile_image"
-
-        // Same key SettingsActivity writes to, in the same prefs file — so the choice
-        // made on the Settings screen is picked up here automatically.
         const val KEY_DARK_MODE = "dark_mode"
+        const val KEY_PUSH_NOTIFICATIONS = "push_notifications"
 
         private const val THEME_DARK_NAVY = "#1B3C53"
         private const val THEME_STEEL_BLUE = "#456882"
@@ -186,13 +182,11 @@ class Home : BaseActivity(), NavigationView.OnNavigationItemSelectedListener {
 
     override fun onStart() {
         super.onStart()
-        // Ensure OneSignal stays subscribed for users who were auto-logged in
         syncOneSignalPushSubscription()
     }
 
     override fun onResume() {
         super.onResume()
-        // Pick up a dark-mode change made on the Settings screen since we last showed this one
         val savedDarkMode = sharedPreferences.getBoolean(KEY_DARK_MODE, false)
         if (savedDarkMode != isDarkModeEnabled) {
             applyTheme(savedDarkMode)
@@ -205,20 +199,29 @@ class Home : BaseActivity(), NavigationView.OnNavigationItemSelectedListener {
         applyTheme(isDarkModeEnabled)
     }
 
+    /**
+     * Links the current user to OneSignal, then respects their push preference
+     * from the Settings screen.
+     *
+     * Previously this always called optIn() — which silently re-subscribed every
+     * user on every visit to Home, overriding the toggle. Now it reads the same
+     * `push_notifications` preference and applies the matching state.
+     */
     private fun syncOneSignalPushSubscription() {
         val userEmail = sharedPreferences.getString(KEY_USER_EMAIL, null)
             ?: FirebaseAuth.getInstance().currentUser?.email
 
         if (!userEmail.isNullOrEmpty() && userEmail != "user@example.com") {
-            // 1. Link active email to OneSignal
             OneSignal.login(userEmail)
 
-            // 2. Clear unsubscribed state
-            OneSignal.User.pushSubscription.optIn()
-
-            // 3. Prompt Android 13+ permission dialog if not yet granted
-            lifecycleScope.launch {
-                OneSignal.Notifications.requestPermission(true)
+            val pushEnabled = sharedPreferences.getBoolean(KEY_PUSH_NOTIFICATIONS, true)
+            if (pushEnabled) {
+                OneSignal.User.pushSubscription.optIn()
+                lifecycleScope.launch {
+                    OneSignal.Notifications.requestPermission(true)
+                }
+            } else {
+                OneSignal.User.pushSubscription.optOut()
             }
         }
     }
@@ -226,8 +229,6 @@ class Home : BaseActivity(), NavigationView.OnNavigationItemSelectedListener {
     // ---------------------------------------------------------------------
     // THEME ENGINE
     // ---------------------------------------------------------------------
-
-    /** Recolors every themed view on the page to match light/dark mode. */
     private fun applyTheme(isDark: Boolean) {
         isDarkModeEnabled = isDark
 
@@ -243,17 +244,14 @@ class Home : BaseActivity(), NavigationView.OnNavigationItemSelectedListener {
         val outlineStroke = if (isDark) darkOutlineStroke else lightOutlineStroke
         val outlineText = if (isDark) darkOutlineText else lightOutlineText
 
-        // Root background
         findViewById<View>(R.id.homeRootLayout)?.setBackgroundColor(screenBg)
 
-        // Toolbar / header
         findViewById<androidx.appcompat.widget.Toolbar>(R.id.toolbar)?.apply {
             setBackgroundColor(headerBg)
             title = "SkillSwap"
             setTitleTextColor(headerTitleColor)
         }
 
-        // Profile / points card
         findViewById<MaterialCardView>(R.id.cardProfilePoints)?.apply {
             setCardBackgroundColor(cardBg)
             strokeColor = cardStroke
@@ -265,7 +263,6 @@ class Home : BaseActivity(), NavigationView.OnNavigationItemSelectedListener {
 
         findViewById<TextView>(R.id.tvQuickActionsLabel)?.setTextColor(textSecondary)
 
-        // Quick action buttons
         findViewById<MaterialButton>(R.id.btnNearby)?.apply {
             backgroundTintList = ColorStateList.valueOf(tonalBtnBg)
             setTextColor(tonalBtnText)
@@ -277,7 +274,6 @@ class Home : BaseActivity(), NavigationView.OnNavigationItemSelectedListener {
             iconTint = ColorStateList.valueOf(outlineText)
         }
 
-        // Quick action tiles (Find / Teach / Create)
         listOf(R.id.cardTileFind, R.id.cardTileTeach, R.id.cardTileCreate).forEach { id ->
             findViewById<MaterialCardView>(id)?.apply {
                 setCardBackgroundColor(cardBg)
@@ -294,23 +290,19 @@ class Home : BaseActivity(), NavigationView.OnNavigationItemSelectedListener {
             findViewById<TextView>(id)?.setTextColor(textSecondary)
         }
 
-        // Section titles / "see all" links
         findViewById<TextView>(R.id.tvPopularSkillsTitle)?.setTextColor(textPrimary)
         findViewById<TextView>(R.id.tvSeeAll)?.setTextColor(textPrimary)
         findViewById<TextView>(R.id.tvRecentSwapsTitle)?.setTextColor(textPrimary)
         findViewById<TextView>(R.id.tvViewAllTrades)?.setTextColor(textPrimary)
         findViewById<TextView>(R.id.tvNoSwaps)?.setTextColor(textSecondary)
 
-        // Nav drawer background + header fields
         navigationView.setBackgroundColor(navDrawerBg)
 
-        // Dynamic text/icon colors for the drawer menu items (Home, My Skills, etc.)
         val drawerItemTextColor = if (isDark) Color.WHITE else lightTextPrimary
         val drawerItemIconTint = if (isDark) Color.WHITE else lightTextPrimary
         navigationView.itemTextColor = ColorStateList.valueOf(drawerItemTextColor)
         navigationView.itemIconTintList = ColorStateList.valueOf(drawerItemIconTint)
 
-        // Header text is forced to WHITE because the header background is always dark blue
         navigationView.getHeaderView(0)?.let { header ->
             header.setBackgroundColor(headerBg)
             header.findViewById<TextView>(R.id.tvNavUserName)?.setTextColor(Color.WHITE)
@@ -319,25 +311,21 @@ class Home : BaseActivity(), NavigationView.OnNavigationItemSelectedListener {
             header.findViewById<TextView>(R.id.nav_trades_value)?.setTextColor(Color.WHITE)
             header.findViewById<TextView>(R.id.nav_rating_value)?.setTextColor(Color.WHITE)
             header.findViewById<TextView>(R.id.nav_skills_value)?.setTextColor(Color.WHITE)
-            // Stats labels
             header.findViewById<TextView>(R.id.nav_trades_label)?.setTextColor(Color.WHITE)
             header.findViewById<TextView>(R.id.nav_rating_label)?.setTextColor(Color.WHITE)
             header.findViewById<TextView>(R.id.nav_skills_label)?.setTextColor(Color.WHITE)
         }
 
-        // Re-theme already-inflated runtime items (popular skill categories, recent swaps)
         themeInflatedCategoryCards(textPrimary, textSecondary, cardBg, cardStroke, textPrimary)
         themeInflatedSwapCards(textPrimary, textSecondary, cardBg, cardStroke, textSecondary)
         themeBottomNavigation()
 
-        // Force redraw on views that can otherwise keep a stale cached layer
         forceRedraw(R.id.homeRootLayout)
         forceRedraw(R.id.toolbar)
 
         applyThemeSystemBars(headerBg, screenBg)
     }
 
-    /** Best-effort recolor of already-inflated item_popular_skill_category.xml views. */
     private fun themeInflatedCategoryCards(
         textPrimary: Int,
         textSecondary: Int,
@@ -356,7 +344,6 @@ class Home : BaseActivity(), NavigationView.OnNavigationItemSelectedListener {
         }
     }
 
-    /** Best-effort recolor of already-inflated item_recent_swap.xml views. */
     private fun themeInflatedSwapCards(
         textPrimary: Int,
         textSecondary: Int,
@@ -378,14 +365,11 @@ class Home : BaseActivity(), NavigationView.OnNavigationItemSelectedListener {
         }
     }
 
-    /** Recolors the custom bottom navigation bar based on the current theme and selected item. */
     private fun themeBottomNavigation() {
-        // Use the dynamic color resources from values/colors.xml and values-night/colors.xml
         val selectedCircleBg = ContextCompat.getColor(this, R.color.bottom_nav_selected_circle)
         val selectedIconTint = ContextCompat.getColor(this, R.color.bottom_nav_selected_icon)
         val unselectedIconTint = ContextCompat.getColor(this, R.color.bottom_nav_unselected_icon)
 
-        // Since this is Home.kt, the selected item is always HOME
         val currentItem = BottomNavItem.HOME
 
         val navItems = listOf(
@@ -403,7 +387,6 @@ class Home : BaseActivity(), NavigationView.OnNavigationItemSelectedListener {
         }
     }
 
-    /** Forces a view to drop any stale cached layer and redraw with its current properties. */
     private fun forceRedraw(viewId: Int) {
         val view = findViewById<View>(viewId) ?: return
         view.postInvalidate()
@@ -411,17 +394,13 @@ class Home : BaseActivity(), NavigationView.OnNavigationItemSelectedListener {
     }
 
     private fun applyThemeSystemBars(headerBg: Int, screenBg: Int) {
-        // Set the window background to the app's screen background color.
         window.setBackgroundDrawable(ColorDrawable(screenBg))
 
-        // Explicitly set the system bar colors to match the app's theme.
         window.statusBarColor = headerBg
         window.navigationBarColor = screenBg
 
         val insetsController = WindowCompat.getInsetsController(window, window.decorView)
-        // Header is always dark navy, so we always want light (white) icons in the status bar
         insetsController.isAppearanceLightStatusBars = false
-        // Navigation bar icons should match the background (dark in light mode, light in dark mode)
         insetsController.isAppearanceLightNavigationBars = !isDarkModeEnabled
     }
 
@@ -792,7 +771,7 @@ class Home : BaseActivity(), NavigationView.OnNavigationItemSelectedListener {
     override fun onNavigationItemSelected(item: MenuItem): Boolean {
         when (item.itemId) {
             R.id.nav_home -> { }
-            R.id.nav_my_skills -> startActivity(Intent(this, MySkillsActivity::class.java)) // <-- Changed from toast
+            R.id.nav_my_skills -> startActivity(Intent(this, MySkillsActivity::class.java))
             R.id.nav_my_trades -> startActivity(Intent(this, MyTradesActivity::class.java))
             R.id.nav_messages -> startActivity(Intent(this, ChatListActivity::class.java))
             R.id.nav_notifications -> startActivity(Intent(this, NotificationsActivity::class.java))
@@ -809,8 +788,6 @@ class Home : BaseActivity(), NavigationView.OnNavigationItemSelectedListener {
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
         menuInflater.inflate(R.menu.home_toolbar_menu, menu)
-
-        // Remove the notification action completely from the toolbar.
         menu.removeItem(R.id.action_notifications)
 
         for (i in 0 until menu.size()) {
@@ -914,7 +891,6 @@ class Home : BaseActivity(), NavigationView.OnNavigationItemSelectedListener {
         receiverSwapsListener?.remove()
         skillsCategoryListener?.remove()
 
-        // Unlink device from OneSignal so subsequent messages for this user are not pushed to this device
         OneSignal.logout()
 
         FirebaseAuth.getInstance().signOut()

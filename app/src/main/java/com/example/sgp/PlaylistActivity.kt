@@ -2,6 +2,8 @@ package com.example.sgp
 
 import android.content.Context
 import android.content.Intent
+import android.content.SharedPreferences
+import android.content.res.ColorStateList
 import android.graphics.Color
 import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
@@ -19,7 +21,6 @@ import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
-import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -31,7 +32,6 @@ import com.google.firebase.Firebase
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.firestore
-import java.util.Locale
 
 open class PlaylistActivity : BaseActivity() {
 
@@ -48,6 +48,8 @@ open class PlaylistActivity : BaseActivity() {
     private var completedVideoIds: Set<String> = emptySet()
 
     // Views
+    private lateinit var rootLayout: View
+    private lateinit var thumbnailCard: MaterialCardView
     private lateinit var ivThumbnail: ImageView
     private lateinit var tvTitle: TextView
     private lateinit var tvCategory: TextView
@@ -62,15 +64,46 @@ open class PlaylistActivity : BaseActivity() {
     private lateinit var recyclerView: RecyclerView
     private lateinit var adapter: PlaylistVideoAdapter
     private lateinit var emptyState: View
+    private lateinit var tvEmptyVideosMessage: TextView
+    private lateinit var dividerBeforeVideos: View
+    private lateinit var tvVideosTitle: TextView
 
-    // Report button
     private lateinit var btnReport: View
-
-    // Feedback button (playlist-level)
     private lateinit var btnFeedback: View
 
     private lateinit var progressIndicatorWatched: LinearProgressIndicator
     private lateinit var tvProgressLabel: TextView
+
+    private lateinit var sharedPreferences: SharedPreferences
+    private var isDarkModeEnabled = false
+
+    companion object {
+        private const val EXTRA_SKILL_ID = "skillId"
+        private const val PREFS_NAME = "SkillSwapPrefs"
+        private const val KEY_DARK_MODE = "dark_mode"
+
+        fun start(context: Context, skillId: String) {
+            val intent = Intent(context, PlaylistActivity::class.java)
+            intent.putExtra(EXTRA_SKILL_ID, skillId)
+            context.startActivity(intent)
+        }
+    }
+
+    // ---- Light palette ----
+    private val lightScreenBg = Color.parseColor("#EAF1F5")
+    private val lightHeaderBg = Color.parseColor("#1B3C53")
+    private val lightCardStroke = Color.parseColor("#D2C1B6")
+    private val lightTextPrimary = Color.parseColor("#1B3C53")
+    private val lightTextSecondary = Color.parseColor("#456882")
+    private val lightNavIconTint = Color.BLACK                // ← BLACK arrow in light mode
+
+    // ---- Dark palette ----
+    private val darkScreenBg = Color.parseColor("#0F1B24")
+    private val darkHeaderBg = Color.parseColor("#0B1620")
+    private val darkCardStroke = Color.parseColor("#2A3B48")
+    private val darkTextPrimary = Color.parseColor("#F5F7F8")
+    private val darkTextSecondary = Color.parseColor("#8FA6B8")
+    private val darkNavIconTint = Color.WHITE                 // ← WHITE arrow in dark mode
 
     // ---------- Report ----------
     private val reportReasons = arrayOf(
@@ -84,16 +117,6 @@ open class PlaylistActivity : BaseActivity() {
     // ---------- Feedback ----------
     private var selectedFeedbackRating = 0
 
-    companion object {
-        private const val EXTRA_SKILL_ID = "skillId"
-
-        fun start(context: Context, skillId: String) {
-            val intent = Intent(context, PlaylistActivity::class.java)
-            intent.putExtra(EXTRA_SKILL_ID, skillId)
-            context.startActivity(intent)
-        }
-    }
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_playlist)
@@ -105,20 +128,29 @@ open class PlaylistActivity : BaseActivity() {
         }
 
         db = Firebase.firestore
+        sharedPreferences = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        isDarkModeEnabled = sharedPreferences.getBoolean(KEY_DARK_MODE, false)
 
         bindViews()
         setupToolbar()
+        applyTheme(isDarkModeEnabled)
         loadPlaylist()
     }
 
     override fun onResume() {
         super.onResume()
+        val storedDarkMode = sharedPreferences.getBoolean(KEY_DARK_MODE, false)
+        if (storedDarkMode != isDarkModeEnabled) {
+            applyTheme(storedDarkMode)
+        }
         if (::playlist.isInitialized && hasAccess && !isOwner) {
             loadProgressForLearner()
         }
     }
 
     private fun bindViews() {
+        rootLayout = findViewById(R.id.rootLayout)
+        thumbnailCard = findViewById(R.id.thumbnailCard)
         ivThumbnail = findViewById(R.id.ivPlaylistThumbnail)
         tvTitle = findViewById(R.id.tvPlaylistTitle)
         tvCategory = findViewById(R.id.tvPlaylistCategory)
@@ -132,8 +164,11 @@ open class PlaylistActivity : BaseActivity() {
         progressBar = findViewById(R.id.progressBar)
         recyclerView = findViewById(R.id.recyclerViewPlaylistVideos)
         emptyState = findViewById(R.id.emptyStateVideos)
-        btnReport = findViewById(R.id.btnReport) // Add this to your layout
-        btnFeedback = findViewById(R.id.btnFeedback) // Add this to your layout, next to btnReport
+        tvEmptyVideosMessage = findViewById(R.id.tvEmptyVideosMessage)
+        dividerBeforeVideos = findViewById(R.id.dividerBeforeVideos)
+        tvVideosTitle = findViewById(R.id.tvVideosTitle)
+        btnReport = findViewById(R.id.btnReport)
+        btnFeedback = findViewById(R.id.btnFeedback)
 
         progressIndicatorWatched = findViewById(R.id.progressIndicatorWatched)
         tvProgressLabel = findViewById(R.id.tvProgressLabel)
@@ -142,7 +177,6 @@ open class PlaylistActivity : BaseActivity() {
 
         recyclerView.layoutManager = LinearLayoutManager(this)
 
-        // Setup report button
         btnReport.setOnClickListener {
             if (::playlist.isInitialized) {
                 showReportDialog()
@@ -151,7 +185,6 @@ open class PlaylistActivity : BaseActivity() {
             }
         }
 
-        // Setup feedback button
         btnFeedback.setOnClickListener {
             if (::playlist.isInitialized) {
                 showFeedbackDialog()
@@ -161,11 +194,64 @@ open class PlaylistActivity : BaseActivity() {
         }
     }
 
+    // ---------------------------------------------------------------------
+    // THEME ENGINE
+    // ---------------------------------------------------------------------
+    private fun applyTheme(isDark: Boolean) {
+        isDarkModeEnabled = isDark
+
+        val screenBg = if (isDark) darkScreenBg else lightScreenBg
+        val headerBg = if (isDark) darkHeaderBg else lightHeaderBg
+        val cardStroke = if (isDark) darkCardStroke else lightCardStroke
+        val textPrimary = if (isDark) darkTextPrimary else lightTextPrimary
+        val textSecondary = if (isDark) darkTextSecondary else lightTextSecondary
+        val navIconTint = if (isDark) darkNavIconTint else lightNavIconTint
+
+        rootLayout.setBackgroundColor(screenBg)
+
+        // Toolbar background + navigation (back arrow) tint
+        val toolbar = findViewById<androidx.appcompat.widget.Toolbar>(R.id.toolbar)
+        toolbar?.apply {
+            setBackgroundColor(headerBg)
+            // Applies the icon color dynamically:
+            //   light mode → BLACK
+            //   dark mode  → WHITE
+            navigationIcon?.setTint(navIconTint)
+        }
+
+        thumbnailCard.strokeColor = cardStroke
+
+        tvTitle.setTextColor(textPrimary)
+        tvCategory.setTextColor(textSecondary)
+        tvDescription.setTextColor(textSecondary)
+        tvVideoCount.setTextColor(textPrimary)
+        tvTotalDuration.setTextColor(textPrimary)
+        tvProgressLabel.setTextColor(textPrimary)
+        dividerBeforeVideos.setBackgroundColor(cardStroke)
+        tvVideosTitle.setTextColor(textPrimary)
+        tvEmptyVideosMessage.setTextColor(textSecondary)
+        progressIndicatorWatched.trackColor = cardStroke
+
+        // If adapter already exists, push the new theme state
+        if (::adapter.isInitialized) {
+            adapter.isDarkMode = isDark
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────────────────
+    // FIX: Re-set the navigation icon AFTER the ActionBar config, otherwise
+    // AppCompat wipes out the XML-declared `navigationIcon`.
+    // ─────────────────────────────────────────────────────────────────────
     private fun setupToolbar() {
         val toolbar: androidx.appcompat.widget.Toolbar = findViewById(R.id.toolbar)
         setSupportActionBar(toolbar)
-        supportActionBar?.setDisplayHomeAsUpEnabled(true)
+
+        supportActionBar?.setDisplayShowTitleEnabled(false)
+        supportActionBar?.setDisplayHomeAsUpEnabled(false)
         supportActionBar?.title = ""
+
+        // CRITICAL: Re-attach the icon now that ActionBar is done configuring.
+        toolbar.setNavigationIcon(R.drawable.outline_arrow_back_24)
         toolbar.setNavigationOnClickListener { finish() }
     }
 
@@ -184,7 +270,6 @@ open class PlaylistActivity : BaseActivity() {
                 checkAccess()
                 progressBar.visibility = View.GONE
 
-                // Show/hide report + feedback buttons based on ownership
                 val firebaseUser = FirebaseAuth.getInstance().currentUser
                 val isOwnUpload = firebaseUser?.email != null && firebaseUser.email == playlist.userId
                 btnReport.visibility = if (isOwnUpload) View.GONE else View.VISIBLE
@@ -241,6 +326,10 @@ open class PlaylistActivity : BaseActivity() {
                 onReportClick = { video -> showReportDialogForVideo(video) },
                 onFeedbackClick = { video -> showFeedbackDialogForVideo(video) }
             )
+
+            // Set the current theme state on the freshly created adapter
+            adapter.isDarkMode = isDarkModeEnabled
+
             recyclerView.adapter = adapter
             emptyState.visibility = View.GONE
             recyclerView.visibility = View.VISIBLE
@@ -279,8 +368,6 @@ open class PlaylistActivity : BaseActivity() {
 
     private fun continueAccessCheckAfterIdentityResolved() {
         Log.d("PlaylistActivity", "=== continueAccessCheckAfterIdentityResolved ===")
-        Log.d("PlaylistActivity", "currentUserEmail: $currentUserEmail")
-        Log.d("PlaylistActivity", "uid: $uid")
 
         val resolvedUid = uid
         if (currentUserEmail == null || resolvedUid == null) {
@@ -289,9 +376,6 @@ open class PlaylistActivity : BaseActivity() {
             return
         }
 
-        Log.d("PlaylistActivity", "✅ Continuing access check for user: $currentUserEmail, uid: $resolvedUid")
-
-        // Check if user is the owner of this playlist
         if (currentUserEmail == playlist.userId) {
             isOwner = true
             hasAccess = true
@@ -303,12 +387,10 @@ open class PlaylistActivity : BaseActivity() {
             return
         }
 
-        // Check if user is admin
         db.collection("users").document(resolvedUid).get()
             .addOnSuccessListener { doc ->
                 val userType = doc.getString("userType") ?: "standard"
                 isAdmin = userType == "admin"
-                Log.d("PlaylistActivity", "User type: $userType, isAdmin: $isAdmin")
                 if (isAdmin) {
                     hasAccess = true
                     btnAccessPlaylist.text = "Admin Access"
@@ -335,15 +417,12 @@ open class PlaylistActivity : BaseActivity() {
     }
 
     private fun checkRegularAccess() {
-        Log.d("PlaylistActivity", "=== checkRegularAccess ===")
         val resolvedUid = uid ?: run {
-            Log.e("PlaylistActivity", "UID is null in checkRegularAccess")
             showLoggedOutState()
             return
         }
 
         PlaylistManager.hasPurchased(resolvedUid, skillId) { purchased ->
-            Log.d("PlaylistActivity", "Has purchased: $purchased")
             if (purchased) {
                 hasAccess = true
                 btnAccessPlaylist.text = "Access Granted"
@@ -354,7 +433,6 @@ open class PlaylistActivity : BaseActivity() {
                 db.collection("users").document(resolvedUid).get()
                     .addOnSuccessListener { doc ->
                         currentUserCredits = doc.getLong("credits")?.toInt() ?: 0
-                        Log.d("PlaylistActivity", "User credits: $currentUserCredits")
                         updateAccessButton()
                     }
                     .addOnFailureListener { e ->
@@ -366,20 +444,16 @@ open class PlaylistActivity : BaseActivity() {
     }
 
     private fun updateAccessButton() {
-        Log.d("PlaylistActivity", "=== updateAccessButton ===")
-        Log.d("PlaylistActivity", "currentUserCredits: $currentUserCredits, needed: ${playlist.credits}")
-
         if (currentUserCredits >= playlist.credits) {
             btnAccessPlaylist.text = "Access for ${playlist.credits} credits"
             btnAccessPlaylist.setOnClickListener { showPurchaseConfirmDialog() }
             btnAccessPlaylist.isEnabled = true
-            Log.d("PlaylistActivity", "Button enabled: Access for ${playlist.credits} credits")
         } else {
             btnAccessPlaylist.text = "Not enough credits (need ${playlist.credits})"
             btnAccessPlaylist.isEnabled = false
-            Log.d("PlaylistActivity", "Button disabled: Not enough credits")
         }
     }
+
     private fun showPurchaseConfirmDialog() {
         val root = dialogCard()
 
@@ -394,14 +468,14 @@ open class PlaylistActivity : BaseActivity() {
         })
         root.addView(TextView(this).apply {
             text = "Unlock \"${playlist.title}\"?"
-            setTextColor(Color.parseColor("#1B3C53"))
+            setTextColor(currentTextPrimary())
             textSize = 17f
             setTypeface(typeface, Typeface.BOLD)
             gravity = Gravity.CENTER
         })
         root.addView(TextView(this).apply {
             text = "This will use ${playlist.credits} credits from your account. This action cannot be undone."
-            setTextColor(Color.parseColor("#456882"))
+            setTextColor(currentTextSecondary())
             textSize = 13f
             gravity = Gravity.CENTER
             layoutParams = LinearLayout.LayoutParams(
@@ -417,7 +491,7 @@ open class PlaylistActivity : BaseActivity() {
         dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
 
         val buttonRow = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
-        val btnCancel = pillButton("Cancel", Color.parseColor("#EAF1F5"), Color.parseColor("#456882")).apply {
+        val btnCancel = pillButton("Cancel", currentSecondaryBtnBg(), currentSecondaryBtnText()).apply {
             setOnClickListener { dialog.dismiss() }
         }
         val btnPurchase = pillButton("Purchase", Color.parseColor("#2E9E63"), Color.WHITE).apply {
@@ -432,6 +506,7 @@ open class PlaylistActivity : BaseActivity() {
 
         dialog.show()
     }
+
     private fun purchaseAccess() {
         if (isOwner) {
             hasAccess = true
@@ -476,7 +551,6 @@ open class PlaylistActivity : BaseActivity() {
                             e.message?.contains("Already purchased") == true -> "Already unlocked"
                             else -> "Purchase failed: ${e.message}"
                         }
-                        Log.e("PlaylistActivity", "Purchase error: ${e.message}", e)
                         Toast.makeText(this, message, Toast.LENGTH_LONG).show()
                         updateAccessButton()
                     }
@@ -503,24 +577,15 @@ open class PlaylistActivity : BaseActivity() {
             progressIndicatorWatched.visibility = View.VISIBLE
             tvProgressLabel.visibility = View.VISIBLE
             progressIndicatorWatched.progress = percent
+            progressIndicatorWatched.trackColor = if (isDarkModeEnabled) darkCardStroke else lightCardStroke
             tvProgressLabel.text = "${completed.size} of ${playlist.videoCount} videos completed · $percent%"
 
-            // 🟢 MAKE PROGRESS BAR GREEN WHEN 100% COMPLETE
             if (percent >= 100) {
-                progressIndicatorWatched.setIndicatorColor(
-                    ContextCompat.getColor(this, R.color.success)
-                )
-                tvProgressLabel.setTextColor(
-                    ContextCompat.getColor(this, R.color.success)
-                )
+                progressIndicatorWatched.setIndicatorColor(ContextCompat.getColor(this, R.color.success))
+                tvProgressLabel.setTextColor(ContextCompat.getColor(this, R.color.success))
             } else {
-                // Default brand color
-                progressIndicatorWatched.setIndicatorColor(
-                    ContextCompat.getColor(this, R.color.brand_navy)
-                )
-                tvProgressLabel.setTextColor(
-                    ContextCompat.getColor(this, R.color.text_secondary)
-                )
+                progressIndicatorWatched.setIndicatorColor(ContextCompat.getColor(this, R.color.brand_navy))
+                tvProgressLabel.setTextColor(currentTextPrimary())
             }
 
             bindVideosList()
@@ -549,13 +614,6 @@ open class PlaylistActivity : BaseActivity() {
     }
 
     private fun playVideo(video: PlaylistVideo) {
-        Log.d("PlaylistActivity", "========================================")
-        Log.d("PlaylistActivity", "▶️ Playing video:")
-        Log.d("PlaylistActivity", "  playlistId: ${playlist.id}")
-        Log.d("PlaylistActivity", "  videoId: ${video.id}")
-        Log.d("PlaylistActivity", "  totalVideos: ${playlist.videoCount}")
-        Log.d("PlaylistActivity", "========================================")
-
         val intent = Intent(this, VideoPlayerActivity::class.java)
         intent.putExtra("videoUrl", video.videoUrl)
         intent.putExtra("skillTitle", playlist.title)
@@ -588,7 +646,7 @@ open class PlaylistActivity : BaseActivity() {
         root.addView(dialogTitle("Report \"${playlist.title}\""))
         root.addView(TextView(this).apply {
             text = "Help us understand what's wrong"
-            setTextColor(Color.parseColor("#456882"))
+            setTextColor(currentTextSecondary())
             textSize = 13f
             setPadding(0, dp(4), 0, dp(4))
         })
@@ -607,7 +665,7 @@ open class PlaylistActivity : BaseActivity() {
             }
         }
 
-        val btnCancel = pillButton("Cancel", Color.parseColor("#EAF1F5"), Color.parseColor("#456882")).apply {
+        val btnCancel = pillButton("Cancel", currentSecondaryBtnBg(), currentSecondaryBtnText()).apply {
             layoutParams = LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.WRAP_CONTENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT
@@ -662,7 +720,7 @@ open class PlaylistActivity : BaseActivity() {
         root.addView(dialogTitle("Report \"${video.title}\""))
         root.addView(TextView(this).apply {
             text = "Help us understand what's wrong with this video"
-            setTextColor(Color.parseColor("#456882"))
+            setTextColor(currentTextSecondary())
             textSize = 13f
             setPadding(0, dp(4), 0, dp(4))
         })
@@ -681,7 +739,7 @@ open class PlaylistActivity : BaseActivity() {
             }
         }
 
-        val btnCancel = pillButton("Cancel", Color.parseColor("#EAF1F5"), Color.parseColor("#456882")).apply {
+        val btnCancel = pillButton("Cancel", currentSecondaryBtnBg(), currentSecondaryBtnText()).apply {
             layoutParams = LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.WRAP_CONTENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT
@@ -724,7 +782,7 @@ open class PlaylistActivity : BaseActivity() {
         theme.resolveAttribute(android.R.attr.selectableItemBackground, outValue, true)
         return TextView(this).apply {
             this.text = text
-            setTextColor(Color.parseColor("#1B3C53"))
+            setTextColor(currentTextPrimary())
             textSize = 15f
             setPadding(dp(4), dp(8), dp(4), dp(8))
             setBackgroundResource(outValue.resourceId)
@@ -755,8 +813,6 @@ open class PlaylistActivity : BaseActivity() {
         )
     }
 
-    // ─────────────────────── Feedback (per-video) ───────────────────────
-
     private fun showFeedbackDialogForVideo(video: PlaylistVideo) {
         val reporterEmail = FirebaseAuth.getInstance().currentUser?.email
         if (reporterEmail.isNullOrEmpty()) {
@@ -776,8 +832,6 @@ open class PlaylistActivity : BaseActivity() {
         )
     }
 
-    // ─────────────────────── Feedback (shared dialog + submit) ───────────────────────
-
     private fun showFeedbackDialogInternal(title: String, subtitle: String, onSubmit: (rating: Int, comment: String) -> Unit) {
         selectedFeedbackRating = 0
 
@@ -785,7 +839,7 @@ open class PlaylistActivity : BaseActivity() {
         root.addView(dialogTitle(title))
         root.addView(TextView(this).apply {
             text = subtitle
-            setTextColor(Color.parseColor("#456882"))
+            setTextColor(currentTextSecondary())
             textSize = 13f
             setPadding(0, dp(4), 0, dp(10))
         })
@@ -810,7 +864,7 @@ open class PlaylistActivity : BaseActivity() {
                     selectedFeedbackRating = i
                     starViews.forEachIndexed { idx, sv ->
                         sv.text = if (idx < i) "★" else "☆"
-                        sv.setTextColor(if (idx < i) Color.parseColor("#1B3C53") else Color.parseColor("#D2C1B6"))
+                        sv.setTextColor(if (idx < i) currentTextPrimary() else Color.parseColor("#D2C1B6"))
                     }
                 }
             }
@@ -821,8 +875,8 @@ open class PlaylistActivity : BaseActivity() {
 
         val etComment = EditText(this).apply {
             hint = "Comment (optional)"
-            setTextColor(Color.parseColor("#1B3C53"))
-            setHintTextColor(Color.parseColor("#456882"))
+            setTextColor(currentTextPrimary())
+            setHintTextColor(currentTextSecondary())
             textSize = 13f
             setPadding(dp(4), dp(10), dp(4), dp(10))
             minLines = 2
@@ -842,11 +896,11 @@ open class PlaylistActivity : BaseActivity() {
                 LinearLayout.LayoutParams.WRAP_CONTENT
             ).apply { topMargin = dp(4) }
         }
-        row.addView(pillButton("Cancel", Color.parseColor("#EAF1F5"), Color.parseColor("#456882")).apply {
+        row.addView(pillButton("Cancel", currentSecondaryBtnBg(), currentSecondaryBtnText()).apply {
             setPadding(dp(24), dp(10), dp(24), dp(10))
             setOnClickListener { dialog.dismiss() }
         })
-        row.addView(pillButton("Submit", Color.parseColor("#1B3C53"), Color.parseColor("#F9F3EF")).apply {
+        row.addView(pillButton("Submit", currentTextPrimary(), Color.parseColor("#F9F3EF")).apply {
             layoutParams = LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.WRAP_CONTENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT
@@ -888,13 +942,28 @@ open class PlaylistActivity : BaseActivity() {
     // ---------- Themed-dialog helpers ----------
     private fun dp(value: Int): Int = (value * resources.displayMetrics.density).toInt()
 
+    private fun currentDialogBg(): Int =
+        if (isDarkModeEnabled) Color.parseColor("#16232E") else Color.WHITE
+
+    private fun currentTextPrimary(): Int =
+        if (isDarkModeEnabled) darkTextPrimary else lightTextPrimary
+
+    private fun currentTextSecondary(): Int =
+        if (isDarkModeEnabled) darkTextSecondary else lightTextSecondary
+
+    private fun currentSecondaryBtnBg(): Int =
+        if (isDarkModeEnabled) darkCardStroke else Color.parseColor("#EAF1F5")
+
+    private fun currentSecondaryBtnText(): Int =
+        if (isDarkModeEnabled) darkTextPrimary else lightTextSecondary
+
     private fun dialogCard(): LinearLayout {
         return LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(dp(20), dp(22), dp(20), dp(20))
             background = GradientDrawable().apply {
                 cornerRadius = dp(20).toFloat()
-                setColor(Color.WHITE)
+                setColor(currentDialogBg())
             }
         }
     }
@@ -902,7 +971,7 @@ open class PlaylistActivity : BaseActivity() {
     private fun dialogTitle(text: String): TextView {
         return TextView(this).apply {
             this.text = text
-            setTextColor(Color.parseColor("#1B3C53"))
+            setTextColor(currentTextPrimary())
             textSize = 17f
             setTypeface(typeface, Typeface.BOLD)
         }
@@ -917,7 +986,7 @@ open class PlaylistActivity : BaseActivity() {
                 topMargin = dp(12)
                 bottomMargin = dp(12)
             }
-            setBackgroundColor(Color.parseColor("#EAF1F5"))
+            setBackgroundColor(if (isDarkModeEnabled) darkCardStroke else Color.parseColor("#EAF1F5"))
         }
     }
 

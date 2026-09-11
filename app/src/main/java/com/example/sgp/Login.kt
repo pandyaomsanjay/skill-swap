@@ -38,7 +38,6 @@ class Login : BaseActivity() {
     private lateinit var progressBar: ProgressBar
     private lateinit var googleSignInClient: GoogleSignInClient
 
-    // ⭐ Lockout countdown UI + timer handle
     private var cardLockTimer: View? = null
     private var tvLockTimer: TextView? = null
     private var lockCountDownTimer: CountDownTimer? = null
@@ -91,7 +90,6 @@ class Login : BaseActivity() {
             .build()
         googleSignInClient = GoogleSignIn.getClient(this, gso)
 
-        // Auto-login check
         if (auth.currentUser != null) {
             Log.d(TAG, "Auto-login: currentUser already set, uid=${auth.currentUser?.uid}")
             startActivity(Intent(this, Home::class.java))
@@ -120,7 +118,15 @@ class Login : BaseActivity() {
         requestNotificationPermission()
     }
 
+    /**
+     * Asks for the Android 13+ push permission on first open — but ONLY if the
+     * user hasn't turned push off in Settings.
+     */
     private fun requestNotificationPermission() {
+        val prefs = getSharedPreferences(SettingsActivity.PREFS_NAME, MODE_PRIVATE)
+        val pushEnabled = prefs.getBoolean(SettingsActivity.KEY_PUSH_NOTIFICATIONS, true)
+        if (!pushEnabled) return
+
         lifecycleScope.launch {
             OneSignal.Notifications.requestPermission(true)
         }
@@ -152,10 +158,6 @@ class Login : BaseActivity() {
             startActivity(Intent(this, Createaccount::class.java))
         }
 
-        // ⭐ Pass whatever the user already typed in the email field, so
-        // ForgotPasswordEmailActivity opens pre-filled instead of forcing
-        // them to retype it. If the field is blank, we just open the
-        // screen empty and let them type it there.
         tvForgotPassword.setOnClickListener {
             val email = emailInput.editText?.text.toString().trim().lowercase()
             startActivity(Intent(this, ForgotPasswordEmailActivity::class.java).apply {
@@ -383,7 +385,7 @@ class Login : BaseActivity() {
             LocaleHelper.saveLanguage(this, standardLang)
         }
 
-        val prefs = getSharedPreferences("SkillSwapPrefs", MODE_PRIVATE)
+        val prefs = getSharedPreferences(SettingsActivity.PREFS_NAME, MODE_PRIVATE)
         prefs.edit()
             .putString("user_name", userData.name)
             .putString("user_email", userData.email)
@@ -391,13 +393,18 @@ class Login : BaseActivity() {
             .putString("user_type", userData.userType)
             .apply()
 
-        // 1. Link email to OneSignal External ID
+        // Always link email so OneSignal knows the user identity
         OneSignal.login(userData.email)
-        // 2. Clear unsubscribed status
-        OneSignal.User.pushSubscription.optIn()
-        // 3. Request runtime push permission
-        lifecycleScope.launch {
-            OneSignal.Notifications.requestPermission(true)
+
+        // Respect the saved push preference
+        val pushEnabled = prefs.getBoolean(SettingsActivity.KEY_PUSH_NOTIFICATIONS, true)
+        if (pushEnabled) {
+            OneSignal.User.pushSubscription.optIn()
+            lifecycleScope.launch {
+                OneSignal.Notifications.requestPermission(true)
+            }
+        } else {
+            OneSignal.User.pushSubscription.optOut()
         }
 
         Toast.makeText(this@Login, "Login successful", Toast.LENGTH_SHORT).show()

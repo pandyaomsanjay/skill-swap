@@ -1,6 +1,9 @@
 package com.example.sgp
 
+import android.content.Context
 import android.content.Intent
+import android.content.SharedPreferences
+import android.content.res.ColorStateList
 import android.graphics.Color
 import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
@@ -93,10 +96,41 @@ class ExploreActivity : BaseActivity() {
     private lateinit var tvTabSourceAll: TextView
     private lateinit var tvTabSourcePurchased: TextView
 
-    private val selectedTabBg = Color.parseColor("#F9F3EF")
-    private val selectedTabText = Color.parseColor("#1B3C53")
-    private val unselectedTabText = Color.parseColor("#D2C1B6")
-    private val unselectedTabBg = Color.parseColor("#456882")
+    // ---- Theme-affected views ----
+    private lateinit var rootLayout: View
+    private lateinit var headerBar: View
+    private lateinit var searchCard: MaterialCardView
+    private lateinit var sharedPreferences: SharedPreferences
+    private var isDarkModeEnabled = false
+
+    companion object {
+        const val PREFS_NAME = "SkillSwapPrefs"
+        const val KEY_DARK_MODE = "dark_mode"
+    }
+
+    // ---------------------------------------------------------------------
+    // LIGHT THEME PALETTE
+    // ---------------------------------------------------------------------
+    private val lightScreenBg = Color.parseColor("#EAF1F5")
+    private val lightHeaderBg = Color.parseColor("#1B3C53")
+    private val lightSearchBg = Color.parseColor("#456882")
+    private val lightTabUnselectedBg = Color.parseColor("#456882")
+    private val lightTabUnselectedText = Color.parseColor("#D2C1B6")
+    private val lightTabSelectedBg = Color.parseColor("#F9F3EF")
+    private val lightTabSelectedText = Color.parseColor("#1B3C53")
+    private val lightEmptyStateText = Color.parseColor("#456882")
+
+    // ---------------------------------------------------------------------
+    // DARK THEME PALETTE
+    // ---------------------------------------------------------------------
+    private val darkScreenBg = Color.parseColor("#0F1B24")
+    private val darkHeaderBg = Color.parseColor("#0B1620")
+    private val darkSearchBg = Color.parseColor("#22323D")
+    private val darkTabUnselectedBg = Color.parseColor("#22323D")
+    private val darkTabUnselectedText = Color.parseColor("#8FA6B8")
+    private val darkTabSelectedBg = Color.parseColor("#16232E")
+    private val darkTabSelectedText = Color.parseColor("#F5F7F8")
+    private val darkEmptyStateText = Color.parseColor("#8FA6B8")
 
     private val reportReasons = arrayOf(
         "Inappropriate or Offensive Content",
@@ -112,6 +146,8 @@ class ExploreActivity : BaseActivity() {
 
         db = Firebase.firestore
         currentUserEmail = FirebaseAuth.getInstance().currentUser?.email
+        sharedPreferences = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        isDarkModeEnabled = sharedPreferences.getBoolean(KEY_DARK_MODE, false)
 
         bindViews()
         setupChatInbox()
@@ -120,17 +156,28 @@ class ExploreActivity : BaseActivity() {
         setupSearch()
         setupBottomNav()
 
+        applyTheme(isDarkModeEnabled)
+
         loadSkills()
         resolveUidThenListenForPurchasedAndProgress()
     }
 
     override fun onResume() {
         super.onResume()
+        // Pick up a dark-mode change made on the Settings screen
+        val storedDarkMode = sharedPreferences.getBoolean(KEY_DARK_MODE, false)
+        if (storedDarkMode != isDarkModeEnabled) {
+            applyTheme(storedDarkMode)
+        }
         // Refresh progress when returning to this activity
         refreshProgress()
     }
 
     private fun bindViews() {
+        rootLayout = findViewById(R.id.rootLayout)
+        headerBar = findViewById(R.id.headerBar)
+        searchCard = findViewById(R.id.searchCard)
+
         recyclerView = findViewById(R.id.recyclerView)
         emptyState = findViewById(R.id.emptyState)
         tvEmptyStateMessage = findViewById(R.id.tvEmptyStateMessage)
@@ -142,6 +189,7 @@ class ExploreActivity : BaseActivity() {
             currentUserEmail = currentUserEmail,
             purchasedPlaylistIds = purchasedPlaylistIds,
             liveProgressMap = liveProgressMap,
+            isDarkMode = isDarkModeEnabled,
             onItemClick = { skill -> openSkill(skill) },
             onReportClick = { skill -> showReportDialog(skill) },
             onUserClick = { skill -> openUserProfile(skill) },
@@ -173,6 +221,33 @@ class ExploreActivity : BaseActivity() {
         tvTabHome = findViewById(R.id.tvTabHome)
         tvTabEducation = findViewById(R.id.tvTabEducation)
         tvTabLifestyle = findViewById(R.id.tvTabLifestyle)
+    }
+
+    // ---------------------------------------------------------------------
+    // THEME ENGINE
+    // ---------------------------------------------------------------------
+    private fun applyTheme(isDark: Boolean) {
+        isDarkModeEnabled = isDark
+
+        val screenBg = if (isDark) darkScreenBg else lightScreenBg
+        val headerBg = if (isDark) darkHeaderBg else lightHeaderBg
+        val searchBg = if (isDark) darkSearchBg else lightSearchBg
+        val emptyStateText = if (isDark) darkEmptyStateText else lightEmptyStateText
+
+        rootLayout.setBackgroundColor(screenBg)
+        headerBar.setBackgroundColor(headerBg)
+        searchCard.setCardBackgroundColor(searchBg)
+        searchCard.strokeColor = searchBg
+
+        tvEmptyStateMessage.setTextColor(emptyStateText)
+
+        // Re-apply currently selected tab states with theme-correct colors
+        selectSourceTab(currentSourceTab)
+        selectTab(currentTab)
+
+        // Push the theme flag into the adapter and redraw items
+        adapter.isDarkMode = isDark
+        adapter.notifyDataSetChanged()
     }
 
     private fun setupChatInbox() {
@@ -216,16 +291,21 @@ class ExploreActivity : BaseActivity() {
     private fun selectSourceTab(tab: SkillSourceTab) {
         currentSourceTab = tab
 
+        val selectedBg = if (isDarkModeEnabled) darkTabSelectedBg else lightTabSelectedBg
+        val selectedText = if (isDarkModeEnabled) darkTabSelectedText else lightTabSelectedText
+        val unselectedBg = if (isDarkModeEnabled) darkTabUnselectedBg else lightTabUnselectedBg
+        val unselectedText = if (isDarkModeEnabled) darkTabUnselectedText else lightTabUnselectedText
+
         if (tab == SkillSourceTab.ALL) {
-            tabSourceAll.setCardBackgroundColor(selectedTabBg)
-            tvTabSourceAll.setTextColor(selectedTabText)
-            tabSourcePurchased.setCardBackgroundColor(unselectedTabBg)
-            tvTabSourcePurchased.setTextColor(unselectedTabText)
+            tabSourceAll.setCardBackgroundColor(selectedBg)
+            tvTabSourceAll.setTextColor(selectedText)
+            tabSourcePurchased.setCardBackgroundColor(unselectedBg)
+            tvTabSourcePurchased.setTextColor(unselectedText)
         } else {
-            tabSourcePurchased.setCardBackgroundColor(selectedTabBg)
-            tvTabSourcePurchased.setTextColor(selectedTabText)
-            tabSourceAll.setCardBackgroundColor(unselectedTabBg)
-            tvTabSourceAll.setTextColor(unselectedTabText)
+            tabSourcePurchased.setCardBackgroundColor(selectedBg)
+            tvTabSourcePurchased.setTextColor(selectedText)
+            tabSourceAll.setCardBackgroundColor(unselectedBg)
+            tvTabSourceAll.setTextColor(unselectedText)
         }
 
         if (tab == SkillSourceTab.PURCHASED) {
@@ -344,6 +424,11 @@ class ExploreActivity : BaseActivity() {
 
     private fun selectTab(tab: SkillCategoryTab) {
         currentTab = tab
+
+        val selectedBg = if (isDarkModeEnabled) darkTabSelectedBg else lightTabSelectedBg
+        val selectedText = if (isDarkModeEnabled) darkTabSelectedText else lightTabSelectedText
+        val unselectedText = if (isDarkModeEnabled) darkTabUnselectedText else lightTabUnselectedText
+
         val tabs = listOf(
             tabAll to tvTabAll,
             tabTechnology to tvTabTechnology,
@@ -364,11 +449,11 @@ class ExploreActivity : BaseActivity() {
         }
         tabs.forEachIndexed { index, (card, text) ->
             if (index == selectedIndex) {
-                card.setCardBackgroundColor(selectedTabBg)
-                text.setTextColor(selectedTabText)
+                card.setCardBackgroundColor(selectedBg)
+                text.setTextColor(selectedText)
             } else {
                 card.setCardBackgroundColor(Color.TRANSPARENT)
-                text.setTextColor(unselectedTabText)
+                text.setTextColor(unselectedText)
             }
         }
         applyFilters()
@@ -517,7 +602,7 @@ class ExploreActivity : BaseActivity() {
         root.addView(dialogTitle("Report \"${skill.title}\""))
         root.addView(TextView(this).apply {
             text = "Help us understand what's wrong"
-            setTextColor(Color.parseColor("#456882"))
+            setTextColor(currentTextSecondary())
             textSize = 13f
             setPadding(0, dp(4), 0, dp(4))
         })
@@ -536,7 +621,11 @@ class ExploreActivity : BaseActivity() {
             }
         }
 
-        val btnCancel = pillButton("Cancel", Color.parseColor("#EAF1F5"), Color.parseColor("#456882")).apply {
+        val btnCancel = pillButton(
+            "Cancel",
+            currentSecondaryBtnBg(),
+            currentSecondaryBtnText()
+        ).apply {
             layoutParams = LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.WRAP_CONTENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT
@@ -557,7 +646,7 @@ class ExploreActivity : BaseActivity() {
         theme.resolveAttribute(android.R.attr.selectableItemBackground, outValue, true)
         return TextView(this).apply {
             this.text = text
-            setTextColor(Color.parseColor("#1B3C53"))
+            setTextColor(currentTextPrimary())
             textSize = 15f
             setPadding(dp(4), dp(8), dp(4), dp(8))
             setBackgroundResource(outValue.resourceId)
@@ -591,13 +680,28 @@ class ExploreActivity : BaseActivity() {
     // ---------- Themed-dialog helpers ----------
     private fun dp(value: Int): Int = (value * resources.displayMetrics.density).toInt()
 
+    private fun currentDialogBg(): Int =
+        if (isDarkModeEnabled) Color.parseColor("#16232E") else Color.WHITE
+
+    private fun currentTextPrimary(): Int =
+        if (isDarkModeEnabled) Color.parseColor("#F5F7F8") else Color.parseColor("#1B3C53")
+
+    private fun currentTextSecondary(): Int =
+        if (isDarkModeEnabled) Color.parseColor("#8FA6B8") else Color.parseColor("#456882")
+
+    private fun currentSecondaryBtnBg(): Int =
+        if (isDarkModeEnabled) Color.parseColor("#2A3B48") else Color.parseColor("#EAF1F5")
+
+    private fun currentSecondaryBtnText(): Int =
+        if (isDarkModeEnabled) Color.parseColor("#F5F7F8") else Color.parseColor("#456882")
+
     private fun dialogCard(): LinearLayout {
         return LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(dp(20), dp(22), dp(20), dp(20))
             background = GradientDrawable().apply {
                 cornerRadius = dp(20).toFloat()
-                setColor(Color.WHITE)
+                setColor(currentDialogBg())
             }
         }
     }
@@ -605,7 +709,7 @@ class ExploreActivity : BaseActivity() {
     private fun dialogTitle(text: String): TextView {
         return TextView(this).apply {
             this.text = text
-            setTextColor(Color.parseColor("#1B3C53"))
+            setTextColor(currentTextPrimary())
             textSize = 17f
             setTypeface(typeface, Typeface.BOLD)
         }
@@ -620,7 +724,7 @@ class ExploreActivity : BaseActivity() {
                 topMargin = dp(12)
                 bottomMargin = dp(12)
             }
-            setBackgroundColor(Color.parseColor("#EAF1F5"))
+            setBackgroundColor(if (isDarkModeEnabled) Color.parseColor("#2A3B48") else Color.parseColor("#EAF1F5"))
         }
     }
 
@@ -654,6 +758,7 @@ class ExploreActivity : BaseActivity() {
         private val currentUserEmail: String?,
         private val purchasedPlaylistIds: Set<String>,
         private val liveProgressMap: Map<String, LiveProgress>,
+        var isDarkMode: Boolean,
         private val onItemClick: (Skill) -> Unit,
         private val onReportClick: (Skill) -> Unit,
         private val onUserClick: (Skill) -> Unit,
@@ -661,20 +766,44 @@ class ExploreActivity : BaseActivity() {
         private val onUnlockClick: (Skill) -> Unit
     ) : RecyclerView.Adapter<SkillAdapter.ViewHolder>() {
 
+        // Light palette
+        private val lightCardBg = Color.parseColor("#FFFFFF")
+        private val lightCardStroke = Color.parseColor("#D2C1B6")
+        private val lightTextPrimary = Color.parseColor("#1B3C53")
+        private val lightTextSecondary = Color.parseColor("#456882")
+        private val lightIconBgNeutral = Color.parseColor("#F9F3EF")
+        private val lightBtnPreviewBg = Color.parseColor("#456882")
+        private val lightBtnUnlockBg = Color.parseColor("#1B3C53")
+        private val lightBtnViewProfileBg = Color.parseColor("#1B3C53")
+
+        // Dark palette
+        private val darkCardBg = Color.parseColor("#16232E")
+        private val darkCardStroke = Color.parseColor("#2A3B48")
+        private val darkTextPrimary = Color.parseColor("#F5F7F8")
+        private val darkTextSecondary = Color.parseColor("#8FA6B8")
+        private val darkIconBgNeutral = Color.parseColor("#26343F")
+        private val darkBtnPreviewBg = Color.parseColor("#22323D")
+        private val darkBtnUnlockBg = Color.parseColor("#0B1620")
+        private val darkBtnViewProfileBg = Color.parseColor("#0B1620")
+
         class ViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
+            val rootCard: MaterialCardView = itemView as MaterialCardView
             val ivThumbnail: ImageView = itemView.findViewById(R.id.ivThumbnail)
             val tvTitle: TextView = itemView.findViewById(R.id.tvTitle)
             val tvCategory: TextView = itemView.findViewById(R.id.tvCategory)
             val tvUser: TextView = itemView.findViewById(R.id.tvUser)
             val tvCredits: TextView = itemView.findViewById(R.id.tvCredits)
-            val btnReport: View = itemView.findViewById(R.id.btnReport)
-            val btnViewProfile: View = itemView.findViewById(R.id.btnViewProfile)
+            val btnReport: MaterialCardView = itemView.findViewById(R.id.btnReport)
+            val ivReportIcon: ImageView = itemView.findViewById(R.id.ivReportIcon)
+            val btnViewProfile: MaterialCardView = itemView.findViewById(R.id.btnViewProfile)
             val tvSwapsCount: TextView = itemView.findViewById(R.id.tvSwapsCount)
             val playlistInfoLayout: LinearLayout = itemView.findViewById(R.id.playlistInfoLayout)
             val tvVideoCount: TextView = itemView.findViewById(R.id.tvVideoCount)
             val tvTotalDuration: TextView = itemView.findViewById(R.id.tvTotalDuration)
-            val btnPreview: View = itemView.findViewById(R.id.btnPreview)
-            val btnUnlock: View = itemView.findViewById(R.id.btnUnlock)
+            val btnPreview: MaterialCardView = itemView.findViewById(R.id.btnPreview)
+            val tvBtnPreview: TextView = itemView.findViewById(R.id.tvBtnPreview)
+            val btnUnlock: MaterialCardView = itemView.findViewById(R.id.btnUnlock)
+            val tvBtnUnlock: TextView = itemView.findViewById(R.id.tvBtnUnlock)
             val singleInfoLayout: LinearLayout = itemView.findViewById(R.id.singleInfoLayout)
             val ivPlayIcon: ImageView = itemView.findViewById(R.id.ivPlayIcon)
             val tvAccessCount: TextView = itemView.findViewById(R.id.tvAccessCount)
@@ -693,6 +822,33 @@ class ExploreActivity : BaseActivity() {
 
             val isOwnUpload = currentUserEmail != null && currentUserEmail == skill.userId
             val isPurchased = purchasedPlaylistIds.contains(skill.id)
+
+            // ---- Theme colors for this bind ----
+            val cardBg = if (isDarkMode) darkCardBg else lightCardBg
+            val cardStroke = if (isDarkMode) darkCardStroke else lightCardStroke
+            val textPrimary = if (isDarkMode) darkTextPrimary else lightTextPrimary
+            val textSecondary = if (isDarkMode) darkTextSecondary else lightTextSecondary
+            val iconBgNeutral = if (isDarkMode) darkIconBgNeutral else lightIconBgNeutral
+            val btnPreviewBg = if (isDarkMode) darkBtnPreviewBg else lightBtnPreviewBg
+            val btnUnlockBg = if (isDarkMode) darkBtnUnlockBg else lightBtnUnlockBg
+            val btnViewProfileBg = if (isDarkMode) darkBtnViewProfileBg else lightBtnViewProfileBg
+
+            holder.rootCard.setCardBackgroundColor(cardBg)
+            holder.rootCard.strokeColor = cardStroke
+
+            holder.tvTitle.setTextColor(textPrimary)
+            holder.tvCategory.setTextColor(textSecondary)
+            holder.tvVideoCount.setTextColor(textSecondary)
+            holder.tvTotalDuration.setTextColor(textSecondary)
+            holder.tvSwapsCount.setTextColor(textSecondary)
+            holder.tvCardProgressLabel.setTextColor(textPrimary)
+
+            holder.btnReport.setCardBackgroundColor(iconBgNeutral)
+            holder.ivReportIcon.imageTintList = ColorStateList.valueOf(textSecondary)
+
+            holder.btnViewProfile.setCardBackgroundColor(btnViewProfileBg)
+            holder.btnPreview.setCardBackgroundColor(btnPreviewBg)
+            holder.tvBtnPreview.setTextColor(Color.parseColor("#F9F3EF"))
 
             holder.tvTitle.text = skill.title
             holder.tvCategory.text = skill.category
@@ -719,7 +875,7 @@ class ExploreActivity : BaseActivity() {
                 holder.ivPlayIcon.visibility = View.GONE
             }
 
-            // 🟢 FIX: Show report button for ALL skills (both single and playlist) except own uploads
+            // Show report button for ALL skills except own uploads
             holder.btnReport.visibility = if (!isOwnUpload) View.VISIBLE else View.GONE
             holder.btnReport.setOnClickListener { onReportClick(skill) }
 
@@ -749,7 +905,7 @@ class ExploreActivity : BaseActivity() {
                     holder.tvAccessCount.visibility = View.GONE
                 }
 
-                // 🟢 FIX: Make progress bar GREEN when 100% complete
+                // Green progress bar when 100% complete
                 if (isPurchased && !isOwnUpload) {
                     val live = liveProgressMap[skill.id]
                     val completed = live?.completedCount ?: 0
@@ -760,10 +916,9 @@ class ExploreActivity : BaseActivity() {
                     holder.progressIndicatorCard.visibility = View.VISIBLE
                     holder.tvCardProgressLabel.text = "$completed of ${skill.videoCount} watched · $percent%"
                     holder.progressIndicatorCard.progress = percent
+                    holder.progressIndicatorCard.trackColor = cardStroke
 
-                    // 🟢 SET COLOR BASED ON COMPLETION
                     if (percent >= 100) {
-                        // COMPLETE - MAKE IT GREEN
                         holder.progressIndicatorCard.setIndicatorColor(
                             ContextCompat.getColor(holder.itemView.context, R.color.success)
                         )
@@ -771,13 +926,10 @@ class ExploreActivity : BaseActivity() {
                             ContextCompat.getColor(holder.itemView.context, R.color.success)
                         )
                     } else {
-                        // IN PROGRESS - USE BRAND COLOR
                         holder.progressIndicatorCard.setIndicatorColor(
                             ContextCompat.getColor(holder.itemView.context, R.color.brand_navy)
                         )
-                        holder.tvCardProgressLabel.setTextColor(
-                            ContextCompat.getColor(holder.itemView.context, R.color.text_secondary)
-                        )
+                        holder.tvCardProgressLabel.setTextColor(textPrimary)
                     }
                 } else {
                     holder.tvCardProgressLabel.visibility = View.GONE
@@ -795,10 +947,9 @@ class ExploreActivity : BaseActivity() {
                     }
                 } else {
                     holder.btnUnlock.visibility = View.VISIBLE
-                    when (val unlockView = holder.btnUnlock) {
-                        is Button -> unlockView.text = "Unlock"
-                        is TextView -> unlockView.text = "Unlock"
-                    }
+                    holder.btnUnlock.setCardBackgroundColor(btnUnlockBg)
+                    holder.tvBtnUnlock.setTextColor(Color.parseColor("#F9F3EF"))
+                    holder.tvBtnUnlock.text = "Unlock"
                     (holder.btnPreview.layoutParams as? LinearLayout.LayoutParams)?.let { params ->
                         params.width = 0
                         params.weight = 1f

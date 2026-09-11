@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/rootLayout"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
@@ -17,11 +18,6 @@
         app:navigationIcon="@drawable/outline_arrow_back_24"
         app:navigationIconTint="@android:color/white">
 
-        <!-- NEW: Feedback icon, placed before btnReport (further from the edge)
-             so Report stays the outermost/most "final" action. Uses a text
-             emoji instead of a drawable to avoid depending on an icon
-             resource that may not exist in this project (unlike ic_flag,
-             which is already proven to exist since btnReport compiles). -->
         <TextView
             android:id="@+id/btnFeedback"
             android:layout_width="wrap_content"
@@ -37,7 +33,6 @@
             android:clickable="true"
             android:focusable="true" />
 
-        <!-- Report Flag Icon -->
         <ImageView
             android:id="@+id/btnReport"
             android:layout_width="wrap_content"
@@ -66,6 +61,7 @@
 
             <!-- Thumbnail -->
             <com.google.android.material.card.MaterialCardView
+                android:id="@+id/thumbnailCard"
                 android:layout_width="match_parent"
                 android:layout_height="200dp"
                 app:cardCornerRadius="16dp"
@@ -167,10 +163,6 @@
                     android:gravity="end" />
             </LinearLayout>
 
-            <!-- FEATURE 2: learner progress bar + label. Hidden until access is
-                 confirmed and PlaylistActivity.loadProgressForLearner() populates it;
-                 stays gone entirely for owners (who see the accessCount pill instead,
-                 shown via tvPlaylistCreditsRequired above) and for non-purchasers. -->
             <TextView
                 android:id="@+id/tvProgressLabel"
                 android:layout_width="wrap_content"
@@ -235,6 +227,7 @@
                 android:visibility="gone" />
 
             <View
+                android:id="@+id/dividerBeforeVideos"
                 android:layout_width="match_parent"
                 android:layout_height="1dp"
                 android:background="#D2C1B6"
@@ -243,6 +236,7 @@
 
             <!-- Video List Title -->
             <TextView
+                android:id="@+id/tvVideosTitle"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Videos in this Playlist"
@@ -275,6 +269,7 @@
                     android:textSize="40sp" />
 
                 <TextView
+                    android:id="@+id/tvEmptyVideosMessage"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="12dp"

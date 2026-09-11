@@ -1,13 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/rootLayout"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
     android:background="#EAF1F5"
     android:fitsSystemWindows="true">
 
-    <!-- ===== Video (embedded, YouTube-watch-page style — not fullscreen by default) ===== -->
+    <!-- ===== Video (embedded) ===== -->
     <FrameLayout
         android:id="@+id/videoContainer"
         android:layout_width="match_parent"
@@ -114,7 +115,7 @@
 
     </FrameLayout>
 
-    <!-- ===== Details below the video (title, uploader, actions, description) ===== -->
+    <!-- ===== Details below the video ===== -->
     <androidx.core.widget.NestedScrollView
         android:id="@+id/scrollContent"
         android:layout_width="match_parent"
@@ -146,8 +147,6 @@
                 android:textColor="#456882"
                 android:textSize="12.5sp" />
 
-            <!-- Report + Feedback row — two pills side by side, same style as the
-                 old full-width Report pill, now split 50/50. -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -190,6 +189,7 @@
             </LinearLayout>
 
             <View
+                android:id="@+id/dividerAboveDescription"
                 android:layout_width="match_parent"
                 android:layout_height="1dp"
                 android:background="#D9E3EA"
@@ -197,6 +197,7 @@
                 android:layout_marginBottom="16dp" />
 
             <TextView
+                android:id="@+id/tvDescriptionLabel"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:text="Description"

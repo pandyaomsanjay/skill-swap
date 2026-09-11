@@ -2,7 +2,9 @@ package com.example.sgp
 
 import android.content.Context
 import android.content.Intent
+import android.content.SharedPreferences
 import android.content.res.ColorStateList
+import android.content.res.Configuration
 import android.graphics.Color
 import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
@@ -17,6 +19,8 @@ import android.view.ViewGroup
 import android.widget.*
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowCompat
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -24,8 +28,10 @@ import com.bumptech.glide.Glide
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.button.MaterialButtonToggleGroup
+import com.google.android.material.card.MaterialCardView
 import com.google.android.material.textfield.MaterialAutoCompleteTextView
 import com.google.android.material.textfield.TextInputEditText
+import com.google.android.material.textfield.TextInputLayout
 import com.google.firebase.Firebase
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.firestore
@@ -42,6 +48,11 @@ class AddSkillActivity : BaseActivity() {
         private const val STORAGE_BUCKET = "skill-videos"
         private const val MEDIA_BUCKET = "media"
         private const val REQUEST_ADD_VIDEO = 1001
+
+        // Same prefs file / key SettingsActivity and Home write to, so the
+        // dark mode choice made there is reflected here automatically.
+        private const val PREFS_NAME = "SkillSwapPrefs"
+        private const val KEY_DARK_MODE = "dark_mode"
     }
 
     private var credits = 0
@@ -59,17 +70,47 @@ class AddSkillActivity : BaseActivity() {
     private lateinit var thumbnailPickerLauncher: androidx.activity.result.ActivityResultLauncher<String>
 
     private lateinit var db: FirebaseFirestore
+    private lateinit var sharedPreferences: SharedPreferences
 
-    // ─── Theme colors ──────────────────────────────────────────────────────
-    private val sheetBg = Color.parseColor("#16263A")
-    private val sheetDivider = Color.parseColor("#28405A")
-    private val sheetPrimaryText = Color.parseColor("#F5EDE4")
-    private val pickerBg = Color.WHITE
-    private val pickerTitleColor = Color.parseColor("#1B3C53")
-    private val pickerSubtitleColor = Color.parseColor("#456882")
-    private val pickerDividerColor = Color.parseColor("#EAF1F5")
-    private val pickerCancelBg = Color.parseColor("#EAF1F5")
-    private val pickerCancelText = Color.parseColor("#456882")
+    private var isDarkModeEnabled = false
+
+    // ---------------------------------------------------------------------
+    // LIGHT THEME PALETTE (same hex values as Settings/Home, for consistency)
+    // ---------------------------------------------------------------------
+    private val lightScreenBg = Color.parseColor("#EAF1F5")
+    private val lightCardBg = Color.parseColor("#FFFFFF")
+    private val lightCardStroke = Color.parseColor("#D2C1B6")
+    private val lightTextPrimary = Color.parseColor("#1B3C53")
+    private val lightTextSecondary = Color.parseColor("#456882")
+    private val lightHeaderBg = Color.parseColor("#1B3C53")
+    private val lightChipBg = Color.parseColor("#EAF1F5")
+    private val lightPillBg = Color.parseColor("#1B3C53")
+    private val lightOutlineStroke = Color.parseColor("#9AA7B0")
+    private val lightToggleUncheckedBg = Color.parseColor("#EAF1F5")
+    private val lightDashedBg = Color.parseColor("#EAF1F5")
+
+    // ---------------------------------------------------------------------
+    // DARK THEME PALETTE
+    // ---------------------------------------------------------------------
+    private val darkScreenBg = Color.parseColor("#0F1B24")
+    private val darkCardBg = Color.parseColor("#16232E")
+    private val darkCardStroke = Color.parseColor("#2A3B48")
+    private val darkTextPrimary = Color.parseColor("#F5F7F8")
+    private val darkTextSecondary = Color.parseColor("#8FA6B8")
+    private val darkHeaderBg = Color.parseColor("#0B1620")
+    private val darkChipBg = Color.parseColor("#22323D")
+    private val darkPillBg = Color.parseColor("#22323D")
+    private val darkOutlineStroke = Color.parseColor("#2A3B48")
+    private val darkToggleUncheckedBg = Color.parseColor("#16232E")
+    private val darkDashedBg = Color.parseColor("#16232E")
+
+    // ─── Category picker (bottom sheet) — computed live from current theme ────
+    private fun pickerBg(): Int = if (isDarkModeEnabled) darkCardBg else Color.WHITE
+    private fun pickerTitleColor(): Int = if (isDarkModeEnabled) darkTextPrimary else Color.parseColor("#1B3C53")
+    private fun pickerSubtitleColor(): Int = if (isDarkModeEnabled) darkTextSecondary else Color.parseColor("#456882")
+    private fun pickerDividerColor(): Int = if (isDarkModeEnabled) darkCardStroke else Color.parseColor("#EAF1F5")
+    private fun pickerCancelBg(): Int = if (isDarkModeEnabled) darkChipBg else Color.parseColor("#EAF1F5")
+    private fun pickerCancelText(): Int = if (isDarkModeEnabled) darkTextPrimary else Color.parseColor("#456882")
 
     private fun dp(value: Int): Int = (value * resources.displayMetrics.density).toInt()
 
@@ -123,6 +164,8 @@ class AddSkillActivity : BaseActivity() {
         setContentView(R.layout.activity_add_skill)
 
         db = Firebase.firestore
+        sharedPreferences = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        isDarkModeEnabled = sharedPreferences.getBoolean(KEY_DARK_MODE, false)
 
         // ─── Launchers ──────────────────────────────────────────────────────
         videoPickerLauncher = registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
@@ -154,6 +197,8 @@ class AddSkillActivity : BaseActivity() {
 
         // ─── Bind views ──────────────────────────────────────────────────
         bindViews()
+
+        applyTheme(isDarkModeEnabled)
 
         // ─── Category dropdown for single video ──────────────────────────
         val categories = resources.getStringArray(R.array.skill_categories)
@@ -217,6 +262,7 @@ class AddSkillActivity : BaseActivity() {
             tvVideoFileName.text = "No video selected"
             ivVideoThumbnail.setImageResource(R.drawable.baseline_videocam_24)
             ivVideoThumbnail.clearColorFilter()
+            ivVideoThumbnail.imageTintList = ColorStateList.valueOf(currentTextSecondary())
             btnCancelVideo.visibility = View.GONE
         }
 
@@ -353,6 +399,25 @@ class AddSkillActivity : BaseActivity() {
         updateVideoCount()
     }
 
+    override fun onResume() {
+        super.onResume()
+        // Pick up a dark-mode change made on the Settings screen since we last showed this one
+        val savedDarkMode = sharedPreferences.getBoolean(KEY_DARK_MODE, false)
+        if (savedDarkMode != isDarkModeEnabled) {
+            applyTheme(savedDarkMode)
+        }
+    }
+
+    /**
+     * Fires when the SYSTEM's own light/dark setting changes while this screen is open
+     * (requires android:configChanges="uiMode" on this activity in the manifest). We
+     * ignore the system's switch and re-assert our own saved preference instead.
+     */
+    override fun onConfigurationChanged(newConfig: Configuration) {
+        super.onConfigurationChanged(newConfig)
+        applyTheme(isDarkModeEnabled)
+    }
+
     // ─── Bind views ────────────────────────────────────────────────────────
     private fun bindViews() {
         // Single video views
@@ -401,6 +466,129 @@ class AddSkillActivity : BaseActivity() {
         progressBarVideo = findViewById(R.id.progressBarVideoUpload)
     }
 
+    // ---------------------------------------------------------------------
+    // THEME ENGINE
+    // ---------------------------------------------------------------------
+
+    private fun currentTextPrimary(): Int = if (isDarkModeEnabled) darkTextPrimary else lightTextPrimary
+    private fun currentTextSecondary(): Int = if (isDarkModeEnabled) darkTextSecondary else lightTextSecondary
+
+    /** Recolors every themed view on the page to match light/dark mode. */
+    private fun applyTheme(isDark: Boolean) {
+        isDarkModeEnabled = isDark
+
+        val screenBg = if (isDark) darkScreenBg else lightScreenBg
+        val cardBg = if (isDark) darkCardBg else lightCardBg
+        val cardStroke = if (isDark) darkCardStroke else lightCardStroke
+        val textPrimary = if (isDark) darkTextPrimary else lightTextPrimary
+        val textSecondary = if (isDark) darkTextSecondary else lightTextSecondary
+        val headerBg = if (isDark) darkHeaderBg else lightHeaderBg
+        val chipBg = if (isDark) darkChipBg else lightChipBg
+        val pillBg = if (isDark) darkPillBg else lightPillBg
+        val outlineStroke = if (isDark) darkOutlineStroke else lightOutlineStroke
+        val toggleUncheckedBg = if (isDark) darkToggleUncheckedBg else lightToggleUncheckedBg
+        val dashedBg = if (isDark) darkDashedBg else lightDashedBg
+
+        // Root + toolbar
+        findViewById<View>(R.id.rootLayout)?.setBackgroundColor(screenBg)
+        findViewById<androidx.appcompat.widget.Toolbar>(R.id.toolbar)?.setBackgroundColor(headerBg)
+
+        // All outer cards get the same background/stroke treatment
+        listOf(
+            R.id.cardSkillDetails, R.id.cardVideoUpload, R.id.cardVideoSelectRow,
+            R.id.cardPlaylistDetails, R.id.cardThumbnailSelect,
+            R.id.cardDemoSelect, R.id.cardDemoSelectRow, R.id.cardPlaylistVideosCard,
+            R.id.cardPricing
+        ).forEach { id ->
+            findViewById<MaterialCardView>(id)?.apply {
+                setCardBackgroundColor(cardBg)
+                strokeColor = cardStroke
+            }
+        }
+
+        // Credits counter chip
+        findViewById<MaterialCardView>(R.id.cardCreditsCounter)?.setCardBackgroundColor(chipBg)
+
+        // Primary (bold, navy/cream) titles and labels
+        listOf(
+            R.id.tvSkillTypeLabel, R.id.tvSkillDetailsTitle, R.id.tvSelectVideoTitle,
+            R.id.tvPlaylistDetailsTitle, R.id.tvDemoTitle,
+            R.id.tvPlaylistVideosTitle, R.id.tvPricingTitle, R.id.tvCreditsRequiredLabel,
+            R.id.tvCredits, R.id.tvTotalIndividualPrice
+        ).forEach { id -> findViewById<TextView>(id)?.setTextColor(textPrimary) }
+
+        // Secondary (steel-blue/gray) labels and hint text
+        listOf(
+            R.id.tvSelectVideoDescription, R.id.tvThumbnailLabel, R.id.tvThumbnailHint,
+            R.id.tvDemoDescription, R.id.tvDemoSizeHint, R.id.tvPricingSubtitle,
+            R.id.tvVideoCount, R.id.tvTotalIndividualLabel,
+            R.id.tvVideoFileName, R.id.tvThumbnailFileName, R.id.tvDemoFileName
+        ).forEach { id -> findViewById<TextView>(id)?.setTextColor(textSecondary) }
+
+        // Icons that sit next to file-select rows
+        listOf(R.id.ivVideoThumbnail, R.id.ivThumbnailPreview).forEach { id ->
+            findViewById<ImageView>(id)?.imageTintList = ColorStateList.valueOf(textSecondary)
+        }
+        listOf(R.id.btnDecrement, R.id.btnIncrement).forEach { id ->
+            findViewById<ImageButton>(id)?.imageTintList = ColorStateList.valueOf(textPrimary)
+        }
+
+        // All outlined TextInputLayouts get the same box stroke / hint color; the
+        // EditText/AutoCompleteTextView inside gets the primary text color.
+        listOf(
+            R.id.titleLayout, R.id.categoryLayout, R.id.descriptionLayout, R.id.durationLayout,
+            R.id.playlistTitleLayout, R.id.playlistCategoryLayout,
+            R.id.playlistDescriptionLayout, R.id.playlistDurationLayout
+        ).forEach { id ->
+            findViewById<TextInputLayout>(id)?.apply {
+                boxStrokeColor = textSecondary
+                hintTextColor = ColorStateList.valueOf(textPrimary)
+                defaultHintTextColor = ColorStateList.valueOf(textSecondary)
+            }
+        }
+        listOf(
+            R.id.etTitle, R.id.actvCategory, R.id.etDescription, R.id.etDuration,
+            R.id.etPlaylistTitle, R.id.actvPlaylistCategory, R.id.etPlaylistDescription, R.id.etPlaylistDuration
+        ).forEach { id -> (findViewById<View>(id) as? TextView)?.setTextColor(textPrimary) }
+
+        // "Select" / "Upload" navy pill buttons — tint the pill_navy_bg drawable itself
+        listOf(R.id.btnSelectVideo, R.id.btnSelectThumbnail, R.id.btnSelectDemo).forEach { id ->
+            findViewById<TextView>(id)?.let { ViewCompat.setBackgroundTintList(it, ColorStateList.valueOf(pillBg)) }
+        }
+
+        // "+ Add Video" dashed button
+        findViewById<TextView>(R.id.btnAddVideo)?.apply {
+            setTextColor(textPrimary)
+            ViewCompat.setBackgroundTintList(this, ColorStateList.valueOf(dashedBg))
+        }
+
+        // Toggle buttons re-themed with current palette
+        findViewById<MaterialButton>(R.id.btnSingleVideo)?.let {
+            updateToggleButtonTheme(it, toggleGroup.checkedButtonId == R.id.btnSingleVideo)
+        }
+        findViewById<MaterialButton>(R.id.btnPlaylist)?.let {
+            updateToggleButtonTheme(it, toggleGroup.checkedButtonId == R.id.btnPlaylist)
+        }
+
+        // Status bar / nav bar to match theme
+        val insetsController = WindowCompat.getInsetsController(window, window.decorView)
+        insetsController.isAppearanceLightStatusBars = !isDark
+        insetsController.isAppearanceLightNavigationBars = !isDark
+        window.statusBarColor = headerBg
+        window.navigationBarColor = screenBg
+
+        // Elevated header can keep a stale cached layer after a config change
+        // without a full Activity recreation — force it to redraw.
+        forceRedraw(R.id.rootLayout)
+        forceRedraw(R.id.toolbar)
+    }
+
+    private fun forceRedraw(viewId: Int) {
+        val view = findViewById<View>(viewId) ?: return
+        view.invalidate()
+        view.requestLayout()
+    }
+
     // ─── Update video count ──────────────────────────────────────────────
     private fun updateVideoCount() {
         tvVideoCount.text = "${playlistVideos.size} videos"
@@ -445,14 +633,20 @@ class AddSkillActivity : BaseActivity() {
 
     // ─── Toggle button theme ──────────────────────────────────────────────
     private fun updateToggleButtonTheme(button: MaterialButton, isChecked: Boolean) {
+        val checkedBg = currentTextPrimary()
+        val uncheckedBg = if (isDarkModeEnabled) darkToggleUncheckedBg else lightToggleUncheckedBg
+        val checkedText = if (isDarkModeEnabled) darkScreenBg else Color.parseColor("#EAF1F5")
+        val uncheckedText = currentTextSecondary()
+        val uncheckedStroke = if (isDarkModeEnabled) darkOutlineStroke else lightOutlineStroke
+
         if (isChecked) {
-            button.backgroundTintList = ColorStateList.valueOf(Color.parseColor("#1B3C53"))
-            button.setTextColor(Color.parseColor("#EAF1F5"))
-            button.strokeColor = ColorStateList.valueOf(Color.parseColor("#1B3C53"))
+            button.backgroundTintList = ColorStateList.valueOf(checkedBg)
+            button.setTextColor(checkedText)
+            button.strokeColor = ColorStateList.valueOf(checkedBg)
         } else {
-            button.backgroundTintList = ColorStateList.valueOf(Color.parseColor("#EAF1F5"))
-            button.setTextColor(Color.parseColor("#456882"))
-            button.strokeColor = ColorStateList.valueOf(Color.parseColor("#9AA7B0"))
+            button.backgroundTintList = ColorStateList.valueOf(uncheckedBg)
+            button.setTextColor(uncheckedText)
+            button.strokeColor = ColorStateList.valueOf(uncheckedStroke)
         }
         button.rippleColor = ColorStateList.valueOf(Color.parseColor("#D2C1B6"))
     }
@@ -473,7 +667,7 @@ class AddSkillActivity : BaseActivity() {
             orientation = LinearLayout.VERTICAL
             setPadding(dp(20), dp(22), dp(20), dp(20))
             background = GradientDrawable().apply {
-                setColor(pickerBg)
+                setColor(pickerBg())
                 cornerRadii = floatArrayOf(
                     dp(20).toFloat(), dp(20).toFloat(),
                     dp(20).toFloat(), dp(20).toFloat(),
@@ -483,13 +677,13 @@ class AddSkillActivity : BaseActivity() {
         }
         rootLayout.addView(TextView(this).apply {
             text = "Select Category"
-            setTextColor(pickerTitleColor)
+            setTextColor(pickerTitleColor())
             textSize = 17f
             setTypeface(typeface, Typeface.BOLD)
         })
         rootLayout.addView(TextView(this).apply {
             text = "Choose the category that best fits your skill"
-            setTextColor(pickerSubtitleColor)
+            setTextColor(pickerSubtitleColor())
             textSize = 13f
             setPadding(0, dp(4), 0, dp(4))
         })
@@ -506,7 +700,7 @@ class AddSkillActivity : BaseActivity() {
             }
         }
 
-        val btnCancel = pillButton("Cancel", pickerCancelBg, pickerCancelText).apply {
+        val btnCancel = pillButton("Cancel", pickerCancelBg(), pickerCancelText()).apply {
             layoutParams = LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.WRAP_CONTENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT
@@ -530,7 +724,7 @@ class AddSkillActivity : BaseActivity() {
         theme.resolveAttribute(android.R.attr.selectableItemBackground, outValue, true)
         return TextView(this).apply {
             this.text = text
-            setTextColor(pickerTitleColor)
+            setTextColor(pickerTitleColor())
             setTypeface(typeface, if (isSelected) Typeface.BOLD else Typeface.NORMAL)
             textSize = 15f
             setPadding(dp(4), dp(8), dp(4), dp(8))
@@ -550,7 +744,7 @@ class AddSkillActivity : BaseActivity() {
                 topMargin = dp(12)
                 bottomMargin = dp(12)
             }
-            setBackgroundColor(pickerDividerColor)
+            setBackgroundColor(pickerDividerColor())
         }
     }
 
@@ -603,7 +797,7 @@ class AddSkillActivity : BaseActivity() {
         selectedVideoUri = uri
         tvVideoFileName.text = uri.lastPathSegment ?: "Selected video"
         ivVideoThumbnail.setImageResource(R.drawable.baseline_check_circle_24)
-        ivVideoThumbnail.setColorFilter(Color.parseColor("#1B3C53"))
+        ivVideoThumbnail.setColorFilter(currentTextPrimary())
         btnCancelVideo.visibility = View.VISIBLE
     }
 
@@ -838,6 +1032,10 @@ class AddSkillActivity : BaseActivity() {
             holder.tvTitle.text = video.title
             holder.tvDuration.text = video.duration.ifBlank { "--" }
             holder.tvCredits.text = "${video.credits} credits"
+
+            holder.tvTitle.setTextColor(currentTextPrimary())
+            holder.tvDuration.setTextColor(currentTextSecondary())
+            holder.tvCredits.setTextColor(currentTextSecondary())
 
             // Placeholder thumbnail – load from videoUrl if available
             if (video.videoUrl.isNotBlank()) {

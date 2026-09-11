@@ -11,12 +11,13 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:background="@drawable/bg_date_pill"
+        android:backgroundTint="#1B3C53"
         android:paddingStart="14dp"
         android:paddingEnd="14dp"
         android:paddingTop="6dp"
         android:paddingBottom="6dp"
         android:text="Today"
-        android:textColor="@color/brand_final_on_primary"
+        android:textColor="#F9F3EF"
         android:textSize="12sp"
         android:fontFamily="sans-serif-medium" />
 

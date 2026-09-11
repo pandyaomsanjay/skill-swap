@@ -1,14 +1,20 @@
 package com.example.sgp
 
+import android.content.Context
+import android.content.SharedPreferences
+import android.graphics.Color
 import android.graphics.Typeface
+import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
 import android.text.TextUtils
 import android.util.Log
+import android.view.Gravity
 import android.view.HapticFeedbackConstants
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageButton
+import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
@@ -24,7 +30,6 @@ import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ListenerRegistration
 import com.google.firebase.firestore.MetadataChanges
-import com.google.firebase.firestore.Query
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.android.Android
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
@@ -73,6 +78,40 @@ class ChatActivity : BaseActivity() {
     private var skillTitle: String? = null
     private var myDisplayName: String = ""
 
+    // ---------------------------------------------------------------------
+    // THEME
+    // ---------------------------------------------------------------------
+    private lateinit var sharedPreferences: SharedPreferences
+    private var isDarkModeEnabled = false
+
+    private val lightScreenBg = Color.parseColor("#EAF1F5")
+    private val lightHeaderBg = Color.parseColor("#1B3C53")
+    private val lightHeaderSubtitle = Color.parseColor("#C9D6DE")
+    private val lightInputBarBg = Color.parseColor("#EAF1F5")
+    private val lightInputBoxBg = Color.parseColor("#FFFFFF")
+    private val lightInputStroke = Color.parseColor("#D2C1B6")
+    private val lightTextPrimary = Color.parseColor("#1B3C53")
+    private val lightTextSecondary = Color.parseColor("#456882")
+    private val lightSendBtnBg = Color.parseColor("#1B3C53")
+
+    private val darkScreenBg = Color.parseColor("#0F1B24")
+    private val darkHeaderBg = Color.parseColor("#0B1620")
+    private val darkHeaderSubtitle = Color.parseColor("#8FA6B8")
+    private val darkInputBarBg = Color.parseColor("#0F1B24")
+    private val darkInputBoxBg = Color.parseColor("#16232E")
+    private val darkInputStroke = Color.parseColor("#2A3B48")
+    private val darkTextPrimary = Color.parseColor("#F5F7F8")
+    private val darkTextSecondary = Color.parseColor("#8FA6B8")
+    private val darkSendBtnBg = Color.parseColor("#24405A")
+
+    private val headerTextColor = Color.parseColor("#F9F3EF")
+
+    // Dialog-specific colors
+    private val dialogDangerLight = Color.parseColor("#DC2626")
+    private val dialogDangerDark = Color.parseColor("#B3261E")
+    private val dialogDangerTextLight = Color.parseColor("#C0392B")
+    private val dialogDangerTextDark = Color.parseColor("#FF6961")
+
     private val httpClient by lazy {
         HttpClient(Android) {
             install(ContentNegotiation) {
@@ -93,6 +132,9 @@ class ChatActivity : BaseActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_chat)
+
+        sharedPreferences = getSharedPreferences(SettingsActivity.PREFS_NAME, Context.MODE_PRIVATE)
+        isDarkModeEnabled = sharedPreferences.getBoolean(SettingsActivity.KEY_DARK_MODE, false)
 
         val currentEmail = FirebaseAuth.getInstance().currentUser?.email
         if (currentEmail.isNullOrEmpty()) {
@@ -127,7 +169,7 @@ class ChatActivity : BaseActivity() {
         setSupportActionBar(toolbar)
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
         supportActionBar?.setDisplayShowTitleEnabled(false)
-        toolbar.navigationIcon?.setTint(android.graphics.Color.WHITE)
+        toolbar.navigationIcon?.setTint(Color.WHITE)
 
         val toolbarBasePaddingTop = toolbar.paddingTop
         val toolbarBasePaddingBottom = toolbar.paddingBottom
@@ -159,12 +201,14 @@ class ChatActivity : BaseActivity() {
         val layoutManager = LinearLayoutManager(this)
         layoutManager.stackFromEnd = true
         recyclerView.layoutManager = layoutManager
-        adapter = MessageAdapter(chatItems, myEmail) { message -> showMessageOptionsDialog(message) }
+        adapter = MessageAdapter(chatItems, myEmail, isDarkModeEnabled) { message -> showMessageOptionsDialog(message) }
         recyclerView.adapter = adapter
 
         etMessage = findViewById(R.id.etMessage)
         btnSend = findViewById(R.id.btnSend)
         btnSend.setOnClickListener { sendMessage() }
+
+        applyChatTheme(isDarkModeEnabled)
 
         loadMyDisplayName {
             ensureConversationExists()
@@ -175,6 +219,16 @@ class ChatActivity : BaseActivity() {
         super.onStart()
         listenForMessages()
         markAsRead()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        val darkNow = sharedPreferences.getBoolean(SettingsActivity.KEY_DARK_MODE, false)
+        if (darkNow != isDarkModeEnabled) {
+            isDarkModeEnabled = darkNow
+            applyChatTheme(isDarkModeEnabled)
+            adapter.setDarkMode(isDarkModeEnabled)
+        }
     }
 
     override fun onStop() {
@@ -193,6 +247,87 @@ class ChatActivity : BaseActivity() {
         return super.onOptionsItemSelected(item)
     }
 
+    // ---------------------------------------------------------------------
+    // THEME APPLICATION
+    // ---------------------------------------------------------------------
+    private fun applyChatTheme(isDark: Boolean) {
+        val screenBg = if (isDark) darkScreenBg else lightScreenBg
+        val headerBg = if (isDark) darkHeaderBg else lightHeaderBg
+        val headerSubtitle = if (isDark) darkHeaderSubtitle else lightHeaderSubtitle
+        val inputBarBg = if (isDark) darkInputBarBg else lightInputBarBg
+        val inputBoxBg = if (isDark) darkInputBoxBg else lightInputBoxBg
+        val inputStroke = if (isDark) darkInputStroke else lightInputStroke
+        val textPrimary = if (isDark) darkTextPrimary else lightTextPrimary
+        val textSecondary = if (isDark) darkTextSecondary else lightTextSecondary
+        val sendBg = if (isDark) darkSendBtnBg else lightSendBtnBg
+
+        findViewById<View>(R.id.rootChatLayout)?.setBackgroundColor(screenBg)
+        findViewById<Toolbar>(R.id.toolbarChat)?.setBackgroundColor(headerBg)
+        findViewById<TextView>(R.id.tvChatWithName)?.setTextColor(headerTextColor)
+        findViewById<TextView>(R.id.tvChatContext)?.setTextColor(headerSubtitle)
+
+        recyclerView.setBackgroundColor(screenBg)
+        findViewById<View>(R.id.layoutInputBar)?.setBackgroundColor(inputBarBg)
+
+        findViewById<com.google.android.material.textfield.TextInputLayout>(R.id.tilMessageInput)?.apply {
+            boxBackgroundColor = inputBoxBg
+            boxStrokeColor = inputStroke
+        }
+        etMessage.setTextColor(textPrimary)
+        etMessage.setHintTextColor(textSecondary)
+
+        btnSend.backgroundTintList = android.content.res.ColorStateList.valueOf(sendBg)
+    }
+
+    // ---------------------------------------------------------------------
+    // DIALOG THEME HELPERS
+    // ---------------------------------------------------------------------
+    private fun currentDialogBg(): Int =
+        if (isDarkModeEnabled) Color.parseColor("#16232E") else Color.parseColor("#FFFFFF")
+
+    private fun currentTextPrimary(): Int = if (isDarkModeEnabled) darkTextPrimary else lightTextPrimary
+    private fun currentTextSecondary(): Int = if (isDarkModeEnabled) darkTextSecondary else lightTextSecondary
+
+    private fun currentSecondaryBtnBg(): Int =
+        if (isDarkModeEnabled) Color.parseColor("#2A3B48") else Color.parseColor("#EAF1F5")
+
+    private fun currentSecondaryBtnText(): Int = if (isDarkModeEnabled) darkTextPrimary else lightTextSecondary
+    private fun currentDangerBg(): Int = if (isDarkModeEnabled) dialogDangerDark else dialogDangerLight
+    private fun currentDangerText(): Int = if (isDarkModeEnabled) dialogDangerTextDark else dialogDangerTextLight
+
+    private fun dp(value: Int): Int = (value * resources.displayMetrics.density).toInt()
+
+    private fun dialogCard(): LinearLayout {
+        return LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(20), dp(22), dp(20), dp(20))
+            background = GradientDrawable().apply {
+                cornerRadius = dp(20).toFloat()
+                setColor(currentDialogBg())
+            }
+        }
+    }
+
+    private fun pillButton(text: String, bgColor: Int, textColor: Int): TextView {
+        return TextView(this).apply {
+            this.text = text
+            setTextColor(textColor)
+            textSize = 14f
+            setTypeface(typeface, Typeface.BOLD)
+            gravity = Gravity.CENTER
+            setPadding(dp(16), dp(12), dp(16), dp(12))
+            background = GradientDrawable().apply {
+                cornerRadius = dp(24).toFloat()
+                setColor(bgColor)
+            }
+            isClickable = true
+            isFocusable = true
+        }
+    }
+
+    // ---------------------------------------------------------------------
+    // DATA LOADING / SETUP
+    // ---------------------------------------------------------------------
     private fun loadMyDisplayName(onDone: () -> Unit) {
         val uid = FirebaseAuth.getInstance().currentUser?.uid
         if (uid.isNullOrEmpty()) {
@@ -250,7 +385,6 @@ class ChatActivity : BaseActivity() {
                         doc.toObject(ChatMessage::class.java)?.let { freshMessages.add(it) }
                     }
 
-                    // Replace list and sort completely by authoritative time
                     messages.clear()
                     messages.addAll(freshMessages)
 
@@ -283,7 +417,6 @@ class ChatActivity : BaseActivity() {
 
         etMessage.setText("")
 
-        // Optimistic display insertion
         messages.add(optimisticMessage)
         rebuildDisplayList()
         adapter.notifyDataSetChanged()
@@ -358,7 +491,6 @@ class ChatActivity : BaseActivity() {
         chatItems.clear()
         var lastDateLabel: String? = null
 
-        // Sort messages strictly by effective time, falling back to client timestamp
         val sortedList = messages
             .filter { !it.deletedFor.contains(myEmail) }
             .sortedWith(
@@ -391,7 +523,7 @@ class ChatActivity : BaseActivity() {
         }
     }
 
-    // ---------------- Delete Message (WhatsApp-style) ----------------
+    // ---------------- Delete Message (themed dialogs) ----------------
 
     private fun showMessageOptionsDialog(message: ChatMessage) {
         if (message.deleted) return
@@ -400,30 +532,120 @@ class ChatActivity : BaseActivity() {
         val withinDeleteForEveryoneWindow =
             System.currentTimeMillis() - effectiveMillis(message) <= DELETE_FOR_EVERYONE_WINDOW_MS
 
-        val options = mutableListOf("Delete for me")
+        val root = dialogCard()
+
+        root.addView(TextView(this).apply {
+            text = "Delete message?"
+            setTextColor(currentTextPrimary())
+            textSize = 17f
+            setTypeface(typeface, Typeface.BOLD)
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply { bottomMargin = dp(16) }
+        })
+
+        val dialog = AlertDialog.Builder(this).setView(root).create()
+        dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
+
+        root.addView(
+            pillButton("Delete for me", currentSecondaryBtnBg(), currentSecondaryBtnText()).apply {
+                setOnClickListener {
+                    dialog.dismiss()
+                    deleteForMe(message)
+                }
+                layoutParams = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+                ).apply { bottomMargin = dp(8) }
+            }
+        )
+
         if (isMine && withinDeleteForEveryoneWindow) {
-            options.add("Delete for everyone")
+            root.addView(
+                pillButton("Delete for everyone", currentSecondaryBtnBg(), currentDangerText()).apply {
+                    setOnClickListener {
+                        dialog.dismiss()
+                        confirmDeleteForEveryone(message)
+                    }
+                    layoutParams = LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.MATCH_PARENT,
+                        LinearLayout.LayoutParams.WRAP_CONTENT
+                    ).apply { bottomMargin = dp(8) }
+                }
+            )
         }
 
-        AlertDialog.Builder(this)
-            .setTitle("Delete message?")
-            .setItems(options.toTypedArray()) { _, which ->
-                when (options[which]) {
-                    "Delete for me" -> deleteForMe(message)
-                    "Delete for everyone" -> confirmDeleteForEveryone(message)
-                }
+        root.addView(
+            pillButton("Cancel", Color.TRANSPARENT, currentTextSecondary()).apply {
+                setOnClickListener { dialog.dismiss() }
             }
-            .setNegativeButton("Cancel", null)
-            .show()
+        )
+
+        dialog.show()
     }
 
     private fun confirmDeleteForEveryone(message: ChatMessage) {
-        AlertDialog.Builder(this)
-            .setTitle("Delete for everyone?")
-            .setMessage("This message will be deleted for everyone in this chat.")
-            .setPositiveButton("Delete") { _, _ -> deleteForEveryone(message) }
-            .setNegativeButton("Cancel", null)
-            .show()
+        val root = dialogCard()
+
+        root.addView(TextView(this).apply {
+            text = "⚠️"
+            textSize = 30f
+            gravity = Gravity.CENTER
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply { bottomMargin = dp(8) }
+        })
+
+        root.addView(TextView(this).apply {
+            text = "Delete for everyone?"
+            setTextColor(currentTextPrimary())
+            textSize = 17f
+            setTypeface(typeface, Typeface.BOLD)
+            gravity = Gravity.CENTER
+        })
+
+        root.addView(TextView(this).apply {
+            text = "This message will be deleted for everyone in this chat."
+            setTextColor(currentTextSecondary())
+            textSize = 13f
+            gravity = Gravity.CENTER
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply {
+                topMargin = dp(8)
+                bottomMargin = dp(18)
+            }
+        })
+
+        val dialog = AlertDialog.Builder(this).setView(root).create()
+        dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
+
+        val buttonRow = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+
+        val btnCancel = pillButton("Cancel", currentSecondaryBtnBg(), currentSecondaryBtnText()).apply {
+            setOnClickListener { dialog.dismiss() }
+        }
+        val btnDelete = pillButton("Delete", currentDangerBg(), Color.WHITE).apply {
+            setOnClickListener {
+                dialog.dismiss()
+                deleteForEveryone(message)
+            }
+        }
+
+        buttonRow.addView(
+            btnCancel,
+            LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply { marginEnd = dp(8) }
+        )
+        buttonRow.addView(
+            btnDelete,
+            LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+        )
+        root.addView(buttonRow)
+
+        dialog.show()
     }
 
     private fun deleteForMe(message: ChatMessage) {
@@ -454,6 +676,7 @@ class ChatActivity : BaseActivity() {
     class MessageAdapter(
         private val items: List<ChatListItem>,
         private val myEmail: String,
+        private var isDarkMode: Boolean,
         private val onMessageLongClick: (ChatMessage) -> Unit
     ) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
 
@@ -463,16 +686,25 @@ class ChatActivity : BaseActivity() {
             const val VIEW_TYPE_RECEIVED = 2
         }
 
+        fun setDarkMode(dark: Boolean) {
+            if (dark != isDarkMode) {
+                isDarkMode = dark
+                notifyDataSetChanged()
+            }
+        }
+
         inner class DateHeaderViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
             val tvDateHeader: TextView = itemView.findViewById(R.id.tvDateHeader)
         }
 
         inner class SentViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
+            val card: com.google.android.material.card.MaterialCardView = itemView.findViewById(R.id.cardSent)
             val tvText: TextView = itemView.findViewById(R.id.tvMessageText)
             val tvTime: TextView = itemView.findViewById(R.id.tvMessageTime)
         }
 
         inner class ReceivedViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
+            val card: com.google.android.material.card.MaterialCardView = itemView.findViewById(R.id.cardReceived)
             val tvText: TextView = itemView.findViewById(R.id.tvMessageText)
             val tvTime: TextView = itemView.findViewById(R.id.tvMessageTime)
             val tvSender: TextView = itemView.findViewById(R.id.tvSenderName)
@@ -501,7 +733,14 @@ class ChatActivity : BaseActivity() {
         override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
             when (val item = items[position]) {
                 is ChatListItem.DateHeader -> {
-                    (holder as DateHeaderViewHolder).tvDateHeader.text = item.label
+                    val h = holder as DateHeaderViewHolder
+                    h.tvDateHeader.text = item.label
+                    h.tvDateHeader.backgroundTintList = android.content.res.ColorStateList.valueOf(
+                        if (isDarkMode) Color.parseColor("#2A3B48") else Color.parseColor("#1B3C53")
+                    )
+                    h.tvDateHeader.setTextColor(
+                        if (isDarkMode) Color.parseColor("#C9D6DE") else Color.parseColor("#F9F3EF")
+                    )
                 }
                 is ChatListItem.MessageItem -> {
                     val message = item.message
@@ -509,6 +748,7 @@ class ChatActivity : BaseActivity() {
                     val timeStr = android.text.format.DateFormat.format("h:mm a", displayTimestamp).toString()
                     val displayText = if (message.deleted) "This message was deleted" else message.text
                     val style = if (message.deleted) Typeface.ITALIC else Typeface.NORMAL
+                    val timeColor = if (isDarkMode) Color.parseColor("#8FA6B8") else Color.parseColor("#456882")
 
                     val longClickListener = View.OnLongClickListener {
                         if (!message.deleted) {
@@ -520,16 +760,33 @@ class ChatActivity : BaseActivity() {
 
                     when (holder) {
                         is SentViewHolder -> {
+                            holder.card.setCardBackgroundColor(
+                                if (isDarkMode) Color.parseColor("#24405A") else Color.parseColor("#1B3C53")
+                            )
+                            holder.tvText.setTextColor(
+                                if (isDarkMode) Color.parseColor("#F5F7F8") else Color.parseColor("#F9F3EF")
+                            )
                             holder.tvText.text = displayText
                             holder.tvText.setTypeface(holder.tvText.typeface, style)
                             holder.tvTime.text = timeStr
+                            holder.tvTime.setTextColor(timeColor)
                             holder.itemView.setOnLongClickListener(longClickListener)
                         }
                         is ReceivedViewHolder -> {
+                            holder.card.setCardBackgroundColor(
+                                if (isDarkMode) Color.parseColor("#16232E") else Color.parseColor("#F9F3EF")
+                            )
+                            holder.card.strokeColor =
+                                if (isDarkMode) Color.parseColor("#2A3B48") else Color.parseColor("#D2C1B6")
+                            holder.tvText.setTextColor(
+                                if (isDarkMode) Color.parseColor("#F5F7F8") else Color.parseColor("#1B3C53")
+                            )
                             holder.tvText.text = displayText
                             holder.tvText.setTypeface(holder.tvText.typeface, style)
                             holder.tvTime.text = timeStr
+                            holder.tvTime.setTextColor(timeColor)
                             holder.tvSender.text = message.senderName
+                            holder.tvSender.setTextColor(timeColor)
                             holder.itemView.setOnLongClickListener(longClickListener)
                         }
                     }

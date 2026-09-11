@@ -1,6 +1,8 @@
 package com.example.sgp
 
 import android.app.PictureInPictureParams
+import android.content.Context
+import android.content.SharedPreferences
 import android.content.pm.ActivityInfo
 import android.content.res.Configuration
 import android.graphics.Color
@@ -26,7 +28,6 @@ import android.widget.ProgressBar
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
-import androidx.appcompat.app.AppCompatActivity
 import androidx.core.widget.NestedScrollView
 import com.google.firebase.Firebase
 import com.google.firebase.auth.FirebaseAuth
@@ -35,6 +36,7 @@ import com.google.firebase.firestore.firestore
 
 class VideoPlayerActivity : BaseActivity() {
 
+    private lateinit var rootLayout: View
     private lateinit var videoView: ResizableVideoView
     private lateinit var videoContainer: FrameLayout
     private lateinit var scrollContent: NestedScrollView
@@ -42,6 +44,13 @@ class VideoPlayerActivity : BaseActivity() {
     private lateinit var mediaController: MediaController
     private lateinit var tvFullscreenIcon: TextView
     private lateinit var progressBar: ProgressBar
+    private lateinit var tvVideoTitle: TextView
+    private lateinit var tvVideoSubtitle: TextView
+    private lateinit var tvDescriptionLabel: TextView
+    private lateinit var tvVideoDescription: TextView
+    private lateinit var dividerAboveDescription: View
+    private lateinit var btnFeedback: TextView
+    private lateinit var btnReport: TextView
 
     private val db: FirebaseFirestore by lazy { Firebase.firestore }
 
@@ -68,11 +77,33 @@ class VideoPlayerActivity : BaseActivity() {
     private var skillUserId: String = ""
     private var skillUserName: String = ""
 
-    // ---------------- Feedback state ----------------
     private var selectedFeedbackRating = 0
 
-    // Handler for delayed progress update
     private val handler = Handler(Looper.getMainLooper())
+
+    private lateinit var sharedPreferences: SharedPreferences
+    private var isDarkModeEnabled = false
+
+    companion object {
+        private const val PREFS_NAME = "SkillSwapPrefs"
+        private const val KEY_DARK_MODE = "dark_mode"
+    }
+
+    // ---- Light palette ----
+    private val lightScreenBg = Color.parseColor("#EAF1F5")
+    private val lightTextPrimary = Color.parseColor("#1B3C53")
+    private val lightTextSecondary = Color.parseColor("#456882")
+    private val lightDivider = Color.parseColor("#D9E3EA")
+    private val lightPillLightBg = Color.parseColor("#F9F3EF")
+    private val lightPillNavyBg = Color.parseColor("#1B3C53")
+
+    // ---- Dark palette ----
+    private val darkScreenBg = Color.parseColor("#0F1B24")
+    private val darkTextPrimary = Color.parseColor("#F5F7F8")
+    private val darkTextSecondary = Color.parseColor("#8FA6B8")
+    private val darkDivider = Color.parseColor("#2A3B48")
+    private val darkPillLightBg = Color.parseColor("#26343F")
+    private val darkPillNavyBg = Color.parseColor("#0B1620")
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -80,19 +111,25 @@ class VideoPlayerActivity : BaseActivity() {
 
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
 
+        sharedPreferences = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        isDarkModeEnabled = sharedPreferences.getBoolean(KEY_DARK_MODE, false)
+
+        rootLayout = findViewById(R.id.rootLayout)
         videoView = findViewById(R.id.videoView)
         videoContainer = findViewById(R.id.videoContainer)
         scrollContent = findViewById(R.id.scrollContent)
         topBar = findViewById(R.id.topBar)
         progressBar = findViewById(R.id.progressBar)
-        val tvTitle: TextView = findViewById(R.id.tvVideoTitle)
-        val tvSubtitle: TextView = findViewById(R.id.tvVideoSubtitle)
-        val tvDescription: TextView = findViewById(R.id.tvVideoDescription)
+        tvVideoTitle = findViewById(R.id.tvVideoTitle)
+        tvVideoSubtitle = findViewById(R.id.tvVideoSubtitle)
+        tvDescriptionLabel = findViewById(R.id.tvDescriptionLabel)
+        tvVideoDescription = findViewById(R.id.tvVideoDescription)
+        dividerAboveDescription = findViewById(R.id.dividerAboveDescription)
         val btnClose: View = findViewById(R.id.btnClose)
         val btnFullscreen: View = findViewById(R.id.btnFullscreen)
         val btnPip: View = findViewById(R.id.btnPip)
-        val btnReport: View = findViewById(R.id.btnReport)
-        val btnFeedback: View = findViewById(R.id.btnFeedback) // Add this to activity_video_player.xml, styled like btnReport
+        btnReport = findViewById(R.id.btnReport)
+        btnFeedback = findViewById(R.id.btnFeedback)
         tvFullscreenIcon = findViewById(R.id.tvFullscreenIcon)
 
         originalVideoContainerParams = videoContainer.layoutParams
@@ -106,7 +143,6 @@ class VideoPlayerActivity : BaseActivity() {
         val credits = intent.getIntExtra("skillCredits", 0)
         val description = intent.getStringExtra("skillDescription") ?: ""
 
-        // Playlist progress tracking extras
         playlistId = intent.getStringExtra("playlistId")
         videoId = intent.getStringExtra("videoId")
         totalVideos = intent.getIntExtra("totalVideos", 0)
@@ -119,16 +155,17 @@ class VideoPlayerActivity : BaseActivity() {
         Log.d("VideoPlayerActivity", "  videoUrl: ${videoUrl?.take(50)}...")
         Log.d("VideoPlayerActivity", "========================================")
 
-        tvTitle.text = skillTitle
-        tvSubtitle.text = listOfNotNull(
+        tvVideoTitle.text = skillTitle
+        tvVideoSubtitle.text = listOfNotNull(
             category.ifBlank { null },
             "By $skillUserName",
             "$credits credits"
         ).joinToString(" • ")
-        tvDescription.text = description.ifBlank { "No description provided." }
+        tvVideoDescription.text = description.ifBlank { "No description provided." }
+
+        applyTheme(isDarkModeEnabled)
 
         btnClose.setOnClickListener {
-            // If video was playing and progress not marked, try to mark it
             if (!progressMarked && videoId != null && playlistId != null) {
                 Log.d("VideoPlayerActivity", "Close button pressed - marking progress")
                 markProgressIfNeeded()
@@ -166,16 +203,53 @@ class VideoPlayerActivity : BaseActivity() {
             true
         }
 
-        // Track video completion for playlist progress
         videoView.setOnCompletionListener {
             Log.d("VideoPlayerActivity", "========================================")
             Log.d("VideoPlayerActivity", "🎬 Video COMPLETED! (via completion listener)")
             Log.d("VideoPlayerActivity", "========================================")
             videoCompleted = true
-            // Delay slightly to ensure everything is ready
             handler.postDelayed({
                 markProgressIfNeeded()
             }, 500)
+        }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        val storedDarkMode = sharedPreferences.getBoolean(KEY_DARK_MODE, false)
+        if (storedDarkMode != isDarkModeEnabled) {
+            applyTheme(storedDarkMode)
+        }
+    }
+
+    // ---------------------------------------------------------------------
+    // THEME ENGINE
+    // ---------------------------------------------------------------------
+    private fun applyTheme(isDark: Boolean) {
+        isDarkModeEnabled = isDark
+
+        val screenBg = if (isDark) darkScreenBg else lightScreenBg
+        val textPrimary = if (isDark) darkTextPrimary else lightTextPrimary
+        val textSecondary = if (isDark) darkTextSecondary else lightTextSecondary
+        val divider = if (isDark) darkDivider else lightDivider
+        val pillLightBg = if (isDark) darkPillLightBg else lightPillLightBg
+        val pillNavyBg = if (isDark) darkPillNavyBg else lightPillNavyBg
+
+        rootLayout.setBackgroundColor(screenBg)
+        tvVideoTitle.setTextColor(textPrimary)
+        tvVideoSubtitle.setTextColor(textSecondary)
+        tvDescriptionLabel.setTextColor(textPrimary)
+        tvVideoDescription.setTextColor(textPrimary)
+        dividerAboveDescription.setBackgroundColor(divider)
+
+        btnFeedback.setTextColor(textPrimary)
+        btnFeedback.background = GradientDrawable().apply {
+            cornerRadius = dp(24).toFloat()
+            setColor(pillLightBg)
+        }
+        btnReport.background = GradientDrawable().apply {
+            cornerRadius = dp(24).toFloat()
+            setColor(pillNavyBg)
         }
     }
 
@@ -217,10 +291,8 @@ class VideoPlayerActivity : BaseActivity() {
         Log.d("VideoPlayerActivity", "✅ Updating progress for playlist: $pid, video: $vid, total: $totalVideos")
         progressMarked = true
 
-        // Call PlaylistManager to update progress
         PlaylistManager.updateProgress(uid, pid, vid, totalVideos)
 
-        // Show toast to indicate progress was saved
         Toast.makeText(this, "✅ Progress saved!", Toast.LENGTH_SHORT).show()
     }
 
@@ -229,13 +301,11 @@ class VideoPlayerActivity : BaseActivity() {
         Log.d("VideoPlayerActivity", "onDestroy called")
         Log.d("VideoPlayerActivity", "  videoCompleted: $videoCompleted, progressMarked: $progressMarked")
 
-        // If video was completed but progress not marked, try to mark it
         if (videoCompleted && !progressMarked) {
             Log.d("VideoPlayerActivity", "Video completed but progress not marked - marking now in onDestroy")
             markProgressIfNeeded()
         }
 
-        // Remove any pending handler callbacks
         handler.removeCallbacksAndMessages(null)
 
         if (::videoView.isInitialized && videoView.isPlaying) {
@@ -248,7 +318,6 @@ class VideoPlayerActivity : BaseActivity() {
             toggleFullscreen()
             return
         }
-        // If video was playing and progress not marked, try to mark it
         if (!progressMarked && videoId != null && playlistId != null) {
             Log.d("VideoPlayerActivity", "Back pressed - marking progress")
             markProgressIfNeeded()
@@ -275,7 +344,7 @@ class VideoPlayerActivity : BaseActivity() {
         root.addView(dialogTitle("Report \"$skillTitle\""))
         root.addView(TextView(this).apply {
             text = "Help us understand what's wrong"
-            setTextColor(Color.parseColor("#456882"))
+            setTextColor(currentTextSecondary())
             textSize = 13f
             setPadding(0, dp(4), 0, dp(4))
         })
@@ -294,7 +363,7 @@ class VideoPlayerActivity : BaseActivity() {
             }
         }
 
-        val btnCancel = pillButton("Cancel", Color.parseColor("#EAF1F5"), Color.parseColor("#456882")).apply {
+        val btnCancel = pillButton("Cancel", currentSecondaryBtnBg(), currentSecondaryBtnText()).apply {
             layoutParams = LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.WRAP_CONTENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT
@@ -315,7 +384,7 @@ class VideoPlayerActivity : BaseActivity() {
         theme.resolveAttribute(android.R.attr.selectableItemBackground, outValue, true)
         return TextView(this).apply {
             this.text = text
-            setTextColor(Color.parseColor("#1B3C53"))
+            setTextColor(currentTextPrimary())
             textSize = 15f
             setPadding(dp(4), dp(8), dp(4), dp(8))
             setBackgroundResource(outValue.resourceId)
@@ -365,7 +434,7 @@ class VideoPlayerActivity : BaseActivity() {
         root.addView(dialogTitle("Give Feedback"))
         root.addView(TextView(this).apply {
             text = "How was \"$skillTitle\"?"
-            setTextColor(Color.parseColor("#456882"))
+            setTextColor(currentTextSecondary())
             textSize = 13f
             setPadding(0, dp(4), 0, dp(10))
         })
@@ -390,7 +459,7 @@ class VideoPlayerActivity : BaseActivity() {
                     selectedFeedbackRating = i
                     starViews.forEachIndexed { idx, sv ->
                         sv.text = if (idx < i) "★" else "☆"
-                        sv.setTextColor(if (idx < i) Color.parseColor("#1B3C53") else Color.parseColor("#D2C1B6"))
+                        sv.setTextColor(if (idx < i) currentTextPrimary() else Color.parseColor("#D2C1B6"))
                     }
                 }
             }
@@ -401,8 +470,8 @@ class VideoPlayerActivity : BaseActivity() {
 
         val etComment = EditText(this).apply {
             hint = "Comment (optional)"
-            setTextColor(Color.parseColor("#1B3C53"))
-            setHintTextColor(Color.parseColor("#456882"))
+            setTextColor(currentTextPrimary())
+            setHintTextColor(currentTextSecondary())
             textSize = 13f
             setPadding(dp(4), dp(10), dp(4), dp(10))
             minLines = 2
@@ -422,11 +491,11 @@ class VideoPlayerActivity : BaseActivity() {
                 LinearLayout.LayoutParams.WRAP_CONTENT
             ).apply { topMargin = dp(4) }
         }
-        row.addView(pillButton("Cancel", Color.parseColor("#EAF1F5"), Color.parseColor("#456882")).apply {
+        row.addView(pillButton("Cancel", currentSecondaryBtnBg(), currentSecondaryBtnText()).apply {
             setPadding(dp(24), dp(10), dp(24), dp(10))
             setOnClickListener { dialog.dismiss() }
         })
-        row.addView(pillButton("Submit", Color.parseColor("#1B3C53"), Color.parseColor("#F9F3EF")).apply {
+        row.addView(pillButton("Submit", currentTextPrimary(), Color.parseColor("#F9F3EF")).apply {
             layoutParams = LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.WRAP_CONTENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT
@@ -468,13 +537,28 @@ class VideoPlayerActivity : BaseActivity() {
     // ---------------- Themed-dialog helpers ----------------
     private fun dp(value: Int): Int = (value * resources.displayMetrics.density).toInt()
 
+    private fun currentDialogBg(): Int =
+        if (isDarkModeEnabled) Color.parseColor("#16232E") else Color.WHITE
+
+    private fun currentTextPrimary(): Int =
+        if (isDarkModeEnabled) darkTextPrimary else lightTextPrimary
+
+    private fun currentTextSecondary(): Int =
+        if (isDarkModeEnabled) darkTextSecondary else lightTextSecondary
+
+    private fun currentSecondaryBtnBg(): Int =
+        if (isDarkModeEnabled) darkDivider else Color.parseColor("#EAF1F5")
+
+    private fun currentSecondaryBtnText(): Int =
+        if (isDarkModeEnabled) darkTextPrimary else lightTextSecondary
+
     private fun dialogCard(): LinearLayout {
         return LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(dp(20), dp(22), dp(20), dp(20))
             background = GradientDrawable().apply {
                 cornerRadius = dp(20).toFloat()
-                setColor(Color.WHITE)
+                setColor(currentDialogBg())
             }
         }
     }
@@ -482,7 +566,7 @@ class VideoPlayerActivity : BaseActivity() {
     private fun dialogTitle(text: String): TextView {
         return TextView(this).apply {
             this.text = text
-            setTextColor(Color.parseColor("#1B3C53"))
+            setTextColor(currentTextPrimary())
             textSize = 17f
             setTypeface(typeface, Typeface.BOLD)
         }
@@ -497,7 +581,7 @@ class VideoPlayerActivity : BaseActivity() {
                 topMargin = dp(12)
                 bottomMargin = dp(12)
             }
-            setBackgroundColor(Color.parseColor("#EAF1F5"))
+            setBackgroundColor(if (isDarkModeEnabled) darkDivider else Color.parseColor("#EAF1F5"))
         }
     }
 

@@ -5,7 +5,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:background="@color/admin_bg_light_blue">
+    android:background="#EAF1F5">
 
     <androidx.appcompat.widget.Toolbar
         android:id="@+id/toolbarChat"
@@ -14,10 +14,9 @@
         android:minHeight="?attr/actionBarSize"
         android:paddingTop="6dp"
         android:paddingBottom="6dp"
-        android:background="@color/brand_final_primary"
+        android:background="#1B3C53"
         app:navigationIcon="@drawable/baseline_arrow_back_24"
-        app:navigationIconTint="@color/black"
-        app:titleTextColor="@color/brand_final_on_primary">
+        app:navigationIconTint="#F9F3EF">
 
         <LinearLayout
             android:layout_width="wrap_content"
@@ -32,14 +31,14 @@
                 android:textSize="17sp"
                 android:fontFamily="sans-serif-medium"
                 android:textStyle="bold"
-                android:textColor="@color/brand_final_on_primary" />
+                android:textColor="#F9F3EF" />
 
             <TextView
                 android:id="@+id/tvChatContext"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:textSize="12sp"
-                android:textColor="@color/brand_final_primary_container"
+                android:textColor="#C9D6DE"
                 android:maxLines="1"
                 android:ellipsize="end"
                 android:visibility="gone" />
@@ -52,22 +51,24 @@
         android:layout_height="0dp"
         android:layout_weight="1"
         android:clipToPadding="false"
-        android:background="@color/admin_bg_light_blue"
+        android:background="#EAF1F5"
         android:paddingStart="10dp"
         android:paddingEnd="10dp"
         android:paddingTop="10dp"
         android:paddingBottom="10dp" />
 
     <LinearLayout
+        android:id="@+id/layoutInputBar"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:gravity="center_vertical"
         android:padding="10dp"
-        android:background="@color/admin_bg_light_blue"
+        android:background="#EAF1F5"
         android:elevation="8dp">
 
         <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/tilMessageInput"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
@@ -76,8 +77,8 @@
             app:boxCornerRadiusBottomStart="24dp"
             app:boxCornerRadiusBottomEnd="24dp"
             app:boxBackgroundMode="outline"
-            app:boxBackgroundColor="@color/brand_final_surface"
-            app:boxStrokeColor="@color/brand_final_outline_variant"
+            app:boxBackgroundColor="#FFFFFF"
+            app:boxStrokeColor="#D2C1B6"
             app:boxStrokeWidth="1dp"
             app:hintEnabled="false">
 
@@ -86,8 +87,8 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:hint="Type a message..."
-                android:textColor="@color/brand_final_on_surface"
-                android:textColorHint="@color/brand_final_on_surface_variant"
+                android:textColor="#1B3C53"
+                android:textColorHint="#456882"
                 android:maxLines="4"
                 android:inputType="textCapSentences|textMultiLine" />
 
@@ -99,9 +100,9 @@
             android:layout_height="48dp"
             android:layout_marginStart="8dp"
             android:background="@drawable/circle_button_background"
-            android:backgroundTint="@color/brand_final_primary"
+            android:backgroundTint="#1B3C53"
             android:src="@drawable/baseline_send_24"
-            app:tint="@color/brand_final_on_primary"
+            app:tint="#F9F3EF"
             android:contentDescription="Send message"
             android:padding="12dp" />
 

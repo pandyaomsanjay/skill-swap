@@ -216,7 +216,8 @@ class SettingsActivity : BaseActivity() {
 
         findViewById<View>(R.id.headerBar)?.setBackgroundColor(headerBg)
         findViewById<MaterialCardView>(R.id.btnBack)?.setCardBackgroundColor(backButtonBg)
-        findViewById<ImageView>(R.id.ivBackIcon)?.imageTintList = ColorStateList.valueOf(headerTitleColor)
+        findViewById<ImageView>(R.id.ivBackIcon)?.imageTintList =
+            ColorStateList.valueOf(headerTitleColor)
 
         findViewById<TextView>(R.id.tvSettingsTitle)?.apply {
             setTextColor(headerTitleColor)
@@ -237,38 +238,47 @@ class SettingsActivity : BaseActivity() {
 
         findViewById<TextView>(R.id.tvUserName)?.setTextColor(textPrimary)
         findViewById<TextView>(R.id.tvUserEmail)?.setTextColor(textSecondary)
-        findViewById<ImageView>(R.id.ivChevronProfile)?.imageTintList = ColorStateList.valueOf(chevronTint)
+        findViewById<ImageView>(R.id.ivChevronProfile)?.imageTintList =
+            ColorStateList.valueOf(chevronTint)
 
-        findViewById<MaterialCardView>(R.id.iconBgChangePassword)?.setCardBackgroundColor(iconBgNeutral)
-        findViewById<ImageView>(R.id.ivIconChangePassword)?.imageTintList = ColorStateList.valueOf(iconTintNeutral)
+        findViewById<MaterialCardView>(R.id.iconBgChangePassword)?.setCardBackgroundColor(
+            iconBgNeutral
+        )
+        findViewById<ImageView>(R.id.ivIconChangePassword)?.imageTintList =
+            ColorStateList.valueOf(iconTintNeutral)
         findViewById<TextView>(R.id.tvChangePasswordTitle)?.setTextColor(textPrimary)
         findViewById<TextView>(R.id.tvChangePasswordSubtitle)?.setTextColor(textSecondary)
-        findViewById<ImageView>(R.id.ivChevronChangePassword)?.imageTintList = ColorStateList.valueOf(chevronTint)
+        findViewById<ImageView>(R.id.ivChevronChangePassword)?.imageTintList =
+            ColorStateList.valueOf(chevronTint)
         findViewById<View>(R.id.dividerPassword1)?.setBackgroundColor(divider)
 
-        findViewById<MaterialCardView>(R.id.iconBgForgotPassword)?.setCardBackgroundColor(iconBgNeutral)
-        findViewById<ImageView>(R.id.ivIconForgotPassword)?.imageTintList = ColorStateList.valueOf(iconTintNeutral)
+        findViewById<MaterialCardView>(R.id.iconBgForgotPassword)?.setCardBackgroundColor(
+            iconBgNeutral
+        )
+        findViewById<ImageView>(R.id.ivIconForgotPassword)?.imageTintList =
+            ColorStateList.valueOf(iconTintNeutral)
         findViewById<TextView>(R.id.tvForgotPasswordTitle)?.setTextColor(textPrimary)
         findViewById<TextView>(R.id.tvForgotPasswordSubtitle)?.setTextColor(textSecondary)
-        findViewById<ImageView>(R.id.ivChevronForgotPassword)?.imageTintList = ColorStateList.valueOf(chevronTint)
+        findViewById<ImageView>(R.id.ivChevronForgotPassword)?.imageTintList =
+            ColorStateList.valueOf(chevronTint)
 
         findViewById<MaterialCardView>(R.id.iconBgPush)?.setCardBackgroundColor(iconBgGreen)
-        findViewById<ImageView>(R.id.ivIconPush)?.imageTintList = ColorStateList.valueOf(iconTintGreen)
+        findViewById<ImageView>(R.id.ivIconPush)?.imageTintList =
+            ColorStateList.valueOf(iconTintGreen)
         findViewById<TextView>(R.id.tvPushTitle)?.setTextColor(textPrimary)
         findViewById<TextView>(R.id.tvPushSubtitle)?.setTextColor(textSecondary)
         findViewById<View>(R.id.dividerPref1)?.setBackgroundColor(divider)
 
         findViewById<MaterialCardView>(R.id.iconBgDark)?.setCardBackgroundColor(iconBgGold)
-        findViewById<ImageView>(R.id.ivIconDark)?.imageTintList = ColorStateList.valueOf(iconTintGold)
+        findViewById<ImageView>(R.id.ivIconDark)?.imageTintList =
+            ColorStateList.valueOf(iconTintGold)
         findViewById<TextView>(R.id.tvDarkTitle)?.setTextColor(textPrimary)
         findViewById<TextView>(R.id.tvDarkSubtitle)?.setTextColor(textSecondary)
         findViewById<View>(R.id.dividerPref2)?.setBackgroundColor(divider)
 
-        // ============================================================
-        // Language row — pill background on the value for clarity
-        // ============================================================
         findViewById<MaterialCardView>(R.id.iconBgLanguage)?.setCardBackgroundColor(iconBgNeutral)
-        findViewById<ImageView>(R.id.ivIconLanguage)?.imageTintList = ColorStateList.valueOf(iconTintNeutral)
+        findViewById<ImageView>(R.id.ivIconLanguage)?.imageTintList =
+            ColorStateList.valueOf(iconTintNeutral)
         findViewById<TextView>(R.id.tvLanguageLabel)?.setTextColor(textPrimary)
 
         findViewById<TextView>(R.id.tvLanguage)?.apply {
@@ -280,12 +290,15 @@ class SettingsActivity : BaseActivity() {
             setPadding(dp(12), dp(5), dp(12), dp(5))
         }
 
-        findViewById<ImageView>(R.id.ivChevronLanguage)?.imageTintList = ColorStateList.valueOf(chevronTint)
+        findViewById<ImageView>(R.id.ivChevronLanguage)?.imageTintList =
+            ColorStateList.valueOf(chevronTint)
 
         listOf(
             R.id.ivIconHelp, R.id.ivIconPrivacy, R.id.ivIconTerms,
             R.id.ivIconRate, R.id.ivIconAbout, R.id.ivIconVersion
-        ).forEach { id -> findViewById<ImageView>(id)?.imageTintList = ColorStateList.valueOf(chevronTint) }
+        ).forEach { id ->
+            findViewById<ImageView>(id)?.imageTintList = ColorStateList.valueOf(chevronTint)
+        }
 
         listOf(
             R.id.tvHelpSupport, R.id.tvPrivacyPolicy, R.id.tvTermsOfService,
@@ -297,7 +310,9 @@ class SettingsActivity : BaseActivity() {
         listOf(
             R.id.ivChevronHelp, R.id.ivChevronPrivacy, R.id.ivChevronTerms,
             R.id.ivChevronRate, R.id.ivChevronAbout
-        ).forEach { id -> findViewById<ImageView>(id)?.imageTintList = ColorStateList.valueOf(chevronTint) }
+        ).forEach { id ->
+            findViewById<ImageView>(id)?.imageTintList = ColorStateList.valueOf(chevronTint)
+        }
 
         listOf(
             R.id.dividerSupport1, R.id.dividerSupport2, R.id.dividerSupport3,
@@ -346,12 +361,43 @@ class SettingsActivity : BaseActivity() {
         switch.thumbTintList = ColorStateList.valueOf(if (switch.isChecked) thumbOn else thumbOff)
     }
 
+    // ---------------------------------------------------------------------
+    // ONE-SIGNAL PUSH SUBSCRIPTION
+    // ---------------------------------------------------------------------
+
+    /**
+     * Applies the user's push preference to OneSignal.
+     *  - enabled  → optIn()  → OneSignal delivers pushes to this device
+     *  - disabled → optOut() → OneSignal stops sending to this device
+     *
+     * Wrapped in try/catch so a transient OneSignal hiccup never blocks the UI.
+     */
+    private fun applyPushSubscription(enabled: Boolean) {
+        try {
+            if (enabled) {
+                OneSignal.User.pushSubscription.optIn()
+            } else {
+                OneSignal.User.pushSubscription.optOut()
+            }
+            Log.d(TAG, "applyPushSubscription: opt ${if (enabled) "IN" else "OUT"} issued")
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to update OneSignal push subscription: ${e.message}", e)
+        }
+    }
+
     private fun currentDialogBg(): Int = if (isDarkModeEnabled) darkCardBg else Color.WHITE
     private fun currentTextPrimary(): Int = if (isDarkModeEnabled) darkTextPrimary else navyDark
-    private fun currentTextSecondary(): Int = if (isDarkModeEnabled) darkTextSecondary else lightTextSecondary
-    private fun currentSecondaryBtnBg(): Int = if (isDarkModeEnabled) darkCardStroke else lightScreenBg
-    private fun currentSecondaryBtnText(): Int = if (isDarkModeEnabled) darkTextPrimary else lightTextSecondary
-    private fun currentLogoutConfirmBg(): Int = if (isDarkModeEnabled) logoutConfirmBgDark else logoutConfirmBgLight
+    private fun currentTextSecondary(): Int =
+        if (isDarkModeEnabled) darkTextSecondary else lightTextSecondary
+
+    private fun currentSecondaryBtnBg(): Int =
+        if (isDarkModeEnabled) darkCardStroke else lightScreenBg
+
+    private fun currentSecondaryBtnText(): Int =
+        if (isDarkModeEnabled) darkTextPrimary else lightTextSecondary
+
+    private fun currentLogoutConfirmBg(): Int =
+        if (isDarkModeEnabled) logoutConfirmBgDark else logoutConfirmBgLight
 
     private fun isEmailPasswordUser(): Boolean {
         val providerData = auth.currentUser?.providerData ?: return false
@@ -404,7 +450,8 @@ class SettingsActivity : BaseActivity() {
         })
 
         root.addView(TextView(this).apply {
-            text = "This feature is not available in SkillSwap for accounts signed in through $provider."
+            text =
+                "This feature is not available in SkillSwap for accounts signed in through $provider."
             setTextColor(currentTextSecondary())
             textSize = 13f
             gravity = Gravity.CENTER
@@ -530,8 +577,11 @@ class SettingsActivity : BaseActivity() {
     }
 
     private fun loadPreferences() {
-        findViewById<MaterialSwitch>(R.id.switchPushNotifications)?.isChecked =
-            sharedPreferences.getBoolean(KEY_PUSH_NOTIFICATIONS, true)
+        // Read the stored push preference and apply it to OneSignal immediately,
+        // so this device's subscription state is reconciled with the toggle.
+        val pushEnabled = sharedPreferences.getBoolean(KEY_PUSH_NOTIFICATIONS, true)
+        findViewById<MaterialSwitch>(R.id.switchPushNotifications)?.isChecked = pushEnabled
+        applyPushSubscription(pushEnabled)
 
         findViewById<MaterialSwitch>(R.id.switchDarkMode)?.isChecked = isDarkModeEnabled
 
@@ -580,9 +630,13 @@ class SettingsActivity : BaseActivity() {
             })
         }
 
+        // ---- Push notifications toggle: actually subscribes / unsubscribes ----
         findViewById<MaterialSwitch>(R.id.switchPushNotifications)?.setOnCheckedChangeListener { switchView, isChecked ->
             sharedPreferences.edit().putBoolean(KEY_PUSH_NOTIFICATIONS, isChecked).apply()
             applySwitchColors(switchView as MaterialSwitch, isDarkModeEnabled)
+
+            // Route the change to OneSignal so pushes actually stop/start
+            applyPushSubscription(isChecked)
 
             switchView.postDelayed({
                 showMessage("Push notifications ${if (isChecked) "enabled" else "disabled"}")
@@ -595,7 +649,8 @@ class SettingsActivity : BaseActivity() {
 
             switchView.postDelayed({
                 applyTheme(isChecked)
-                val mode = if (isChecked) AppCompatDelegate.MODE_NIGHT_YES else AppCompatDelegate.MODE_NIGHT_NO
+                val mode =
+                    if (isChecked) AppCompatDelegate.MODE_NIGHT_YES else AppCompatDelegate.MODE_NIGHT_NO
                 AppCompatDelegate.setDefaultNightMode(mode)
             }, themeSwitchDelayMs)
         }
@@ -705,7 +760,8 @@ class SettingsActivity : BaseActivity() {
 
         showMessage("Uploading photo…")
 
-        val fileName = "profile_images/${auth.currentUser?.uid ?: email}_${System.currentTimeMillis()}.jpg"
+        val fileName =
+            "profile_images/${auth.currentUser?.uid ?: email}_${System.currentTimeMillis()}.jpg"
         val storageRef = storage.reference.child(fileName)
 
         storageRef.putBytes(bytes)
@@ -713,7 +769,12 @@ class SettingsActivity : BaseActivity() {
                 if (!task.isSuccessful) task.exception?.let { throw it }
                 storageRef.downloadUrl
             }
-            .addOnSuccessListener { downloadUri -> saveProfileImageUrl(email, downloadUri.toString()) }
+            .addOnSuccessListener { downloadUri ->
+                saveProfileImageUrl(
+                    email,
+                    downloadUri.toString()
+                )
+            }
             .addOnFailureListener { e ->
                 Log.e(TAG, "Failed to upload profile image", e)
                 showMessage("Failed to upload photo: ${e.message}")
@@ -818,11 +879,19 @@ class SettingsActivity : BaseActivity() {
 
         val buttonRow = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
 
-        val btnCancel = pillButton(getString(R.string.cancel), currentSecondaryBtnBg(), currentSecondaryBtnText()).apply {
+        val btnCancel = pillButton(
+            getString(R.string.cancel),
+            currentSecondaryBtnBg(),
+            currentSecondaryBtnText()
+        ).apply {
             setOnClickListener { dialog.dismiss() }
         }
 
-        val btnLogout = pillButton(getString(R.string.logout), currentLogoutConfirmBg(), logoutConfirmText).apply {
+        val btnLogout = pillButton(
+            getString(R.string.logout),
+            currentLogoutConfirmBg(),
+            logoutConfirmText
+        ).apply {
             setOnClickListener {
                 dialog.dismiss()
                 performLogout()

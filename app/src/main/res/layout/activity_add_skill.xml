@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/rootLayout"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
@@ -12,6 +13,7 @@
         android:layout_width="match_parent"
         android:layout_height="?attr/actionBarSize"
         android:background="#1B3C53"
+        android:elevation="6dp"
         app:title="Offer a Skill"
         app:titleTextColor="@android:color/white"
         app:navigationIcon="@drawable/outline_arrow_back_24"
@@ -31,6 +33,7 @@
 
             <!-- Skill Type Toggle -->
             <TextView
+                android:id="@+id/tvSkillTypeLabel"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Skill Type"
@@ -82,163 +85,228 @@
                 android:orientation="vertical"
                 android:visibility="visible">
 
-                <!-- Skill Title -->
-                <com.google.android.material.textfield.TextInputLayout
-                    android:id="@+id/titleLayout"
-                    style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginBottom="16dp"
-                    android:hint="Skill Title"
-                    app:boxStrokeColor="#456882"
-                    app:hintTextColor="#1B3C53">
-
-                    <com.google.android.material.textfield.TextInputEditText
-                        android:id="@+id/etTitle"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:textColor="#1B3C53" />
-                </com.google.android.material.textfield.TextInputLayout>
-
-                <!-- Category -->
-                <com.google.android.material.textfield.TextInputLayout
-                    style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginBottom="16dp"
-                    android:hint="Category"
-                    app:endIconMode="dropdown_menu"
-                    app:boxStrokeColor="#456882"
-                    app:hintTextColor="#1B3C53">
-
-                    <com.google.android.material.textfield.MaterialAutoCompleteTextView
-                        android:id="@+id/actvCategory"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:inputType="none"
-                        android:focusable="false"
-                        android:clickable="true"
-                        android:textColor="#1B3C53" />
-                </com.google.android.material.textfield.TextInputLayout>
-
-                <!-- Description -->
-                <com.google.android.material.textfield.TextInputLayout
-                    style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginBottom="16dp"
-                    android:hint="Description"
-                    app:boxStrokeColor="#456882"
-                    app:hintTextColor="#1B3C53">
-
-                    <com.google.android.material.textfield.TextInputEditText
-                        android:id="@+id/etDescription"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:minLines="3"
-                        android:inputType="textMultiLine"
-                        android:textColor="#1B3C53" />
-                </com.google.android.material.textfield.TextInputLayout>
-
-                <!-- Duration -->
-                <com.google.android.material.textfield.TextInputLayout
-                    style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginBottom="16dp"
-                    android:hint="Duration (e.g. 10m 30s)"
-                    app:boxStrokeColor="#456882"
-                    app:hintTextColor="#1B3C53">
-
-                    <com.google.android.material.textfield.TextInputEditText
-                        android:id="@+id/etDuration"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:textColor="#1B3C53" />
-                </com.google.android.material.textfield.TextInputLayout>
-
-                <!-- Video Selection -->
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Select Video"
-                    android:textColor="#456882"
-                    android:textSize="13sp"
-                    android:textStyle="bold"
-                    android:layout_marginBottom="8dp" />
-
+                <!-- 1. Skill Details Card (mirrors "Playlist Details" card) -->
                 <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/cardSkillDetails"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    app:cardCornerRadius="12dp"
+                    app:cardCornerRadius="16dp"
                     app:cardElevation="0dp"
                     app:strokeWidth="1dp"
                     app:strokeColor="#D2C1B6"
+                    app:cardBackgroundColor="#FFFFFF"
                     android:layout_marginBottom="16dp">
 
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:orientation="horizontal"
-                        android:gravity="center_vertical"
-                        android:padding="12dp">
-
-                        <ImageView
-                            android:id="@+id/ivVideoThumbnail"
-                            android:layout_width="48dp"
-                            android:layout_height="48dp"
-                            android:src="@drawable/baseline_videocam_24"
-                            app:tint="#456882"
-                            android:scaleType="centerInside"
-                            android:contentDescription="Video thumbnail" />
+                        android:orientation="vertical"
+                        android:padding="16dp">
 
                         <TextView
-                            android:id="@+id/tvVideoFileName"
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:layout_marginStart="12dp"
-                            android:text="No video selected"
-                            android:textColor="#757575"
-                            android:textSize="14sp" />
-
-                        <ImageButton
-                            android:id="@+id/btnCancelVideo"
-                            android:layout_width="32dp"
-                            android:layout_height="32dp"
-                            android:src="@drawable/baseline_close_24"
-                            app:tint="#DC2626"
-                            android:background="?attr/selectableItemBackgroundBorderless"
-                            android:visibility="gone"
-                            android:contentDescription="Remove video" />
-
-                        <TextView
-                            android:id="@+id/btnSelectVideo"
+                            android:id="@+id/tvSkillDetailsTitle"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Select"
-                            android:textColor="@android:color/white"
-                            android:textSize="13sp"
+                            android:text="Skill Details"
+                            android:textColor="#1B3C53"
+                            android:textSize="17sp"
                             android:textStyle="bold"
-                            android:gravity="center"
-                            android:paddingHorizontal="18dp"
-                            android:paddingVertical="9dp"
-                            android:layout_marginStart="8dp"
-                            android:background="@drawable/pill_navy_bg"
-                            android:clickable="true"
-                            android:focusable="true" />
+                            android:layout_marginBottom="12dp" />
+
+                        <!-- Skill Title -->
+                        <com.google.android.material.textfield.TextInputLayout
+                            android:id="@+id/titleLayout"
+                            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginBottom="12dp"
+                            android:hint="Skill Title"
+                            app:boxStrokeColor="#456882"
+                            app:hintTextColor="#1B3C53">
+
+                            <com.google.android.material.textfield.TextInputEditText
+                                android:id="@+id/etTitle"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:textColor="#1B3C53" />
+                        </com.google.android.material.textfield.TextInputLayout>
+
+                        <!-- Category -->
+                        <com.google.android.material.textfield.TextInputLayout
+                            android:id="@+id/categoryLayout"
+                            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginBottom="12dp"
+                            android:hint="Category"
+                            app:endIconMode="dropdown_menu"
+                            app:boxStrokeColor="#456882"
+                            app:hintTextColor="#1B3C53">
+
+                            <com.google.android.material.textfield.MaterialAutoCompleteTextView
+                                android:id="@+id/actvCategory"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:inputType="none"
+                                android:focusable="false"
+                                android:clickable="true"
+                                android:textColor="#1B3C53" />
+                        </com.google.android.material.textfield.TextInputLayout>
+
+                        <!-- Description -->
+                        <com.google.android.material.textfield.TextInputLayout
+                            android:id="@+id/descriptionLayout"
+                            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginBottom="12dp"
+                            android:hint="Description"
+                            app:boxStrokeColor="#456882"
+                            app:hintTextColor="#1B3C53">
+
+                            <com.google.android.material.textfield.TextInputEditText
+                                android:id="@+id/etDescription"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:minLines="3"
+                                android:inputType="textMultiLine"
+                                android:textColor="#1B3C53" />
+                        </com.google.android.material.textfield.TextInputLayout>
+
+                        <!-- Duration -->
+                        <com.google.android.material.textfield.TextInputLayout
+                            android:id="@+id/durationLayout"
+                            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:hint="Duration (e.g. 10m 30s)"
+                            app:boxStrokeColor="#456882"
+                            app:hintTextColor="#1B3C53">
+
+                            <com.google.android.material.textfield.TextInputEditText
+                                android:id="@+id/etDuration"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:textColor="#1B3C53" />
+                        </com.google.android.material.textfield.TextInputLayout>
+
                     </LinearLayout>
                 </com.google.android.material.card.MaterialCardView>
 
-                <!-- Progress Bar -->
-                <ProgressBar
-                    android:id="@+id/progressBarVideoUpload"
-                    style="?android:attr/progressBarStyleHorizontal"
+                <!-- 2. Select Video Card (mirrors "Demo / Preview Video" card) -->
+                <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/cardVideoUpload"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginBottom="16dp"
-                    android:visibility="gone"
-                    android:indeterminate="true" />
+                    app:cardCornerRadius="16dp"
+                    app:cardElevation="0dp"
+                    app:strokeWidth="1dp"
+                    app:strokeColor="#D2C1B6"
+                    app:cardBackgroundColor="#FFFFFF"
+                    android:layout_marginBottom="16dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:padding="16dp">
+
+                        <TextView
+                            android:id="@+id/tvSelectVideoTitle"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Select Video"
+                            android:textColor="#1B3C53"
+                            android:textSize="17sp"
+                            android:textStyle="bold"
+                            android:layout_marginBottom="8dp" />
+
+                        <TextView
+                            android:id="@+id/tvSelectVideoDescription"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="Upload the video learners will watch when they unlock this skill."
+                            android:textColor="#456882"
+                            android:textSize="12sp"
+                            android:layout_marginBottom="12dp" />
+
+                        <com.google.android.material.card.MaterialCardView
+                            android:id="@+id/cardVideoSelectRow"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            app:cardCornerRadius="12dp"
+                            app:cardElevation="0dp"
+                            app:strokeWidth="1dp"
+                            app:strokeColor="#D2C1B6"
+                            app:cardBackgroundColor="#FFFFFF"
+                            android:layout_marginBottom="4dp">
+
+                            <LinearLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:orientation="horizontal"
+                                android:gravity="center_vertical"
+                                android:padding="12dp">
+
+                                <ImageView
+                                    android:id="@+id/ivVideoThumbnail"
+                                    android:layout_width="48dp"
+                                    android:layout_height="48dp"
+                                    android:src="@drawable/baseline_videocam_24"
+                                    app:tint="#456882"
+                                    android:scaleType="centerInside"
+                                    android:contentDescription="Video thumbnail" />
+
+                                <TextView
+                                    android:id="@+id/tvVideoFileName"
+                                    android:layout_width="0dp"
+                                    android:layout_height="wrap_content"
+                                    android:layout_weight="1"
+                                    android:layout_marginStart="12dp"
+                                    android:text="No video selected"
+                                    android:textColor="#757575"
+                                    android:textSize="14sp" />
+
+                                <ImageButton
+                                    android:id="@+id/btnCancelVideo"
+                                    android:layout_width="32dp"
+                                    android:layout_height="32dp"
+                                    android:src="@drawable/baseline_close_24"
+                                    app:tint="#DC2626"
+                                    android:background="?attr/selectableItemBackgroundBorderless"
+                                    android:visibility="gone"
+                                    android:contentDescription="Remove video" />
+
+                                <TextView
+                                    android:id="@+id/btnSelectVideo"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="Select"
+                                    android:textColor="@android:color/white"
+                                    android:textSize="13sp"
+                                    android:textStyle="bold"
+                                    android:gravity="center"
+                                    android:paddingHorizontal="18dp"
+                                    android:paddingVertical="9dp"
+                                    android:layout_marginStart="8dp"
+                                    android:background="@drawable/pill_navy_bg"
+                                    android:clickable="true"
+                                    android:focusable="true" />
+                            </LinearLayout>
+                        </com.google.android.material.card.MaterialCardView>
+
+                        <!-- Progress Bar (upload progress for the selected video) -->
+                        <ProgressBar
+                            android:id="@+id/progressBarVideoUpload"
+                            style="?android:attr/progressBarStyleHorizontal"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="8dp"
+                            android:visibility="gone"
+                            android:indeterminate="true" />
+
+                    </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
 
                 <!-- Publish Skill Button -->
                 <com.google.android.material.button.MaterialButton
@@ -267,12 +335,14 @@
 
                 <!-- 1. Playlist Details Card -->
                 <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/cardPlaylistDetails"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     app:cardCornerRadius="16dp"
                     app:cardElevation="0dp"
                     app:strokeWidth="1dp"
                     app:strokeColor="#D2C1B6"
+                    app:cardBackgroundColor="#FFFFFF"
                     android:layout_marginBottom="16dp">
 
                     <LinearLayout
@@ -282,6 +352,7 @@
                         android:padding="16dp">
 
                         <TextView
+                            android:id="@+id/tvPlaylistDetailsTitle"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="Playlist Details"
@@ -291,6 +362,7 @@
                             android:layout_marginBottom="12dp" />
 
                         <com.google.android.material.textfield.TextInputLayout
+                            android:id="@+id/playlistTitleLayout"
                             style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
@@ -307,6 +379,7 @@
                         </com.google.android.material.textfield.TextInputLayout>
 
                         <com.google.android.material.textfield.TextInputLayout
+                            android:id="@+id/playlistCategoryLayout"
                             style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
@@ -327,6 +400,7 @@
                         </com.google.android.material.textfield.TextInputLayout>
 
                         <com.google.android.material.textfield.TextInputLayout
+                            android:id="@+id/playlistDescriptionLayout"
                             style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
@@ -345,6 +419,7 @@
                         </com.google.android.material.textfield.TextInputLayout>
 
                         <com.google.android.material.textfield.TextInputLayout
+                            android:id="@+id/playlistDurationLayout"
                             style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
@@ -362,6 +437,7 @@
 
                         <!-- Thumbnail Upload -->
                         <TextView
+                            android:id="@+id/tvThumbnailLabel"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="Thumbnail (Optional)"
@@ -371,12 +447,14 @@
                             android:layout_marginBottom="6dp" />
 
                         <com.google.android.material.card.MaterialCardView
+                            android:id="@+id/cardThumbnailSelect"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             app:cardCornerRadius="12dp"
                             app:cardElevation="0dp"
                             app:strokeWidth="1dp"
                             app:strokeColor="#D2C1B6"
+                            app:cardBackgroundColor="#FFFFFF"
                             android:layout_marginBottom="4dp">
 
                             <LinearLayout
@@ -433,6 +511,7 @@
                             </LinearLayout>
                         </com.google.android.material.card.MaterialCardView>
                         <TextView
+                            android:id="@+id/tvThumbnailHint"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:text="Recommended: 16:9 aspect ratio"
@@ -445,12 +524,14 @@
 
                 <!-- 2. Demo / Preview Video Card -->
                 <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/cardDemoSelect"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     app:cardCornerRadius="16dp"
                     app:cardElevation="0dp"
                     app:strokeWidth="1dp"
                     app:strokeColor="#D2C1B6"
+                    app:cardBackgroundColor="#FFFFFF"
                     android:layout_marginBottom="16dp">
 
                     <LinearLayout
@@ -460,6 +541,7 @@
                         android:padding="16dp">
 
                         <TextView
+                            android:id="@+id/tvDemoTitle"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="Demo / Preview Video"
@@ -469,6 +551,7 @@
                             android:layout_marginBottom="8dp" />
 
                         <TextView
+                            android:id="@+id/tvDemoDescription"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:text="Upload a short demo so learners can preview the playlist before unlocking."
@@ -477,12 +560,14 @@
                             android:layout_marginBottom="12dp" />
 
                         <com.google.android.material.card.MaterialCardView
+                            android:id="@+id/cardDemoSelectRow"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             app:cardCornerRadius="12dp"
                             app:cardElevation="0dp"
                             app:strokeWidth="1dp"
                             app:strokeColor="#D2C1B6"
+                            app:cardBackgroundColor="#FFFFFF"
                             android:layout_marginBottom="4dp">
 
                             <LinearLayout
@@ -529,6 +614,7 @@
                             </LinearLayout>
                         </com.google.android.material.card.MaterialCardView>
                         <TextView
+                            android:id="@+id/tvDemoSizeHint"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:text="Max file size: 100 MB"
@@ -540,12 +626,14 @@
 
                 <!-- 3. Playlist Videos Card -->
                 <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/cardPlaylistVideosCard"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     app:cardCornerRadius="16dp"
                     app:cardElevation="0dp"
                     app:strokeWidth="1dp"
                     app:strokeColor="#D2C1B6"
+                    app:cardBackgroundColor="#FFFFFF"
                     android:layout_marginBottom="16dp">
 
                     <LinearLayout
@@ -562,6 +650,7 @@
                             android:layout_marginBottom="8dp">
 
                             <TextView
+                                android:id="@+id/tvPlaylistVideosTitle"
                                 android:layout_width="0dp"
                                 android:layout_height="wrap_content"
                                 android:layout_weight="1"
@@ -626,12 +715,14 @@
 
             <!-- 4. Pricing Card (Shared) -->
             <com.google.android.material.card.MaterialCardView
+                android:id="@+id/cardPricing"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 app:cardCornerRadius="16dp"
                 app:cardElevation="0dp"
                 app:strokeWidth="1dp"
                 app:strokeColor="#D2C1B6"
+                app:cardBackgroundColor="#FFFFFF"
                 android:layout_marginBottom="16dp">
 
                 <LinearLayout
@@ -641,6 +732,7 @@
                     android:padding="16dp">
 
                     <TextView
+                        android:id="@+id/tvPricingTitle"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="Pricing"
@@ -650,6 +742,7 @@
                         android:layout_marginBottom="8dp" />
 
                     <TextView
+                        android:id="@+id/tvPricingSubtitle"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:text="Set credit price (should be fair for learners)"
@@ -664,6 +757,7 @@
                         android:gravity="center_vertical">
 
                         <TextView
+                            android:id="@+id/tvCreditsRequiredLabel"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="Credits Required"
@@ -677,6 +771,7 @@
                             android:layout_weight="1" />
 
                         <com.google.android.material.card.MaterialCardView
+                            android:id="@+id/cardCreditsCounter"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             app:cardCornerRadius="28dp"
@@ -732,6 +827,7 @@
                         android:visibility="gone">
 
                         <TextView
+                            android:id="@+id/tvTotalIndividualLabel"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="Total individual price: "

@@ -9,7 +9,10 @@ import com.bumptech.glide.Glide
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.Firebase
 import com.google.firebase.firestore.firestore
+import android.content.Context
 import android.content.Intent
+import android.content.SharedPreferences
+import android.content.res.ColorStateList
 import android.graphics.Color
 import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
@@ -31,18 +34,23 @@ class UserProfileActivity : BaseActivity() {
     private val db = Firebase.firestore
 
     // Views
+    private lateinit var rootLayout: View
     private lateinit var ivAvatar: ImageView
     private lateinit var tvName: TextView
     private lateinit var tvHeadline: TextView
     private lateinit var tvStats: TextView
     private lateinit var tvAbout: TextView
+    private lateinit var tvAboutTitle: TextView
     private lateinit var aboutSection: View
     private lateinit var recyclerUserSkills: RecyclerView
     private lateinit var tvNoSkills: TextView
-    private lateinit var btnMessage: View
+    private lateinit var btnMessage: com.google.android.material.card.MaterialCardView
     private lateinit var btnBack: View
-    private lateinit var btnMore: View
+    private lateinit var btnMore: com.google.android.material.card.MaterialCardView
+    private lateinit var ivReportUserIcon: ImageView
     private lateinit var progressBar: ProgressBar
+    private lateinit var dividerGap: View
+    private lateinit var tvSkillsOfferedTitle: TextView
 
     // Additional details
     private lateinit var tvLocation: TextView
@@ -58,6 +66,30 @@ class UserProfileActivity : BaseActivity() {
     private var profileUserName: String = ""
     private var currentUser: Users? = null
     private var viewedUser: Users? = null
+
+    private lateinit var sharedPreferences: SharedPreferences
+    private var isDarkModeEnabled = false
+
+    companion object {
+        private const val PREFS_NAME = "SkillSwapPrefs"
+        private const val KEY_DARK_MODE = "dark_mode"
+    }
+
+    // ---- Light palette ----
+    private val lightScreenBg = Color.parseColor("#EAF1F5")
+    private val lightCardStroke = Color.parseColor("#D2C1B6")
+    private val lightTextPrimary = Color.parseColor("#1B3C53")
+    private val lightTextSecondary = Color.parseColor("#456882")
+    private val lightIconBgNeutral = Color.parseColor("#F9F3EF")
+    private val lightBtnMessageBg = Color.parseColor("#1B3C53")
+
+    // ---- Dark palette ----
+    private val darkScreenBg = Color.parseColor("#0F1B24")
+    private val darkCardStroke = Color.parseColor("#2A3B48")
+    private val darkTextPrimary = Color.parseColor("#F5F7F8")
+    private val darkTextSecondary = Color.parseColor("#8FA6B8")
+    private val darkIconBgNeutral = Color.parseColor("#26343F")
+    private val darkBtnMessageBg = Color.parseColor("#0B1620")
 
     // ---------- Report User ----------
     private val reportReasons = arrayOf(
@@ -75,31 +107,45 @@ class UserProfileActivity : BaseActivity() {
         profileUserId = intent.getStringExtra("userId") ?: ""
         profileUserName = intent.getStringExtra("userName") ?: "User"
 
+        sharedPreferences = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        isDarkModeEnabled = sharedPreferences.getBoolean(KEY_DARK_MODE, false)
+
         bindViews()
         setupClickListeners()
         setupSkillsList()
+        applyTheme(isDarkModeEnabled)
 
         loadCurrentUser()
         loadUserProfile()
         loadUserSkills()
     }
 
+    override fun onResume() {
+        super.onResume()
+        val storedDarkMode = sharedPreferences.getBoolean(KEY_DARK_MODE, false)
+        if (storedDarkMode != isDarkModeEnabled) {
+            applyTheme(storedDarkMode)
+        }
+    }
+
     private fun bindViews() {
+        rootLayout = findViewById(R.id.rootLayout)
         ivAvatar = findViewById(R.id.ivAvatar)
         tvName = findViewById(R.id.tvName)
         tvHeadline = findViewById(R.id.tvHeadline)
         tvStats = findViewById(R.id.tvStats)
         tvAbout = findViewById(R.id.tvAbout)
+        tvAboutTitle = findViewById(R.id.tvAboutTitle)
         aboutSection = findViewById(R.id.aboutSection)
         recyclerUserSkills = findViewById(R.id.recyclerUserSkills)
         tvNoSkills = findViewById(R.id.tvNoSkills)
         btnMessage = findViewById(R.id.btnMessage)
         btnBack = findViewById(R.id.btnBack)
-        // NOTE: this id historically opened the stats dialog. Per the "Report User"
-        // feature, it's now repurposed as the report entry point; the stats dialog
-        // moved to tapping tvStats instead (see setupClickListeners()).
         btnMore = findViewById(R.id.btnReportUser)
+        ivReportUserIcon = findViewById(R.id.ivReportUserIcon)
         progressBar = findViewById(R.id.progressBar)
+        dividerGap = findViewById(R.id.dividerGap)
+        tvSkillsOfferedTitle = findViewById(R.id.tvSkillsOfferedTitle)
 
         tvLocation = findViewById(R.id.tvLocation)
         tvOnlineStatus = findViewById(R.id.tvOnlineStatus)
@@ -107,22 +153,53 @@ class UserProfileActivity : BaseActivity() {
         llLocation = findViewById(R.id.llLocation)
         tvSkillsLearn = findViewById(R.id.tvSkillsLearn)
 
-        // No `bio` field on Users — About section has nothing to bind, keep it hidden.
         aboutSection.visibility = View.GONE
     }
 
     private fun setupClickListeners() {
         btnBack.setOnClickListener { finish() }
         btnMessage.setOnClickListener { messageUser() }
-        // btnMore (id: btnReportUser) now opens the report flow instead of stats.
         btnMore.setOnClickListener { showReportUserDialog() }
-        // Stats dialog moved here so it's still reachable.
         tvStats.setOnClickListener { showUserStatsDialog() }
+    }
+
+    // ---------------------------------------------------------------------
+    // THEME ENGINE
+    // ---------------------------------------------------------------------
+    private fun applyTheme(isDark: Boolean) {
+        isDarkModeEnabled = isDark
+
+        val screenBg = if (isDark) darkScreenBg else lightScreenBg
+        val textPrimary = if (isDark) darkTextPrimary else lightTextPrimary
+        val textSecondary = if (isDark) darkTextSecondary else lightTextSecondary
+        val iconBgNeutral = if (isDark) darkIconBgNeutral else lightIconBgNeutral
+        val btnMessageBg = if (isDark) darkBtnMessageBg else lightBtnMessageBg
+
+        rootLayout.setBackgroundColor(screenBg)
+        dividerGap.setBackgroundColor(screenBg)
+
+        tvName.setTextColor(textPrimary)
+        tvHeadline.setTextColor(textSecondary)
+        tvLocation.setTextColor(textSecondary)
+        tvSkillsLearn.setTextColor(textSecondary)
+        tvAboutTitle.setTextColor(textPrimary)
+        tvAbout.setTextColor(textSecondary)
+        tvSkillsOfferedTitle.setTextColor(textPrimary)
+        tvNoSkills.setTextColor(textSecondary)
+
+        btnMessage.setCardBackgroundColor(btnMessageBg)
+        btnMore.setCardBackgroundColor(iconBgNeutral)
+        ivReportUserIcon.imageTintList = ColorStateList.valueOf(textSecondary)
+
+        if (::skillsAdapter.isInitialized) {
+            skillsAdapter.isDarkMode = isDark
+            skillsAdapter.notifyDataSetChanged()
+        }
     }
 
     private fun setupSkillsList() {
         recyclerUserSkills.layoutManager = LinearLayoutManager(this)
-        skillsAdapter = UserSkillsAdapter(userSkills) { skill ->
+        skillsAdapter = UserSkillsAdapter(userSkills, isDarkModeEnabled) { skill ->
             openSkillVideo(skill)
         }
         recyclerUserSkills.adapter = skillsAdapter
@@ -211,10 +288,8 @@ class UserProfileActivity : BaseActivity() {
     private fun bindUser(user: Users) {
         viewedUser = user
 
-        // Name
         tvName.text = user.name.ifBlank { profileUserName }
 
-        // Headline - what they teach, plus a verified badge if applicable
         val headline = buildString {
             if (user.skillsTeach.isNotBlank()) {
                 append("Teaches: ${user.skillsTeach}")
@@ -227,7 +302,6 @@ class UserProfileActivity : BaseActivity() {
         }
         tvHeadline.text = headline
 
-        // Location
         if (user.location.isNotBlank()) {
             llLocation.visibility = View.VISIBLE
             tvLocation.text = "📍 ${user.location}"
@@ -235,7 +309,6 @@ class UserProfileActivity : BaseActivity() {
             llLocation.visibility = View.GONE
         }
 
-        // Skills they want to learn
         if (user.skillsLearn.isNotBlank()) {
             llSkillsLearn.visibility = View.VISIBLE
             tvSkillsLearn.text = "💡 Wants to learn: ${user.skillsLearn}"
@@ -243,18 +316,15 @@ class UserProfileActivity : BaseActivity() {
             llSkillsLearn.visibility = View.GONE
         }
 
-        // No presence field on Users yet — default to Offline until you add one.
         tvOnlineStatus.text = "⚪ Offline"
         tvOnlineStatus.setTextColor(ContextCompat.getColor(this, android.R.color.darker_gray))
 
-        // Avatar — prefer a remote profileImage URL, fall back to a local path if present
         val imageSource: Any? = when {
             user.profileImage.isNotBlank() -> user.profileImage
             !user.profileImagePath.isNullOrBlank() -> user.profileImagePath
             else -> null
         }
         if (imageSource != null) {
-            // Real photo: fill the circle edge-to-edge.
             ivAvatar.scaleType = android.widget.ImageView.ScaleType.CENTER_CROP
             val params = ivAvatar.layoutParams
             params.width = ViewGroup.LayoutParams.MATCH_PARENT
@@ -270,7 +340,6 @@ class UserProfileActivity : BaseActivity() {
                 .error(R.drawable.baseline_account_circle_24)
                 .into(ivAvatar)
         } else {
-
             ivAvatar.scaleType = android.widget.ImageView.ScaleType.FIT_CENTER
             val params = ivAvatar.layoutParams
             val size = (56 * resources.displayMetrics.density).toInt()
@@ -353,7 +422,7 @@ class UserProfileActivity : BaseActivity() {
         val dialog = AlertDialog.Builder(this).setView(root).create()
         dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
 
-        val btnOk = pillButton("OK", Color.parseColor("#1B3C53"), Color.parseColor("#F9F3EF")).apply {
+        val btnOk = pillButton("OK", currentTextPrimary(), Color.parseColor("#F9F3EF")).apply {
             layoutParams = LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.WRAP_CONTENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT
@@ -369,7 +438,6 @@ class UserProfileActivity : BaseActivity() {
         dialog.show()
     }
 
-    /** A single "Label   Value" row for the stats dialog, navy-on-cream themed. */
     private fun addStatRow(parent: LinearLayout, label: String, value: String, isLast: Boolean = false) {
         val row = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
@@ -382,13 +450,13 @@ class UserProfileActivity : BaseActivity() {
         }
         row.addView(TextView(this).apply {
             text = label
-            setTextColor(Color.parseColor("#456882"))
+            setTextColor(currentTextSecondary())
             textSize = 13f
             layoutParams = LinearLayout.LayoutParams(dp(130), LinearLayout.LayoutParams.WRAP_CONTENT)
         })
         row.addView(TextView(this).apply {
             text = value
-            setTextColor(Color.parseColor("#1B3C53"))
+            setTextColor(currentTextPrimary())
             textSize = 13f
             setTypeface(typeface, Typeface.BOLD)
             layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
@@ -413,7 +481,7 @@ class UserProfileActivity : BaseActivity() {
         root.addView(dialogTitle("Report $profileUserName"))
         root.addView(TextView(this).apply {
             text = "Help us understand what's wrong"
-            setTextColor(Color.parseColor("#456882"))
+            setTextColor(currentTextSecondary())
             textSize = 13f
             setPadding(0, dp(4), 0, dp(4))
         })
@@ -432,7 +500,7 @@ class UserProfileActivity : BaseActivity() {
             }
         }
 
-        val btnCancel = pillButton("Cancel", Color.parseColor("#EAF1F5"), Color.parseColor("#456882")).apply {
+        val btnCancel = pillButton("Cancel", currentSecondaryBtnBg(), currentSecondaryBtnText()).apply {
             layoutParams = LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.WRAP_CONTENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT
@@ -475,7 +543,7 @@ class UserProfileActivity : BaseActivity() {
         theme.resolveAttribute(android.R.attr.selectableItemBackground, outValue, true)
         return TextView(this).apply {
             this.text = text
-            setTextColor(Color.parseColor("#1B3C53"))
+            setTextColor(currentTextPrimary())
             textSize = 15f
             setPadding(dp(4), dp(8), dp(4), dp(8))
             setBackgroundResource(outValue.resourceId)
@@ -487,13 +555,28 @@ class UserProfileActivity : BaseActivity() {
 
     private fun dp(value: Int): Int = (value * resources.displayMetrics.density).toInt()
 
+    private fun currentDialogBg(): Int =
+        if (isDarkModeEnabled) Color.parseColor("#16232E") else Color.WHITE
+
+    private fun currentTextPrimary(): Int =
+        if (isDarkModeEnabled) darkTextPrimary else lightTextPrimary
+
+    private fun currentTextSecondary(): Int =
+        if (isDarkModeEnabled) darkTextSecondary else lightTextSecondary
+
+    private fun currentSecondaryBtnBg(): Int =
+        if (isDarkModeEnabled) darkCardStroke else Color.parseColor("#EAF1F5")
+
+    private fun currentSecondaryBtnText(): Int =
+        if (isDarkModeEnabled) darkTextPrimary else lightTextSecondary
+
     private fun dialogCard(): LinearLayout {
         return LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(dp(20), dp(22), dp(20), dp(20))
             background = GradientDrawable().apply {
                 cornerRadius = dp(20).toFloat()
-                setColor(Color.WHITE)
+                setColor(currentDialogBg())
             }
         }
     }
@@ -501,7 +584,7 @@ class UserProfileActivity : BaseActivity() {
     private fun dialogTitle(text: String): TextView {
         return TextView(this).apply {
             this.text = text
-            setTextColor(Color.parseColor("#1B3C53"))
+            setTextColor(currentTextPrimary())
             textSize = 17f
             setTypeface(typeface, Typeface.BOLD)
         }
@@ -516,7 +599,7 @@ class UserProfileActivity : BaseActivity() {
                 topMargin = dp(12)
                 bottomMargin = dp(12)
             }
-            setBackgroundColor(Color.parseColor("#EAF1F5"))
+            setBackgroundColor(if (isDarkModeEnabled) darkCardStroke else Color.parseColor("#EAF1F5"))
         }
     }
 
@@ -578,8 +661,20 @@ class UserProfileActivity : BaseActivity() {
 
     class UserSkillsAdapter(
         private val skills: List<Skill>,
+        var isDarkMode: Boolean,
         private val onClick: (Skill) -> Unit
     ) : RecyclerView.Adapter<UserSkillsAdapter.VH>() {
+
+        private val lightTextPrimary = Color.parseColor("#1B3C53")
+        private val lightTextSecondary = Color.parseColor("#456882")
+        private val darkTextPrimary = Color.parseColor("#F5F7F8")
+        private val darkTextSecondary = Color.parseColor("#8FA6B8")
+
+        // Card bg + stroke per theme — matching the palette used across the app
+        private val lightCardBg = Color.parseColor("#F9F3EF")
+        private val lightCardStroke = Color.parseColor("#D2C1B6")
+        private val darkCardBg = Color.parseColor("#16232E")
+        private val darkCardStroke = Color.parseColor("#2A3B48")
 
         class VH(view: View) : RecyclerView.ViewHolder(view) {
             val tvTitle: TextView = view.findViewById(R.id.tvRowTitle)
@@ -594,8 +689,28 @@ class UserProfileActivity : BaseActivity() {
 
         override fun onBindViewHolder(holder: VH, position: Int) {
             val skill = skills[position]
+
+            val textPrimary   = if (isDarkMode) darkTextPrimary   else lightTextPrimary
+            val textSecondary = if (isDarkMode) darkTextSecondary else lightTextSecondary
+            val cardBg        = if (isDarkMode) darkCardBg        else lightCardBg
+            val cardStroke    = if (isDarkMode) darkCardStroke    else lightCardStroke
+
+            // Content
             holder.tvTitle.text = skill.title
             holder.tvMeta.text = "${skill.category} · ${skill.credits} credits"
+
+            // Text colors
+            holder.tvTitle.setTextColor(textPrimary)
+            holder.tvMeta.setTextColor(textSecondary)
+
+            // Card background + stroke — this is the fix for the white card in
+            // dark mode. The root of item_user_skill_row.xml is a
+            // MaterialCardView, so we can cast and set its colors directly.
+            (holder.itemView as? com.google.android.material.card.MaterialCardView)?.apply {
+                setCardBackgroundColor(cardBg)
+                strokeColor = cardStroke
+            }
+
             holder.itemView.setOnClickListener { onClick(skill) }
         }
 
