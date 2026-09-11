@@ -2,6 +2,7 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/rootLayout"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
@@ -11,6 +12,7 @@
 
     <!-- ===================== Header ===================== -->
     <LinearLayout
+        android:id="@+id/headerBar"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
@@ -35,6 +37,7 @@
             android:foreground="?attr/selectableItemBackground">
 
             <ImageView
+                android:id="@+id/ivBackIcon"
                 android:layout_width="20dp"
                 android:layout_height="20dp"
                 android:layout_gravity="center"
@@ -44,6 +47,7 @@
         </com.google.android.material.card.MaterialCardView>
 
         <TextView
+            android:id="@+id/tvAboutTitle"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
@@ -75,6 +79,7 @@
 
             <!-- Brand card -->
             <com.google.android.material.card.MaterialCardView
+                android:id="@+id/cardBrand"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="24dp"
@@ -92,6 +97,7 @@
                     android:padding="20dp">
 
                     <com.google.android.material.card.MaterialCardView
+                        android:id="@+id/cardLogoCircle"
                         android:layout_width="64dp"
                         android:layout_height="64dp"
                         app:cardCornerRadius="18dp"
@@ -108,6 +114,7 @@
                     </com.google.android.material.card.MaterialCardView>
 
                     <TextView
+                        android:id="@+id/tvAppName"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="14dp"
@@ -127,6 +134,7 @@
                         android:textSize="12.5sp" />
 
                     <View
+                        android:id="@+id/dividerBrand"
                         android:layout_width="36dp"
                         android:layout_height="1dp"
                         android:background="#D2C1B6"
@@ -134,6 +142,7 @@
                         android:layout_marginBottom="14dp" />
 
                     <TextView
+                        android:id="@+id/tvTagline"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="Trade skills, not cash."
@@ -144,6 +153,7 @@
                         android:layout_marginBottom="8dp" />
 
                     <TextView
+                        android:id="@+id/tvDescription"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:gravity="center"
@@ -165,12 +175,14 @@
                 android:layout_marginBottom="14dp">
 
                 <View
+                    android:id="@+id/barSectionMore"
                     android:layout_width="4dp"
                     android:layout_height="16dp"
                     android:background="#1B3C53"
                     android:layout_marginEnd="8dp"/>
 
                 <TextView
+                    android:id="@+id/tvSectionMore"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="More"
@@ -181,6 +193,7 @@
             </LinearLayout>
 
             <com.google.android.material.card.MaterialCardView
+                android:id="@+id/cardLinks"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="20dp"
@@ -196,6 +209,7 @@
                     android:orientation="vertical"
                     android:padding="8dp">
 
+                    <!-- Privacy Policy row -->
                     <LinearLayout
                         android:id="@+id/layoutAboutPrivacy"
                         android:layout_width="match_parent"
@@ -210,6 +224,7 @@
                         android:focusable="true">
 
                         <com.google.android.material.card.MaterialCardView
+                            android:id="@+id/iconBgAboutPrivacy"
                             android:layout_width="40dp"
                             android:layout_height="40dp"
                             app:cardCornerRadius="13dp"
@@ -217,6 +232,7 @@
                             app:cardBackgroundColor="#EAE1DA">
 
                             <ImageView
+                                android:id="@+id/ivIconAboutPrivacy"
                                 android:layout_width="20dp"
                                 android:layout_height="20dp"
                                 android:layout_gravity="center"
@@ -225,6 +241,7 @@
                         </com.google.android.material.card.MaterialCardView>
 
                         <TextView
+                            android:id="@+id/tvAboutPrivacy"
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
@@ -234,6 +251,7 @@
                             android:textSize="14sp" />
 
                         <ImageView
+                            android:id="@+id/ivChevronAboutPrivacy"
                             android:layout_width="20dp"
                             android:layout_height="20dp"
                             android:importantForAccessibility="no"
@@ -243,11 +261,13 @@
                     </LinearLayout>
 
                     <View
+                        android:id="@+id/dividerAbout1"
                         android:layout_width="match_parent"
                         android:layout_height="1dp"
                         android:background="#EAE1DA"
                         android:layout_marginStart="12dp" />
 
+                    <!-- Terms row -->
                     <LinearLayout
                         android:id="@+id/layoutAboutTerms"
                         android:layout_width="match_parent"
@@ -262,6 +282,7 @@
                         android:focusable="true">
 
                         <com.google.android.material.card.MaterialCardView
+                            android:id="@+id/iconBgAboutTerms"
                             android:layout_width="40dp"
                             android:layout_height="40dp"
                             app:cardCornerRadius="13dp"
@@ -269,6 +290,7 @@
                             app:cardBackgroundColor="#EAE1DA">
 
                             <ImageView
+                                android:id="@+id/ivIconAboutTerms"
                                 android:layout_width="20dp"
                                 android:layout_height="20dp"
                                 android:layout_gravity="center"
@@ -277,6 +299,7 @@
                         </com.google.android.material.card.MaterialCardView>
 
                         <TextView
+                            android:id="@+id/tvAboutTerms"
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
@@ -286,6 +309,7 @@
                             android:textSize="14sp" />
 
                         <ImageView
+                            android:id="@+id/ivChevronAboutTerms"
                             android:layout_width="20dp"
                             android:layout_height="20dp"
                             android:importantForAccessibility="no"
@@ -295,11 +319,13 @@
                     </LinearLayout>
 
                     <View
+                        android:id="@+id/dividerAbout2"
                         android:layout_width="match_parent"
                         android:layout_height="1dp"
                         android:background="#EAE1DA"
                         android:layout_marginStart="12dp" />
 
+                    <!-- Help row -->
                     <LinearLayout
                         android:id="@+id/layoutAboutHelp"
                         android:layout_width="match_parent"
@@ -314,6 +340,7 @@
                         android:focusable="true">
 
                         <com.google.android.material.card.MaterialCardView
+                            android:id="@+id/iconBgAboutHelp"
                             android:layout_width="40dp"
                             android:layout_height="40dp"
                             app:cardCornerRadius="13dp"
@@ -321,6 +348,7 @@
                             app:cardBackgroundColor="#EAE1DA">
 
                             <ImageView
+                                android:id="@+id/ivIconAboutHelp"
                                 android:layout_width="20dp"
                                 android:layout_height="20dp"
                                 android:layout_gravity="center"
@@ -329,6 +357,7 @@
                         </com.google.android.material.card.MaterialCardView>
 
                         <TextView
+                            android:id="@+id/tvAboutHelp"
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
@@ -338,6 +367,7 @@
                             android:textSize="14sp" />
 
                         <ImageView
+                            android:id="@+id/ivChevronAboutHelp"
                             android:layout_width="20dp"
                             android:layout_height="20dp"
                             android:importantForAccessibility="no"
@@ -351,6 +381,7 @@
             </com.google.android.material.card.MaterialCardView>
 
             <TextView
+                android:id="@+id/tvFooter"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:gravity="center"

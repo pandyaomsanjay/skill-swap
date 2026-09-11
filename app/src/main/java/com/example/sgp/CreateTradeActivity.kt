@@ -1,5 +1,9 @@
 package com.example.sgp
 
+import android.content.Context
+import android.content.SharedPreferences
+import android.content.res.ColorStateList
+import android.content.res.Configuration
 import android.graphics.Color
 import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
@@ -7,11 +11,14 @@ import android.os.Bundle
 import android.util.TypedValue
 import android.view.Gravity
 import android.view.View
+import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
+import androidx.core.view.WindowCompat
 import com.google.android.material.button.MaterialButton
+import com.google.android.material.card.MaterialCardView
 import com.google.android.material.textfield.TextInputEditText
 import com.google.android.material.textfield.TextInputLayout
 import com.google.firebase.Firebase
@@ -21,6 +28,8 @@ import com.google.firebase.firestore.firestore
 class CreateTradeActivity : BaseActivity() {
 
     private lateinit var db: FirebaseFirestore
+    private lateinit var sharedPreferences: SharedPreferences
+    private var isDarkModeEnabled = false
 
     private lateinit var currentUserEmail: String
     private lateinit var currentUserName: String
@@ -34,19 +43,57 @@ class CreateTradeActivity : BaseActivity() {
     private lateinit var yourSkillLayout: TextInputLayout
     private lateinit var partnerEmailLayout: TextInputLayout
     private lateinit var partnerSkillLayout: TextInputLayout
+    private lateinit var messageLayout: TextInputLayout
 
     private var selectedYourSkill: Skill? = null
     private var selectedPartnerSkill: Skill? = null
+
+    // ---------------------------------------------------------------------
+    // LIGHT THEME PALETTE
+    // ---------------------------------------------------------------------
+    private val lightScreenBg = Color.parseColor("#EAF1F5")
+    private val lightCardBg = Color.parseColor("#FFFFFF")
+    private val lightCardStroke = Color.parseColor("#D2C1B6")
+    private val lightTextPrimary = Color.parseColor("#1B3C53")
+    private val lightTextSecondary = Color.parseColor("#456882")
+    private val lightIconBgNeutral = Color.parseColor("#EAE1DA")
+    private val lightIconTintNeutral = Color.parseColor("#1B3C53")
+    private val lightHeaderBg = Color.parseColor("#1B3C53")
+    private val lightBackButtonBg = Color.parseColor("#456882")
+    private val lightSectionBar = Color.parseColor("#1B3C53")
+    private val lightButtonBg = Color.parseColor("#1B3C53")
+    private val lightButtonText = Color.parseColor("#F9F3EF")
+    private val lightDivider = Color.parseColor("#EAF1F5")
+
+    // ---------------------------------------------------------------------
+    // DARK THEME PALETTE
+    // ---------------------------------------------------------------------
+    private val darkScreenBg = Color.parseColor("#0F1B24")
+    private val darkCardBg = Color.parseColor("#16232E")
+    private val darkCardStroke = Color.parseColor("#2A3B48")
+    private val darkTextPrimary = Color.parseColor("#F5F7F8")
+    private val darkTextSecondary = Color.parseColor("#8FA6B8")
+    private val darkIconBgNeutral = Color.parseColor("#26343F")
+    private val darkIconTintNeutral = Color.parseColor("#C9D6DE")
+    private val darkHeaderBg = Color.parseColor("#0B1620")
+    private val darkBackButtonBg = Color.parseColor("#22323D")
+    private val darkSectionBar = Color.parseColor("#456882")
+    private val darkButtonBg = Color.parseColor("#22323D")
+    private val darkButtonText = Color.parseColor("#F5F7F8")
+    private val darkDivider = Color.parseColor("#2A3B48")
+
+    private val headerTitleColor = Color.parseColor("#F9F3EF")
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_create_trade)
 
         db = Firebase.firestore
+        sharedPreferences = getSharedPreferences(SettingsActivity.PREFS_NAME, Context.MODE_PRIVATE)
+        isDarkModeEnabled = sharedPreferences.getBoolean(SettingsActivity.KEY_DARK_MODE, false)
 
-        val prefs = getSharedPreferences("SkillSwapPrefs", MODE_PRIVATE)
-        currentUserEmail = prefs.getString("user_email", "") ?: ""
-        currentUserName = prefs.getString("user_name", "") ?: ""
+        currentUserEmail = sharedPreferences.getString("user_email", "") ?: ""
+        currentUserName = sharedPreferences.getString("user_name", "") ?: ""
 
         if (currentUserEmail.isEmpty()) {
             Toast.makeText(this, "User not logged in", Toast.LENGTH_SHORT).show()
@@ -57,13 +104,112 @@ class CreateTradeActivity : BaseActivity() {
         if (currentUserName.isBlank()) currentUserName = currentUserEmail
 
         initViews()
+        applyTheme(isDarkModeEnabled)
         loadYourSkills()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        val savedDark = sharedPreferences.getBoolean(SettingsActivity.KEY_DARK_MODE, false)
+        if (savedDark != isDarkModeEnabled) applyTheme(savedDark)
+    }
+
+    override fun onConfigurationChanged(newConfig: Configuration) {
+        super.onConfigurationChanged(newConfig)
+        applyTheme(isDarkModeEnabled)
+    }
+
+    // ---------------------------------------------------------------------
+    // THEME ENGINE
+    // ---------------------------------------------------------------------
+    private fun applyTheme(isDark: Boolean) {
+        isDarkModeEnabled = isDark
+
+        val screenBg = if (isDark) darkScreenBg else lightScreenBg
+        val cardBg = if (isDark) darkCardBg else lightCardBg
+        val cardStroke = if (isDark) darkCardStroke else lightCardStroke
+        val textPrimary = if (isDark) darkTextPrimary else lightTextPrimary
+        val textSecondary = if (isDark) darkTextSecondary else lightTextSecondary
+        val iconBgNeutral = if (isDark) darkIconBgNeutral else lightIconBgNeutral
+        val iconTintNeutral = if (isDark) darkIconTintNeutral else lightIconTintNeutral
+        val headerBg = if (isDark) darkHeaderBg else lightHeaderBg
+        val backButtonBg = if (isDark) darkBackButtonBg else lightBackButtonBg
+        val sectionBar = if (isDark) darkSectionBar else lightSectionBar
+        val buttonBg = if (isDark) darkButtonBg else lightButtonBg
+        val buttonText = if (isDark) darkButtonText else lightButtonText
+
+        // Root + header
+        findViewById<View>(R.id.rootLayout)?.setBackgroundColor(screenBg)
+        findViewById<View>(R.id.headerBar)?.setBackgroundColor(headerBg)
+        findViewById<MaterialCardView>(R.id.btnBack)?.setCardBackgroundColor(backButtonBg)
+        findViewById<ImageView>(R.id.ivBackIcon)?.imageTintList = ColorStateList.valueOf(headerTitleColor)
+        findViewById<TextView>(R.id.tvTradeTitle)?.setTextColor(headerTitleColor)
+
+        // Intro card
+        findViewById<MaterialCardView>(R.id.cardIntro)?.apply {
+            setCardBackgroundColor(cardBg)
+            strokeColor = cardStroke
+        }
+        findViewById<MaterialCardView>(R.id.iconBgIntro)?.setCardBackgroundColor(iconBgNeutral)
+        findViewById<ImageView>(R.id.ivIconIntro)?.imageTintList = ColorStateList.valueOf(iconTintNeutral)
+        findViewById<TextView>(R.id.tvIntroTitle)?.setTextColor(textPrimary)
+        findViewById<TextView>(R.id.tvIntroSubtitle)?.setTextColor(textSecondary)
+
+        // Section bar
+        findViewById<View>(R.id.barSectionTrade)?.setBackgroundColor(sectionBar)
+        findViewById<TextView>(R.id.tvSectionTrade)?.setTextColor(textPrimary)
+
+        // Form card
+        findViewById<MaterialCardView>(R.id.cardForm)?.apply {
+            setCardBackgroundColor(cardBg)
+            strokeColor = cardStroke
+        }
+
+        // Field labels
+        findViewById<TextView>(R.id.tvYourSkillLabel)?.setTextColor(textPrimary)
+        findViewById<TextView>(R.id.tvPartnerEmailLabel)?.setTextColor(textPrimary)
+        findViewById<TextView>(R.id.tvPartnerSkillLabel)?.setTextColor(textPrimary)
+        findViewById<TextView>(R.id.tvMessageLabel)?.setTextColor(textPrimary)
+
+        // Text input fields
+        styleInput(yourSkillLayout, etYourSkill, cardStroke, textPrimary, textSecondary)
+        styleInput(partnerEmailLayout, etPartnerEmail, cardStroke, textPrimary, textSecondary)
+        styleInput(partnerSkillLayout, etPartnerSkill, cardStroke, textPrimary, textSecondary)
+        styleInput(messageLayout, etMessage, cardStroke, textPrimary, textSecondary)
+
+        // Propose button
+        btnPropose.backgroundTintList = ColorStateList.valueOf(buttonBg)
+        btnPropose.setTextColor(buttonText)
+
+        // System bars
+        val insetsController = WindowCompat.getInsetsController(window, window.decorView)
+        insetsController.isAppearanceLightStatusBars = !isDark
+        insetsController.isAppearanceLightNavigationBars = !isDark
+        window.statusBarColor = headerBg
+        window.navigationBarColor = screenBg
+    }
+
+    /** Applies theme colors to a TextInputLayout + its EditText. */
+    private fun styleInput(
+        layout: TextInputLayout,
+        editText: TextView,
+        strokeColor: Int,
+        inputText: Int,
+        hintAndIcon: Int
+    ) {
+        layout.setBoxStrokeColor(strokeColor)
+        layout.defaultHintTextColor = ColorStateList.valueOf(hintAndIcon)
+        layout.setStartIconTintList(ColorStateList.valueOf(hintAndIcon))
+        layout.setEndIconTintList(ColorStateList.valueOf(hintAndIcon))
+        editText.setTextColor(inputText)
+        editText.setHintTextColor(hintAndIcon)
     }
 
     private fun initViews() {
         yourSkillLayout = findViewById(R.id.yourSkillLayout)
         partnerEmailLayout = findViewById(R.id.partnerEmailLayout)
         partnerSkillLayout = findViewById(R.id.partnerSkillLayout)
+        messageLayout = findViewById(R.id.messageLayout)
 
         etYourSkill = findViewById(R.id.etYourSkill)
         etPartnerEmail = findViewById(R.id.etPartnerEmail)
@@ -158,7 +304,7 @@ class CreateTradeActivity : BaseActivity() {
         root.addView(
             TextView(this).apply {
                 text = "Pick one to include in this trade"
-                setTextColor(Color.parseColor("#456882"))
+                setTextColor(currentTextSecondary())
                 textSize = 13f
                 setPadding(0, dp(4), 0, dp(4))
             }
@@ -188,8 +334,8 @@ class CreateTradeActivity : BaseActivity() {
 
         val btnCancel = pillButton(
             "Cancel",
-            Color.parseColor("#EAF1F5"),
-            Color.parseColor("#456882")
+            currentSecondaryBtnBg(),
+            currentTextSecondary()
         ).apply {
             layoutParams = LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.WRAP_CONTENT,
@@ -206,9 +352,15 @@ class CreateTradeActivity : BaseActivity() {
         dialog.show()
     }
 
-    // ---- Themed dialog helpers (same style as ExploreActivity) ----
+    // ---- Themed dialog helpers ----
 
     private fun dp(value: Int): Int = (value * resources.displayMetrics.density).toInt()
+
+    private fun currentDialogBg(): Int = if (isDarkModeEnabled) darkCardBg else Color.WHITE
+    private fun currentTextPrimary(): Int = if (isDarkModeEnabled) darkTextPrimary else lightTextPrimary
+    private fun currentTextSecondary(): Int = if (isDarkModeEnabled) darkTextSecondary else lightTextSecondary
+    private fun currentSecondaryBtnBg(): Int = if (isDarkModeEnabled) darkCardStroke else lightScreenBg
+    private fun currentDividerColor(): Int = if (isDarkModeEnabled) darkDivider else lightDivider
 
     private fun dialogCard(): LinearLayout {
         return LinearLayout(this).apply {
@@ -216,7 +368,7 @@ class CreateTradeActivity : BaseActivity() {
             setPadding(dp(20), dp(22), dp(20), dp(20))
             background = GradientDrawable().apply {
                 cornerRadius = dp(20).toFloat()
-                setColor(Color.WHITE)
+                setColor(currentDialogBg())
             }
         }
     }
@@ -224,7 +376,7 @@ class CreateTradeActivity : BaseActivity() {
     private fun dialogTitle(text: String): TextView {
         return TextView(this).apply {
             this.text = text
-            setTextColor(Color.parseColor("#1B3C53"))
+            setTextColor(currentTextPrimary())
             textSize = 17f
             setTypeface(typeface, Typeface.BOLD)
         }
@@ -239,7 +391,7 @@ class CreateTradeActivity : BaseActivity() {
                 topMargin = dp(12)
                 bottomMargin = dp(12)
             }
-            setBackgroundColor(Color.parseColor("#EAF1F5"))
+            setBackgroundColor(currentDividerColor())
         }
     }
 
@@ -265,7 +417,7 @@ class CreateTradeActivity : BaseActivity() {
         theme.resolveAttribute(android.R.attr.selectableItemBackground, outValue, true)
         return TextView(this).apply {
             this.text = text
-            setTextColor(Color.parseColor("#1B3C53"))
+            setTextColor(currentTextPrimary())
             textSize = 15f
             setPadding(dp(4), dp(12), dp(4), dp(12))
             setBackgroundResource(outValue.resourceId)

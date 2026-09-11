@@ -4,6 +4,7 @@ import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.content.res.Configuration
+import android.content.res.ColorStateList
 import android.graphics.Color
 import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
@@ -137,6 +138,7 @@ object LocaleHelper {
 
     /**
      * Displays a clean, beautifully styled language selection dialog
+     * that respects the app's dark mode setting.
      */
     fun showLanguageDialog(
         activity: Activity,
@@ -146,11 +148,26 @@ object LocaleHelper {
         val density = activity.resources.displayMetrics.density
         fun dp(v: Int): Int = (v * density).toInt()
 
-        val navyDark = Color.parseColor("#1B3C53")
-        val navyMed = Color.parseColor("#456882")
-        val lightBg = Color.parseColor("#EAF1F5")
-        val cream = Color.parseColor("#F9F3EF")
-        val cardBorder = Color.parseColor("#DCE7ED")
+        // ---- Read current dark-mode setting ----
+        val prefs = activity.getSharedPreferences(SettingsActivity.PREFS_NAME, Context.MODE_PRIVATE)
+        val isDark = prefs.getBoolean(SettingsActivity.KEY_DARK_MODE, false)
+
+        // ---- Themed palette ----
+        val dialogBg          = if (isDark) Color.parseColor("#16232E") else Color.WHITE
+        val titleColor        = if (isDark) Color.parseColor("#F5F7F8") else Color.parseColor("#1B3C53")
+        val subtitleColor     = if (isDark) Color.parseColor("#8FA6B8") else Color.parseColor("#456882")
+        val rowBgNormal       = if (isDark) Color.parseColor("#1D2B36") else Color.parseColor("#F8FAFC")
+        val rowBgSelected     = if (isDark) Color.parseColor("#1E3040") else Color.parseColor("#EFF6FF")
+        val rowBorderNormal   = if (isDark) Color.parseColor("#2A3B48") else Color.parseColor("#DCE7ED")
+        val rowBorderSelected = if (isDark) Color.parseColor("#456882") else Color.parseColor("#3B82F6")
+        val nativeNameNormal  = if (isDark) Color.parseColor("#F5F7F8") else Color.parseColor("#1B3C53")
+        val nativeNameSel     = if (isDark) Color.parseColor("#C9D6DE") else Color.parseColor("#1E40AF")
+        val englishNameNormal = if (isDark) Color.parseColor("#8FA6B8") else Color.parseColor("#456882")
+        val englishNameSel    = if (isDark) Color.parseColor("#8FA6B8") else Color.parseColor("#3B82F6")
+        val checkColor        = if (isDark) Color.parseColor("#8FA6B8") else Color.parseColor("#3B82F6")
+        val cancelBg          = if (isDark) Color.parseColor("#22323D") else Color.parseColor("#EAF1F5")
+        val cancelText        = if (isDark) Color.parseColor("#F5F7F8") else Color.parseColor("#456882")
+        val globeIconTint     = if (isDark) Color.parseColor("#F5F7F8") else Color.parseColor("#1B3C53")
 
         val currentKey = getLanguageKey(activity)
 
@@ -159,7 +176,7 @@ object LocaleHelper {
             setPadding(dp(22), dp(24), dp(22), dp(22))
             background = GradientDrawable().apply {
                 cornerRadius = dp(24).toFloat()
-                setColor(Color.WHITE)
+                setColor(dialogBg)
             }
         }
 
@@ -173,29 +190,28 @@ object LocaleHelper {
             ).apply { bottomMargin = dp(6) }
         }
 
-        val globeText = TextView(activity).apply {
-            text = "🌐"
-            textSize = 24f
-            layoutParams = LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.WRAP_CONTENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT
-            ).apply { marginEnd = dp(12) }
+        val globeIcon = ImageView(activity).apply {
+            setImageResource(R.drawable.outline_language_24)
+            imageTintList = ColorStateList.valueOf(globeIconTint)
+            layoutParams = LinearLayout.LayoutParams(dp(26), dp(26)).apply {
+                marginEnd = dp(12)
+            }
         }
 
         val titleText = TextView(activity).apply {
             text = activity.getString(R.string.select_language)
-            setTextColor(navyDark)
+            setTextColor(titleColor)
             textSize = 18f
             setTypeface(typeface, Typeface.BOLD)
         }
 
-        headerLayout.addView(globeText)
+        headerLayout.addView(globeIcon)
         headerLayout.addView(titleText)
         root.addView(headerLayout)
 
         val subtitleText = TextView(activity).apply {
             text = activity.getString(R.string.choose_preferred_language)
-            setTextColor(navyMed)
+            setTextColor(subtitleColor)
             textSize = 13f
             layoutParams = LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
@@ -222,11 +238,11 @@ object LocaleHelper {
                 background = GradientDrawable().apply {
                     cornerRadius = dp(14).toFloat()
                     if (isSelected) {
-                        setColor(Color.parseColor("#EFF6FF"))
-                        setStroke(dp(2), Color.parseColor("#3B82F6"))
+                        setColor(rowBgSelected)
+                        setStroke(dp(2), rowBorderSelected)
                     } else {
-                        setColor(Color.parseColor("#F8FAFC"))
-                        setStroke(dp(1), cardBorder)
+                        setColor(rowBgNormal)
+                        setStroke(dp(1), rowBorderNormal)
                     }
                 }
                 isClickable = true
@@ -253,14 +269,14 @@ object LocaleHelper {
 
             val nativeNameView = TextView(activity).apply {
                 text = item.nativeName
-                setTextColor(if (isSelected) Color.parseColor("#1E40AF") else navyDark)
+                setTextColor(if (isSelected) nativeNameSel else nativeNameNormal)
                 textSize = 15.5f
                 setTypeface(typeface, if (isSelected) Typeface.BOLD else Typeface.NORMAL)
             }
 
             val englishNameView = TextView(activity).apply {
                 text = item.englishName
-                setTextColor(if (isSelected) Color.parseColor("#3B82F6") else navyMed)
+                setTextColor(if (isSelected) englishNameSel else englishNameNormal)
                 textSize = 12.5f
             }
 
@@ -269,7 +285,7 @@ object LocaleHelper {
 
             val checkMark = TextView(activity).apply {
                 text = if (isSelected) "✓" else ""
-                setTextColor(Color.parseColor("#3B82F6"))
+                setTextColor(checkColor)
                 textSize = 18f
                 setTypeface(typeface, Typeface.BOLD)
             }
@@ -290,7 +306,7 @@ object LocaleHelper {
         if (cancelable) {
             val btnCancel = TextView(activity).apply {
                 text = activity.getString(R.string.cancel)
-                setTextColor(navyMed)
+                setTextColor(cancelText)
                 textSize = 14f
                 setTypeface(typeface, Typeface.BOLD)
                 gravity = Gravity.CENTER
@@ -301,7 +317,7 @@ object LocaleHelper {
                 ).apply { topMargin = dp(6) }
                 background = GradientDrawable().apply {
                     cornerRadius = dp(24).toFloat()
-                    setColor(lightBg)
+                    setColor(cancelBg)
                 }
                 isClickable = true
                 isFocusable = true

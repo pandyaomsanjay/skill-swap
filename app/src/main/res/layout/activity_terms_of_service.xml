@@ -2,6 +2,7 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/rootLayout"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
@@ -11,6 +12,7 @@
 
     <!-- ===================== Header ===================== -->
     <LinearLayout
+        android:id="@+id/headerBar"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
@@ -35,6 +37,7 @@
             android:foreground="?attr/selectableItemBackground">
 
             <ImageView
+                android:id="@+id/ivBackIcon"
                 android:layout_width="20dp"
                 android:layout_height="20dp"
                 android:layout_gravity="center"
@@ -44,6 +47,7 @@
         </com.google.android.material.card.MaterialCardView>
 
         <TextView
+            android:id="@+id/tvTermsTitle"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
@@ -75,6 +79,7 @@
 
             <!-- Intro card -->
             <com.google.android.material.card.MaterialCardView
+                android:id="@+id/cardIntro"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="24dp"
@@ -92,6 +97,7 @@
                     android:padding="16dp">
 
                     <com.google.android.material.card.MaterialCardView
+                        android:id="@+id/iconBgIntro"
                         android:layout_width="48dp"
                         android:layout_height="48dp"
                         app:cardCornerRadius="16dp"
@@ -99,6 +105,7 @@
                         app:cardBackgroundColor="#EAE1DA">
 
                         <ImageView
+                            android:id="@+id/ivIconIntro"
                             android:layout_width="24dp"
                             android:layout_height="24dp"
                             android:layout_gravity="center"
@@ -114,6 +121,7 @@
                         android:orientation="vertical">
 
                         <TextView
+                            android:id="@+id/tvIntroTitle"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="Terms You Agree To"
@@ -143,12 +151,14 @@
                 android:layout_marginBottom="14dp">
 
                 <View
+                    android:id="@+id/barSectionTerms"
                     android:layout_width="4dp"
                     android:layout_height="16dp"
                     android:background="#1B3C53"
                     android:layout_marginEnd="8dp"/>
 
                 <TextView
+                    android:id="@+id/tvSectionTerms"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="Terms &amp; Conditions"
@@ -159,6 +169,7 @@
             </LinearLayout>
 
             <com.google.android.material.card.MaterialCardView
+                android:id="@+id/cardTermsContent"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="28dp"
@@ -189,12 +200,14 @@
                 android:layout_marginBottom="14dp">
 
                 <View
+                    android:id="@+id/barSectionContact"
                     android:layout_width="4dp"
                     android:layout_height="16dp"
                     android:background="#456882"
                     android:layout_marginEnd="8dp"/>
 
                 <TextView
+                    android:id="@+id/tvSectionContact"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="Questions about these terms?"
@@ -205,6 +218,7 @@
             </LinearLayout>
 
             <com.google.android.material.card.MaterialCardView
+                android:id="@+id/cardContact"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="8dp"
@@ -228,6 +242,7 @@
                     android:paddingVertical="12dp">
 
                     <com.google.android.material.card.MaterialCardView
+                        android:id="@+id/iconBgEmail"
                         android:layout_width="40dp"
                         android:layout_height="40dp"
                         app:cardCornerRadius="13dp"
@@ -235,6 +250,7 @@
                         app:cardBackgroundColor="#EAE1DA">
 
                         <ImageView
+                            android:id="@+id/ivIconEmail"
                             android:layout_width="20dp"
                             android:layout_height="20dp"
                             android:layout_gravity="center"
@@ -250,6 +266,7 @@
                         android:orientation="vertical">
 
                         <TextView
+                            android:id="@+id/tvEmailLabel"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="Email us"
@@ -257,6 +274,7 @@
                             android:textSize="14sp" />
 
                         <TextView
+                            android:id="@+id/tvEmailValue"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="2dp"
@@ -266,6 +284,7 @@
                     </LinearLayout>
 
                     <ImageView
+                        android:id="@+id/ivChevronEmail"
                         android:layout_width="24dp"
                         android:layout_height="24dp"
                         android:importantForAccessibility="no"

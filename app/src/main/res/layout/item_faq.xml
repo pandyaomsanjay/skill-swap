@@ -1,11 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools"
-    android:id="@+id/root"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/faqItemRoot"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:orientation="vertical"
-    android:paddingVertical="4dp">
+    android:orientation="vertical">
 
     <LinearLayout
         android:id="@+id/layoutQuestion"
@@ -13,19 +12,39 @@
         android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:gravity="center_vertical"
-        android:clickable="true"
-        android:focusable="true"
+        android:minHeight="56dp"
+        android:paddingHorizontal="12dp"
+        android:paddingVertical="12dp"
         android:background="?attr/selectableItemBackground"
-        android:paddingVertical="12dp">
+        android:clickable="true"
+        android:focusable="true">
+
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/iconBgFaq"
+            android:layout_width="34dp"
+            android:layout_height="34dp"
+            app:cardCornerRadius="11dp"
+            app:cardElevation="0dp"
+            app:cardBackgroundColor="#EAE1DA">
+
+            <ImageView
+                android:id="@+id/ivFaqIcon"
+                android:layout_width="18dp"
+                android:layout_height="18dp"
+                android:layout_gravity="center"
+                android:src="@drawable/outline_help_24"
+                app:tint="#1B3C53"
+                android:importantForAccessibility="no" />
+        </com.google.android.material.card.MaterialCardView>
 
         <TextView
             android:id="@+id/tvQuestion"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="Question"
+            android:layout_marginStart="12dp"
             android:textColor="#1B3C53"
-            android:textSize="15sp"
+            android:textSize="14sp"
             android:fontFamily="sans-serif-medium"
             android:textStyle="bold" />
 
@@ -33,9 +52,10 @@
             android:id="@+id/ivChevron"
             android:layout_width="20dp"
             android:layout_height="20dp"
+            android:rotation="270"
             android:src="@drawable/outline_chevron_right_24"
-            android:tint="#456882"
-            android:rotation="90" />
+            app:tint="#456882"
+            android:importantForAccessibility="no" />
 
     </LinearLayout>
 
@@ -44,16 +64,19 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:visibility="gone"
-        android:paddingBottom="12dp"
-        android:paddingEnd="28dp"
-        android:lineSpacingExtra="3dp"
+        android:paddingStart="58dp"
+        android:paddingEnd="12dp"
+        android:paddingBottom="14dp"
         android:textColor="#456882"
-        android:textSize="13.5sp"
-        tools:text="Answer text goes here." />
+        android:textSize="13sp"
+        android:lineSpacingExtra="4dp" />
 
     <View
+        android:id="@+id/dividerFaqItem"
         android:layout_width="match_parent"
         android:layout_height="1dp"
-        android:background="#D2C1B6" />
+        android:layout_marginStart="58dp"
+        android:layout_marginEnd="12dp"
+        android:background="#EAE1DA" />
 
 </LinearLayout>

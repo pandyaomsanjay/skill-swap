@@ -2,6 +2,7 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/rootLayout"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
@@ -11,6 +12,7 @@
 
     <!-- ===================== Header ===================== -->
     <LinearLayout
+        android:id="@+id/headerBar"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
@@ -35,6 +37,7 @@
             android:foreground="?attr/selectableItemBackground">
 
             <ImageView
+                android:id="@+id/ivBackIcon"
                 android:layout_width="20dp"
                 android:layout_height="20dp"
                 android:layout_gravity="center"
@@ -44,6 +47,7 @@
         </com.google.android.material.card.MaterialCardView>
 
         <TextView
+            android:id="@+id/tvFeedbackTitle"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
@@ -76,6 +80,7 @@
 
             <!-- Intro card -->
             <com.google.android.material.card.MaterialCardView
+                android:id="@+id/cardIntro"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="24dp"
@@ -93,6 +98,7 @@
                     android:padding="16dp">
 
                     <com.google.android.material.card.MaterialCardView
+                        android:id="@+id/iconBgIntro"
                         android:layout_width="48dp"
                         android:layout_height="48dp"
                         app:cardCornerRadius="16dp"
@@ -100,6 +106,7 @@
                         app:cardBackgroundColor="#EAE1DA">
 
                         <ImageView
+                            android:id="@+id/ivIconIntro"
                             android:layout_width="24dp"
                             android:layout_height="24dp"
                             android:layout_gravity="center"
@@ -115,6 +122,7 @@
                         android:orientation="vertical">
 
                         <TextView
+                            android:id="@+id/tvIntroTitle"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="We'd love to hear from you"
@@ -124,6 +132,7 @@
                             android:textStyle="bold" />
 
                         <TextView
+                            android:id="@+id/tvIntroSubtitle"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="2dp"
@@ -144,12 +153,14 @@
                 android:layout_marginBottom="14dp">
 
                 <View
+                    android:id="@+id/barSectionForm"
                     android:layout_width="4dp"
                     android:layout_height="16dp"
                     android:background="#1B3C53"
                     android:layout_marginEnd="8dp"/>
 
                 <TextView
+                    android:id="@+id/tvSectionForm"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="Your feedback"
@@ -160,6 +171,7 @@
             </LinearLayout>
 
             <com.google.android.material.card.MaterialCardView
+                android:id="@+id/cardForm"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="16dp"
@@ -175,8 +187,9 @@
                     android:orientation="vertical"
                     android:padding="18dp">
 
-                    <!-- Category -->
+                    <!-- Category label -->
                     <TextView
+                        android:id="@+id/tvCategoryLabel"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="Category"
@@ -186,6 +199,11 @@
                         android:textStyle="bold"
                         android:layout_marginBottom="6dp" />
 
+                    <!-- ============================================================
+                         Category dropdown
+                         - textSize reduced so the value matches other fields
+                         - paddingStart pushes the value text in from the left border
+                         ============================================================ -->
                     <com.google.android.material.textfield.TextInputLayout
                         android:id="@+id/tilCategory"
                         style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
@@ -198,16 +216,17 @@
                         app:boxCornerRadiusBottomEnd="14dp"
                         app:boxStrokeColor="#1B3C53"
                         app:hintTextColor="#456882"
-                        app:endIconMode="custom"
-                        app:endIconDrawable="@drawable/outline_arrow_back_24"
-                        app:endIconTint="#456882"
-                        app:endIconContentDescription="@null">
+                        app:endIconMode="dropdown_menu"
+                        app:endIconTint="#456882">
 
                         <AutoCompleteTextView
                             android:id="@+id/actvCategory"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:textColor="#1B3C53"
+                            android:textSize="16sp"
+                            android:paddingStart="16dp"
+                            android:paddingEnd="16dp"
                             android:inputType="none"
                             android:focusable="false"
                             android:clickable="true"
@@ -215,8 +234,9 @@
                             android:hint="Select a category" />
                     </com.google.android.material.textfield.TextInputLayout>
 
-                    <!-- Title -->
+                    <!-- Title label -->
                     <TextView
+                        android:id="@+id/tvTitleLabel"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="Title"
@@ -227,6 +247,7 @@
                         android:layout_marginBottom="6dp" />
 
                     <com.google.android.material.textfield.TextInputLayout
+                        android:id="@+id/tilTitle"
                         style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
@@ -247,8 +268,9 @@
                             android:maxLines="1" />
                     </com.google.android.material.textfield.TextInputLayout>
 
-                    <!-- Message -->
+                    <!-- Message label -->
                     <TextView
+                        android:id="@+id/tvMessageLabel"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="Message"
@@ -259,6 +281,7 @@
                         android:layout_marginBottom="6dp" />
 
                     <com.google.android.material.textfield.TextInputLayout
+                        android:id="@+id/tilMessage"
                         style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
@@ -281,8 +304,9 @@
                             android:gravity="top" />
                     </com.google.android.material.textfield.TextInputLayout>
 
-                    <!-- Rating -->
+                    <!-- Rating label -->
                     <TextView
+                        android:id="@+id/tvRatingSectionLabel"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="How would you rate your experience?"

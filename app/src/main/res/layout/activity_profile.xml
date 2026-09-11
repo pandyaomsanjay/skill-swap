@@ -8,7 +8,6 @@
     android:fitsSystemWindows="true"
     android:background="#EAF1F5">
 
-    <!-- Scrollable Profile Content -->
     <ScrollView
         android:layout_width="match_parent"
         android:layout_height="0dp"
@@ -31,7 +30,6 @@
                 android:background="#1B3C53"
                 android:paddingBottom="24dp">
 
-                <!-- Title row: big "Profile" title + settings gear, no back arrow -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
@@ -65,7 +63,6 @@
                         android:contentDescription="@string/settings" />
                 </LinearLayout>
 
-                <!-- Bordered profile card -->
                 <com.google.android.material.card.MaterialCardView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
@@ -84,7 +81,6 @@
                         android:gravity="center_horizontal"
                         android:padding="22dp">
 
-                        <!-- Profile Picture with change button -->
                         <RelativeLayout
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content">
@@ -130,7 +126,6 @@
                             </com.google.android.material.card.MaterialCardView>
                         </RelativeLayout>
 
-                        <!-- Name -->
                         <TextView
                             android:id="@+id/tvName"
                             android:layout_width="wrap_content"
@@ -142,7 +137,6 @@
                             android:fontFamily="sans-serif-medium"
                             android:textStyle="bold" />
 
-                        <!-- Member since -->
                         <TextView
                             android:id="@+id/tvMemberSince"
                             android:layout_width="wrap_content"
@@ -152,7 +146,6 @@
                             android:textColor="#B8C6CE"
                             android:textSize="12.5sp" />
 
-                        <!-- Stats Row (plain, no panel background) -->
                         <LinearLayout
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
@@ -160,7 +153,6 @@
                             android:orientation="horizontal"
                             android:gravity="center_vertical">
 
-                            <!-- Exchanges -->
                             <LinearLayout
                                 android:layout_width="0dp"
                                 android:layout_height="wrap_content"
@@ -191,7 +183,6 @@
                                 android:layout_height="28dp"
                                 android:background="#33FFFFFF" />
 
-                            <!-- Rating -->
                             <LinearLayout
                                 android:layout_width="0dp"
                                 android:layout_height="wrap_content"
@@ -222,7 +213,6 @@
                                 android:layout_height="28dp"
                                 android:background="#33FFFFFF" />
 
-                            <!-- Credits -->
                             <LinearLayout
                                 android:layout_width="0dp"
                                 android:layout_height="wrap_content"
@@ -249,7 +239,6 @@
                             </LinearLayout>
                         </LinearLayout>
 
-                        <!-- Edit Profile Button (outlined, transparent fill) -->
                         <com.google.android.material.button.MaterialButton
                             android:id="@+id/btnEditProfile"
                             android:layout_width="match_parent"
@@ -283,7 +272,6 @@
                 android:paddingTop="22dp"
                 android:paddingBottom="24dp">
 
-                <!-- My Skills header -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
@@ -318,7 +306,6 @@
                         android:paddingEnd="4dp" />
                 </LinearLayout>
 
-                <!-- Skills List Container (dynamic) -->
                 <LinearLayout
                     android:id="@+id/skillsContainer"
                     android:layout_width="match_parent"
@@ -326,7 +313,6 @@
                     android:orientation="vertical"
                     android:layout_marginBottom="24dp" />
 
-                <!-- Achievements header (hidden dynamic grid kept for future use) -->
                 <TextView
                     android:id="@+id/tvAchievementsHeader"
                     android:layout_width="wrap_content"
@@ -345,7 +331,6 @@
                     android:rowCount="2"
                     android:visibility="gone" />
 
-                <!-- Account List Card -->
                 <com.google.android.material.card.MaterialCardView
                     android:id="@+id/cardAccountList"
                     android:layout_width="match_parent"
@@ -591,7 +576,6 @@
                     </LinearLayout>
                 </com.google.android.material.card.MaterialCardView>
 
-                <!-- Log Out Card (plain leading icon, no badge box) -->
                 <com.google.android.material.card.MaterialCardView
                     android:id="@+id/cardLogout"
                     android:layout_width="match_parent"

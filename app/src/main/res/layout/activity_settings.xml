@@ -896,7 +896,6 @@
             </com.google.android.material.card.MaterialCardView>
 
             <!-- Sign Out Button -->
-            <!-- FIX: Ensured text color is set to a highly visible color for both themes -->
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnLogout"
                 android:layout_width="match_parent"

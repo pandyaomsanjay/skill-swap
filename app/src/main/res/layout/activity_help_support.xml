@@ -2,6 +2,7 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/rootLayout"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
@@ -11,6 +12,7 @@
 
     <!-- ===================== Header ===================== -->
     <LinearLayout
+        android:id="@+id/headerBar"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
@@ -35,6 +37,7 @@
             android:foreground="?attr/selectableItemBackground">
 
             <ImageView
+                android:id="@+id/ivBackIcon"
                 android:layout_width="20dp"
                 android:layout_height="20dp"
                 android:layout_gravity="center"
@@ -44,6 +47,7 @@
         </com.google.android.material.card.MaterialCardView>
 
         <TextView
+            android:id="@+id/tvHelpTitle"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
@@ -75,6 +79,7 @@
 
             <!-- Intro card -->
             <com.google.android.material.card.MaterialCardView
+                android:id="@+id/cardIntro"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="24dp"
@@ -92,6 +97,7 @@
                     android:padding="16dp">
 
                     <com.google.android.material.card.MaterialCardView
+                        android:id="@+id/iconBgIntro"
                         android:layout_width="48dp"
                         android:layout_height="48dp"
                         app:cardCornerRadius="16dp"
@@ -99,6 +105,7 @@
                         app:cardBackgroundColor="#EAE1DA">
 
                         <ImageView
+                            android:id="@+id/ivIconIntro"
                             android:layout_width="24dp"
                             android:layout_height="24dp"
                             android:layout_gravity="center"
@@ -114,6 +121,7 @@
                         android:orientation="vertical">
 
                         <TextView
+                            android:id="@+id/tvIntroTitle"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="We're here to help"
@@ -123,6 +131,7 @@
                             android:textStyle="bold" />
 
                         <TextView
+                            android:id="@+id/tvIntroSubtitle"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="2dp"
@@ -143,12 +152,14 @@
                 android:layout_marginBottom="14dp">
 
                 <View
+                    android:id="@+id/barSectionFaq"
                     android:layout_width="4dp"
                     android:layout_height="16dp"
                     android:background="#1B3C53"
                     android:layout_marginEnd="8dp"/>
 
                 <TextView
+                    android:id="@+id/tvSectionFaq"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="Frequently Asked Questions"
@@ -159,6 +170,7 @@
             </LinearLayout>
 
             <com.google.android.material.card.MaterialCardView
+                android:id="@+id/cardFaq"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="28dp"
@@ -186,12 +198,14 @@
                 android:layout_marginBottom="14dp">
 
                 <View
+                    android:id="@+id/barSectionAsk"
                     android:layout_width="4dp"
                     android:layout_height="16dp"
                     android:background="#456882"
                     android:layout_marginEnd="8dp"/>
 
                 <TextView
+                    android:id="@+id/tvSectionAsk"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="Have another question?"
@@ -202,6 +216,7 @@
             </LinearLayout>
 
             <com.google.android.material.card.MaterialCardView
+                android:id="@+id/cardAsk"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="28dp"
@@ -218,6 +233,7 @@
                     android:padding="16dp">
 
                     <TextView
+                        android:id="@+id/tvAskSubtitle"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="Ask us and we'll get back to you"
@@ -226,6 +242,8 @@
                         android:layout_marginBottom="12dp" />
 
                     <com.google.android.material.textfield.TextInputLayout
+                        android:id="@+id/tilQuestion"
+                        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         app:boxCornerRadiusTopStart="14dp"
@@ -272,12 +290,14 @@
                 android:layout_marginBottom="14dp">
 
                 <View
+                    android:id="@+id/barSectionContact"
                     android:layout_width="4dp"
                     android:layout_height="16dp"
                     android:background="#456882"
                     android:layout_marginEnd="8dp"/>
 
                 <TextView
+                    android:id="@+id/tvSectionContact"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="Still need help?"
@@ -288,6 +308,7 @@
             </LinearLayout>
 
             <com.google.android.material.card.MaterialCardView
+                android:id="@+id/cardContact"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="16dp"
@@ -311,6 +332,7 @@
                     android:paddingVertical="12dp">
 
                     <com.google.android.material.card.MaterialCardView
+                        android:id="@+id/iconBgContact"
                         android:layout_width="40dp"
                         android:layout_height="40dp"
                         app:cardCornerRadius="13dp"
@@ -318,6 +340,7 @@
                         app:cardBackgroundColor="#EAE1DA">
 
                         <ImageView
+                            android:id="@+id/ivIconContact"
                             android:layout_width="20dp"
                             android:layout_height="20dp"
                             android:layout_gravity="center"
@@ -333,6 +356,7 @@
                         android:orientation="vertical">
 
                         <TextView
+                            android:id="@+id/tvContactLabel"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="Email support"
@@ -340,6 +364,7 @@
                             android:textSize="14sp" />
 
                         <TextView
+                            android:id="@+id/tvContactValue"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="2dp"
@@ -349,6 +374,7 @@
                     </LinearLayout>
 
                     <ImageView
+                        android:id="@+id/ivChevronContact"
                         android:layout_width="24dp"
                         android:layout_height="24dp"
                         android:importantForAccessibility="no"

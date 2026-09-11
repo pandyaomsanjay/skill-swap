@@ -46,10 +46,7 @@ class SettingsActivity : BaseActivity() {
     private val db: FirebaseFirestore by lazy { FirebaseFirestore.getInstance() }
     private val storage: FirebaseStorage by lazy { FirebaseStorage.getInstance() }
 
-    /** Tracks current theme so dialogs and re-renders stay consistent. */
     private var isDarkModeEnabled = false
-
-    /** How long we let a switch's thumb animation play before recoloring the screen. */
     private val themeSwitchDelayMs = 200L
 
     // ---------------------------------------------------------------------
@@ -104,12 +101,10 @@ class SettingsActivity : BaseActivity() {
     private val darkHeaderBg = Color.parseColor("#0B1620")
     private val darkBackButtonBg = Color.parseColor("#22323D")
 
-    // Fixed brand colors used regardless of theme
     private val navyDark = Color.parseColor("#1B3C53")
     private val cream = Color.parseColor("#F9F3EF")
-    private val headerTitleColor = Color.parseColor("#F9F3EF") // always cream, header is always dark
+    private val headerTitleColor = Color.parseColor("#F9F3EF")
 
-    // Dialog "confirm logout" button — themed for strong contrast in both modes.
     private val logoutConfirmBgLight = Color.parseColor("#DC2626")
     private val logoutConfirmBgDark = Color.parseColor("#B3261E")
     private val logoutConfirmText = Color.WHITE
@@ -131,10 +126,6 @@ class SettingsActivity : BaseActivity() {
         const val KEY_USER_TOTAL_SKILLS = "user_total_skills"
         const val KEY_USER_PFP_URL = "user_profile_image"
     }
-
-    // ---------------------------------------------------------------------
-    // Activity Result launchers (must be registered before STARTED)
-    // ---------------------------------------------------------------------
 
     private val pickImageLauncher = registerForActivityResult(
         ActivityResultContracts.GetContent()
@@ -172,7 +163,6 @@ class SettingsActivity : BaseActivity() {
 
         sharedPreferences = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
 
-        // Apply the saved theme immediately so there's no flash of the wrong colors
         isDarkModeEnabled = sharedPreferences.getBoolean(KEY_DARK_MODE, false)
         applyTheme(isDarkModeEnabled)
 
@@ -200,8 +190,6 @@ class SettingsActivity : BaseActivity() {
     // ---------------------------------------------------------------------
     // THEME ENGINE
     // ---------------------------------------------------------------------
-
-    /** Recolors every themed view on the page to match light/dark mode. */
     private fun applyTheme(isDark: Boolean) {
         isDarkModeEnabled = isDark
 
@@ -224,22 +212,18 @@ class SettingsActivity : BaseActivity() {
         val headerBg = if (isDark) darkHeaderBg else lightHeaderBg
         val backButtonBg = if (isDark) darkBackButtonBg else lightBackButtonBg
 
-        // Root background
         findViewById<View>(R.id.rootLayout)?.setBackgroundColor(screenBg)
 
-        // ---- Header bar ----
         findViewById<View>(R.id.headerBar)?.setBackgroundColor(headerBg)
         findViewById<MaterialCardView>(R.id.btnBack)?.setCardBackgroundColor(backButtonBg)
         findViewById<ImageView>(R.id.ivBackIcon)?.imageTintList = ColorStateList.valueOf(headerTitleColor)
 
-        // FIX: Removed `text = getString(R.string.settings)` to prevent clearing the text if string is empty
         findViewById<TextView>(R.id.tvSettingsTitle)?.apply {
             setTextColor(headerTitleColor)
             visibility = View.VISIBLE
             alpha = 1f
         }
 
-        // Cards
         listOf(R.id.cardProfile, R.id.cardSecurity, R.id.cardPreferences, R.id.cardSupport)
             .forEach { id ->
                 findViewById<MaterialCardView>(id)?.apply {
@@ -248,16 +232,13 @@ class SettingsActivity : BaseActivity() {
                 }
             }
 
-        // Section header texts
         listOf(R.id.tvSectionSecurity, R.id.tvSectionPreferences, R.id.tvSectionSupport)
             .forEach { id -> findViewById<TextView>(id)?.setTextColor(textPrimary) }
 
-        // Profile card
         findViewById<TextView>(R.id.tvUserName)?.setTextColor(textPrimary)
         findViewById<TextView>(R.id.tvUserEmail)?.setTextColor(textSecondary)
         findViewById<ImageView>(R.id.ivChevronProfile)?.imageTintList = ColorStateList.valueOf(chevronTint)
 
-        // Change Password row
         findViewById<MaterialCardView>(R.id.iconBgChangePassword)?.setCardBackgroundColor(iconBgNeutral)
         findViewById<ImageView>(R.id.ivIconChangePassword)?.imageTintList = ColorStateList.valueOf(iconTintNeutral)
         findViewById<TextView>(R.id.tvChangePasswordTitle)?.setTextColor(textPrimary)
@@ -265,35 +246,42 @@ class SettingsActivity : BaseActivity() {
         findViewById<ImageView>(R.id.ivChevronChangePassword)?.imageTintList = ColorStateList.valueOf(chevronTint)
         findViewById<View>(R.id.dividerPassword1)?.setBackgroundColor(divider)
 
-        // Forgot Password row
         findViewById<MaterialCardView>(R.id.iconBgForgotPassword)?.setCardBackgroundColor(iconBgNeutral)
         findViewById<ImageView>(R.id.ivIconForgotPassword)?.imageTintList = ColorStateList.valueOf(iconTintNeutral)
         findViewById<TextView>(R.id.tvForgotPasswordTitle)?.setTextColor(textPrimary)
         findViewById<TextView>(R.id.tvForgotPasswordSubtitle)?.setTextColor(textSecondary)
         findViewById<ImageView>(R.id.ivChevronForgotPassword)?.imageTintList = ColorStateList.valueOf(chevronTint)
 
-        // Push Notifications row
         findViewById<MaterialCardView>(R.id.iconBgPush)?.setCardBackgroundColor(iconBgGreen)
         findViewById<ImageView>(R.id.ivIconPush)?.imageTintList = ColorStateList.valueOf(iconTintGreen)
         findViewById<TextView>(R.id.tvPushTitle)?.setTextColor(textPrimary)
         findViewById<TextView>(R.id.tvPushSubtitle)?.setTextColor(textSecondary)
         findViewById<View>(R.id.dividerPref1)?.setBackgroundColor(divider)
 
-        // Dark Mode row
         findViewById<MaterialCardView>(R.id.iconBgDark)?.setCardBackgroundColor(iconBgGold)
         findViewById<ImageView>(R.id.ivIconDark)?.imageTintList = ColorStateList.valueOf(iconTintGold)
         findViewById<TextView>(R.id.tvDarkTitle)?.setTextColor(textPrimary)
         findViewById<TextView>(R.id.tvDarkSubtitle)?.setTextColor(textSecondary)
         findViewById<View>(R.id.dividerPref2)?.setBackgroundColor(divider)
 
-        // Language row
+        // ============================================================
+        // Language row — pill background on the value for clarity
+        // ============================================================
         findViewById<MaterialCardView>(R.id.iconBgLanguage)?.setCardBackgroundColor(iconBgNeutral)
         findViewById<ImageView>(R.id.ivIconLanguage)?.imageTintList = ColorStateList.valueOf(iconTintNeutral)
         findViewById<TextView>(R.id.tvLanguageLabel)?.setTextColor(textPrimary)
-        findViewById<TextView>(R.id.tvLanguage)?.setTextColor(textPrimary)
+
+        findViewById<TextView>(R.id.tvLanguage)?.apply {
+            setTextColor(textPrimary)
+            background = GradientDrawable().apply {
+                cornerRadius = dp(20).toFloat()
+                setColor(iconBgNeutral)
+            }
+            setPadding(dp(12), dp(5), dp(12), dp(5))
+        }
+
         findViewById<ImageView>(R.id.ivChevronLanguage)?.imageTintList = ColorStateList.valueOf(chevronTint)
 
-        // Support & About rows (bare icons, no chip background)
         listOf(
             R.id.ivIconHelp, R.id.ivIconPrivacy, R.id.ivIconTerms,
             R.id.ivIconRate, R.id.ivIconAbout, R.id.ivIconVersion
@@ -316,11 +304,9 @@ class SettingsActivity : BaseActivity() {
             R.id.dividerSupport4, R.id.dividerSupport5
         ).forEach { id -> findViewById<View>(id)?.setBackgroundColor(divider) }
 
-        // Switches
         applySwitchColors(findViewById(R.id.switchPushNotifications), isDark)
         applySwitchColors(findViewById(R.id.switchDarkMode), isDark)
 
-        // FIX: Removed `text = getString(R.string.logout)` to prevent clearing the text if string is empty
         findViewById<MaterialButton>(R.id.btnLogout)?.apply {
             backgroundTintList = ColorStateList.valueOf(logoutBg)
             setTextColor(logoutText)
@@ -329,14 +315,12 @@ class SettingsActivity : BaseActivity() {
             alpha = 1f
         }
 
-        // Force status bar / nav bar icon contrast to match OUR theme, not the system's.
         val insetsController = WindowCompat.getInsetsController(window, window.decorView)
         insetsController.isAppearanceLightStatusBars = !isDark
         insetsController.isAppearanceLightNavigationBars = !isDark
         window.statusBarColor = headerBg
         window.navigationBarColor = screenBg
 
-        // Force redraw to clear stale cached layers
         forceRedraw(R.id.rootLayout)
         forceRedraw(R.id.headerBar)
         forceRedraw(R.id.tvSettingsTitle)
@@ -344,18 +328,12 @@ class SettingsActivity : BaseActivity() {
         forceRedraw(R.id.btnLogout)
     }
 
-    /** Forces a view to drop any stale cached layer and redraw with its current properties. */
     private fun forceRedraw(viewId: Int) {
         val view = findViewById<View>(viewId) ?: return
-        // FIX: Use postInvalidate to ensure it happens on the UI thread and actually sticks
         view.postInvalidate()
         view.requestLayout()
     }
 
-    /**
-     * Sets a switch's track/thumb to a single flat color matching its current checked
-     * state and the active theme.
-     */
     private fun applySwitchColors(switch: MaterialSwitch?, isDark: Boolean) {
         if (switch == null) return
 
@@ -374,10 +352,6 @@ class SettingsActivity : BaseActivity() {
     private fun currentSecondaryBtnBg(): Int = if (isDarkModeEnabled) darkCardStroke else lightScreenBg
     private fun currentSecondaryBtnText(): Int = if (isDarkModeEnabled) darkTextPrimary else lightTextSecondary
     private fun currentLogoutConfirmBg(): Int = if (isDarkModeEnabled) logoutConfirmBgDark else logoutConfirmBgLight
-
-    // ---------------------------------------------------------------------
-    // Sign-in provider gating for Change Password / Forgot Password
-    // ---------------------------------------------------------------------
 
     private fun isEmailPasswordUser(): Boolean {
         val providerData = auth.currentUser?.providerData ?: return false
@@ -454,10 +428,6 @@ class SettingsActivity : BaseActivity() {
 
         dialog.show()
     }
-
-    // ---------------------------------------------------------------------
-    // Profile loading
-    // ---------------------------------------------------------------------
 
     private fun loadProfileData() {
         val currentUser = auth.currentUser
@@ -591,9 +561,6 @@ class SettingsActivity : BaseActivity() {
             }
         }
 
-        // Forgot Password now routes through the same provider-aware
-        // ForgotPasswordEmailActivity → OTP → Supabase reset pipeline that
-        // the Login screen uses. One flow, one source of truth.
         findViewById<View>(R.id.layoutForgotPassword)?.setOnClickListener {
             if (!isEmailPasswordUser()) {
                 showProviderRestrictedDialog()
@@ -661,10 +628,6 @@ class SettingsActivity : BaseActivity() {
             showLogoutDialog()
         }
     }
-
-    // ---------------------------------------------------------------------
-    // Profile picture picker (Gallery / Camera)
-    // ---------------------------------------------------------------------
 
     private fun showImagePickerOptions() {
         val root = dialogCard()
@@ -913,10 +876,6 @@ class SettingsActivity : BaseActivity() {
     private fun showMessage(message: String) {
         Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
     }
-
-    // ---------------------------------------------------------------------
-    // Dialog styling helpers (theme-aware)
-    // ---------------------------------------------------------------------
 
     private fun dp(value: Int): Int = (value * resources.displayMetrics.density).toInt()
 

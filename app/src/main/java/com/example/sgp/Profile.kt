@@ -52,10 +52,9 @@ class Profile : BaseActivity() {
 
     private lateinit var sharedPreferences: SharedPreferences
 
-    /** Tracks current theme so dialogs and re-renders stay consistent. */
     private var isDarkModeEnabled = false
 
-    // ---- Fixed brand colors (unchanged across themes; live on the navy hero header) ----
+    // ---- Fixed brand colors ----
     private val navyDark = Color.parseColor("#1B3C53")
     private val navyMed = Color.parseColor("#456882")
     private val cream = Color.parseColor("#F9F3EF")
@@ -75,6 +74,7 @@ class Profile : BaseActivity() {
     private val lightDivider = Color.parseColor("#D2C1B6")
     private val lightChevronTint = Color.parseColor("#456882")
     private val lightIconTintNeutral = Color.parseColor("#1B3C53")
+    private val lightIconBgNeutral = Color.parseColor("#EAE1DA")
     private val lightLogoutText = Color.parseColor("#C0392B")
     private val lightLogoutStroke = Color.parseColor("#E8C4C4")
     private val lightHeaderBg = Color.parseColor("#1B3C53")
@@ -90,6 +90,7 @@ class Profile : BaseActivity() {
     private val darkDivider = Color.parseColor("#2A3B48")
     private val darkChevronTint = Color.parseColor("#6E8598")
     private val darkIconTintNeutral = Color.parseColor("#C9D6DE")
+    private val darkIconBgNeutral = Color.parseColor("#26343F")
     private val darkLogoutText = Color.parseColor("#FF6961")
     private val darkLogoutStroke = Color.parseColor("#5C2A2A")
     private val darkHeaderBg = Color.parseColor("#0B1620")
@@ -113,7 +114,6 @@ class Profile : BaseActivity() {
 
     override fun onResume() {
         super.onResume()
-        // Dark mode may have been toggled from the Settings screen while we were away.
         isDarkModeEnabled = sharedPreferences.getBoolean(SettingsActivity.KEY_DARK_MODE, false)
         applyTheme(isDarkModeEnabled)
         loadUserProfile()
@@ -122,8 +122,6 @@ class Profile : BaseActivity() {
     // ---------------------------------------------------------------------
     // THEME ENGINE
     // ---------------------------------------------------------------------
-
-    /** Recolors every themed view on the page to match light/dark mode. */
     private fun applyTheme(isDark: Boolean) {
         isDarkModeEnabled = isDark
 
@@ -135,55 +133,57 @@ class Profile : BaseActivity() {
         val divider = if (isDark) darkDivider else lightDivider
         val chevronTint = if (isDark) darkChevronTint else lightChevronTint
         val iconTintNeutral = if (isDark) darkIconTintNeutral else lightIconTintNeutral
+        val iconBgNeutral = if (isDark) darkIconBgNeutral else lightIconBgNeutral
         val logoutText = if (isDark) darkLogoutText else lightLogoutText
         val logoutStroke = if (isDark) darkLogoutStroke else lightLogoutStroke
         val headerBg = if (isDark) darkHeaderBg else lightHeaderBg
 
-        // Root background + hero header (header stays dark navy in both themes, just deepens)
         findViewById<View>(R.id.rootLayout)?.setBackgroundColor(screenBg)
         findViewById<View>(R.id.headerSection)?.setBackgroundColor(headerBg)
 
-        // Section headers
         findViewById<TextView>(R.id.tvMySkillsHeader)?.setTextColor(textPrimary)
         findViewById<TextView>(R.id.tvAchievementsHeader)?.setTextColor(textPrimary)
         findViewById<MaterialButton>(R.id.btnAddNewSkill)?.setTextColor(textSecondary)
 
-        // Account list card
         findViewById<MaterialCardView>(R.id.cardAccountList)?.apply {
             setCardBackgroundColor(cardBg)
             strokeColor = cardStroke
         }
 
-        // Booking history row
         findViewById<ImageView>(R.id.ivIconBookingHistory)?.imageTintList = ColorStateList.valueOf(iconTintNeutral)
         findViewById<TextView>(R.id.tvBookingHistory)?.setTextColor(textPrimary)
         findViewById<ImageView>(R.id.ivChevronBookingHistory)?.imageTintList = ColorStateList.valueOf(chevronTint)
         findViewById<View>(R.id.dividerBooking1)?.setBackgroundColor(divider)
 
-        // Reviews row
         findViewById<ImageView>(R.id.ivIconReviews)?.imageTintList = ColorStateList.valueOf(iconTintNeutral)
         findViewById<TextView>(R.id.tvReviews)?.setTextColor(textPrimary)
         findViewById<ImageView>(R.id.ivChevronReviews)?.imageTintList = ColorStateList.valueOf(chevronTint)
         findViewById<View>(R.id.dividerReviews1)?.setBackgroundColor(divider)
 
-        // Feedback row
         findViewById<ImageView>(R.id.ivIconFeedback)?.imageTintList = ColorStateList.valueOf(iconTintNeutral)
         findViewById<TextView>(R.id.tvFeedback)?.setTextColor(textPrimary)
         findViewById<ImageView>(R.id.ivChevronFeedback)?.imageTintList = ColorStateList.valueOf(chevronTint)
         findViewById<View>(R.id.dividerFeedback1)?.setBackgroundColor(divider)
 
-        // Language row
+        // Language row — pill on the value
         findViewById<TextView>(R.id.tvChangeLanguage)?.setTextColor(textPrimary)
-        findViewById<TextView>(R.id.tvProfileLanguage)?.setTextColor(textSecondary)
+
+        findViewById<TextView>(R.id.tvProfileLanguage)?.apply {
+            setTextColor(textPrimary)
+            background = GradientDrawable().apply {
+                cornerRadius = dp(20).toFloat()
+                setColor(iconBgNeutral)
+            }
+            setPadding(dp(12), dp(5), dp(12), dp(5))
+        }
+
         findViewById<ImageView>(R.id.ivChevronLanguage)?.imageTintList = ColorStateList.valueOf(chevronTint)
         findViewById<View>(R.id.dividerLanguage1)?.setBackgroundColor(divider)
 
-        // Settings row
         findViewById<ImageView>(R.id.ivIconSettingsRow)?.imageTintList = ColorStateList.valueOf(iconTintNeutral)
         findViewById<TextView>(R.id.tvSettingsRow)?.setTextColor(textPrimary)
         findViewById<ImageView>(R.id.ivChevronSettings)?.imageTintList = ColorStateList.valueOf(chevronTint)
 
-        // Logout card
         findViewById<MaterialCardView>(R.id.cardLogout)?.apply {
             setCardBackgroundColor(cardBg)
             strokeColor = logoutStroke
@@ -192,12 +192,10 @@ class Profile : BaseActivity() {
         findViewById<TextView>(R.id.tvLogoutText)?.setTextColor(logoutText)
         findViewById<ImageView>(R.id.ivChevronLogout)?.imageTintList = ColorStateList.valueOf(chevronTint)
 
-        // Recolor any already-inflated skill cards to match the new theme
         for (i in 0 until skillsContainer.childCount) {
             styleSkillCardView(skillsContainer.getChildAt(i), isDark)
         }
 
-        // Status/nav bar contrast
         val insetsController = WindowCompat.getInsetsController(window, window.decorView)
         insetsController.isAppearanceLightStatusBars = !isDark
         insetsController.isAppearanceLightNavigationBars = !isDark
@@ -311,6 +309,7 @@ class Profile : BaseActivity() {
     }
 
     private fun updateUI(user: Users) {
+        // Uses capitalizeName() inherited from BaseActivity
         tvName.text = capitalizeName(user.name)
         tvExchanges.text = user.completedTrades.toString()
         tvRating.text = String.format("%.1f", user.rating)
@@ -353,11 +352,10 @@ class Profile : BaseActivity() {
         tvTitle.text = skill.title
         tvCredits.text = "${skill.credits} credits"
 
-        // --- FIX: Load the correct thumbnail ---
         val thumbnailUrl = if (skill.skillType == "playlist") {
-            skill.thumbnailUrl  // playlists use thumbnailUrl
+            skill.thumbnailUrl
         } else {
-            skill.videoUrl      // single videos use videoUrl
+            skill.videoUrl
         }
 
         if (!thumbnailUrl.isNullOrEmpty()) {
@@ -369,9 +367,7 @@ class Profile : BaseActivity() {
         } else {
             ivThumbnail.setImageResource(R.drawable.baseline_videocam_24)
         }
-        // --------------------------
 
-        // Apply card + theme-aware text/icon styling
         styleSkillCardView(view, isDarkModeEnabled)
 
         val vertPad = dp(12)
@@ -395,7 +391,6 @@ class Profile : BaseActivity() {
         skillsContainer.addView(view)
     }
 
-    /** Recolors a single inflated skill card row to match light/dark mode. */
     private fun styleSkillCardView(view: View, isDark: Boolean) {
         view.background = skillCardBackground(isDark)
         view.findViewById<TextView>(R.id.tvSkillTitle)?.setTextColor(
@@ -409,7 +404,6 @@ class Profile : BaseActivity() {
         )
     }
 
-    // ---------- Open skill video (mirrors ExploreActivity.openSkill) ----------
     private fun openSkill(skill: Skill) {
         if (skill.skillType == "single" && !skill.videoUrl.isNullOrEmpty()) {
             val intent = Intent(this, VideoPlayerActivity::class.java)
@@ -431,7 +425,6 @@ class Profile : BaseActivity() {
         }
     }
 
-    // ---------- Themed image picker (replaces default list-style AlertDialog) ----------
     private fun showImagePickerDialog() {
         val root = dialogCard()
         root.addView(dialogTitle("Change Profile Picture"))
@@ -564,7 +557,6 @@ class Profile : BaseActivity() {
         }
     }
 
-    // ---------- Themed logout confirmation ----------
     private fun showLogoutConfirmation() {
         val root = dialogCard()
         root.addView(TextView(this).apply {
@@ -632,7 +624,6 @@ class Profile : BaseActivity() {
         finish()
     }
 
-    // ---------- Themed-dialog helpers ----------
     private fun dp(value: Int): Int = (value * resources.displayMetrics.density).toInt()
 
     private fun dialogCard(): LinearLayout {
