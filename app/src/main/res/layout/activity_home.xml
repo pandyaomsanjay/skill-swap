@@ -6,9 +6,11 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:fitsSystemWindows="true"
+    android:background="@color/admin_bg_light_blue"
     tools:context=".Home">
 
     <LinearLayout
+        android:id="@+id/homeRootLayout"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:orientation="vertical"
@@ -20,7 +22,7 @@
             android:layout_width="match_parent"
             android:layout_height="?attr/actionBarSize"
             android:background="#1B3C53"
-            android:elevation="0dp"
+            android:elevation="6dp"
             app:navigationIcon="@drawable/ic_custom_menu"
             app:navigationIconTint="#F9F3EF"
             app:title="SkillSwap"
@@ -45,6 +47,7 @@
 
                 <!-- ===================== Profile / Points card ===================== -->
                 <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/cardProfilePoints"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     app:cardCornerRadius="16dp"
@@ -120,6 +123,7 @@
                                 android:textStyle="bold" />
 
                             <TextView
+                                android:id="@+id/tvPointsLabel"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:text="@string/points"
@@ -130,6 +134,7 @@
                 </com.google.android.material.card.MaterialCardView>
 
                 <TextView
+                    android:id="@+id/tvQuickActionsLabel"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="@string/quick_actions"
@@ -184,6 +189,7 @@
                     android:layout_marginBottom="24dp">
 
                     <com.google.android.material.card.MaterialCardView
+                        android:id="@+id/cardTileFind"
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
@@ -206,6 +212,7 @@
                             android:focusable="true">
 
                             <ImageView
+                                android:id="@+id/ivTileFindIcon"
                                 android:layout_width="24dp"
                                 android:layout_height="24dp"
                                 android:src="@drawable/outline_search_24"
@@ -213,6 +220,7 @@
                                 android:contentDescription="Find Skills" />
 
                             <TextView
+                                android:id="@+id/tvTileFindTitle"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:text="@string/find"
@@ -222,6 +230,7 @@
                                 android:layout_marginTop="10dp" />
 
                             <TextView
+                                android:id="@+id/tvTileFindSub"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:text="@string/skills_word"
@@ -231,6 +240,7 @@
                     </com.google.android.material.card.MaterialCardView>
 
                     <com.google.android.material.card.MaterialCardView
+                        android:id="@+id/cardTileTeach"
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
@@ -253,6 +263,7 @@
                             android:focusable="true">
 
                             <ImageView
+                                android:id="@+id/ivTileTeachIcon"
                                 android:layout_width="24dp"
                                 android:layout_height="24dp"
                                 android:src="@drawable/outline_school_24"
@@ -260,6 +271,7 @@
                                 android:contentDescription="Teach Skills" />
 
                             <TextView
+                                android:id="@+id/tvTileTeachTitle"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:text="@string/teach"
@@ -269,6 +281,7 @@
                                 android:layout_marginTop="10dp" />
 
                             <TextView
+                                android:id="@+id/tvTileTeachSub"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:text="@string/skills_word"
@@ -278,6 +291,7 @@
                     </com.google.android.material.card.MaterialCardView>
 
                     <com.google.android.material.card.MaterialCardView
+                        android:id="@+id/cardTileCreate"
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
@@ -299,6 +313,7 @@
                             android:focusable="true">
 
                             <ImageView
+                                android:id="@+id/ivTileCreateIcon"
                                 android:layout_width="24dp"
                                 android:layout_height="24dp"
                                 android:src="@drawable/outline_handshake_24"
@@ -306,6 +321,7 @@
                                 android:contentDescription="Create Swap" />
 
                             <TextView
+                                android:id="@+id/tvTileCreateTitle"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:text="@string/create"
@@ -315,6 +331,7 @@
                                 android:layout_marginTop="10dp" />
 
                             <TextView
+                                android:id="@+id/tvTileCreateSub"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:text="@string/swap_word"
@@ -339,6 +356,7 @@
                         android:layout_marginBottom="12dp">
 
                         <TextView
+                            android:id="@+id/tvPopularSkillsTitle"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="@string/popular_skills"
@@ -397,6 +415,7 @@
                         android:layout_marginBottom="12dp">
 
                         <TextView
+                            android:id="@+id/tvRecentSwapsTitle"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="@string/recent_swaps"
@@ -453,7 +472,7 @@
             android:layout_gravity="bottom" />
     </LinearLayout>
 
-    <!-- UPDATED NavigationView with scrollable and proper styling -->
+    <!-- UPDATED NavigationView with highlight removed -->
     <com.google.android.material.navigation.NavigationView
         android:id="@+id/navigationView"
         android:layout_width="280dp"
@@ -465,6 +484,6 @@
         app:menu="@menu/nav_drawer_menu"
         app:itemIconTint="@color/drawer_icon_colors"
         app:itemTextColor="@color/drawer_text_colors"
-        app:itemBackground="@drawable/drawer_item_background"
+        app:itemBackground="@android:color/transparent"
         android:scrollbars="vertical" />
 </androidx.drawerlayout.widget.DrawerLayout>

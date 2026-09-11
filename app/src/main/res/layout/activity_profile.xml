@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/rootLayout"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
@@ -23,6 +24,7 @@
 
             <!-- ===================== Profile Header (edge-to-edge navy) ===================== -->
             <LinearLayout
+                android:id="@+id/headerSection"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
@@ -56,6 +58,7 @@
                         android:layout_height="40dp"
                         android:padding="9dp"
                         android:src="@drawable/ic_settings_gear"
+                        app:tint="#F9F3EF"
                         android:clickable="true"
                         android:focusable="true"
                         android:background="?attr/selectableItemBackgroundBorderless"
@@ -289,6 +292,7 @@
                     android:layout_marginBottom="12dp">
 
                     <TextView
+                        android:id="@+id/tvMySkillsHeader"
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
@@ -324,6 +328,7 @@
 
                 <!-- Achievements header (hidden dynamic grid kept for future use) -->
                 <TextView
+                    android:id="@+id/tvAchievementsHeader"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="@string/achievements"
@@ -342,6 +347,7 @@
 
                 <!-- Account List Card -->
                 <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/cardAccountList"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="14dp"
@@ -370,12 +376,14 @@
                             android:focusable="true">
 
                             <ImageView
+                                android:id="@+id/ivIconBookingHistory"
                                 android:layout_width="22dp"
                                 android:layout_height="22dp"
                                 android:src="@drawable/ic_calendar"
                                 app:tint="#1B3C53" />
 
                             <TextView
+                                android:id="@+id/tvBookingHistory"
                                 android:layout_width="0dp"
                                 android:layout_height="wrap_content"
                                 android:layout_weight="1"
@@ -385,6 +393,7 @@
                                 android:textSize="15.5sp" />
 
                             <ImageView
+                                android:id="@+id/ivChevronBookingHistory"
                                 android:layout_width="20dp"
                                 android:layout_height="20dp"
                                 android:src="@drawable/outline_chevron_right_24"
@@ -392,6 +401,7 @@
                         </LinearLayout>
 
                         <View
+                            android:id="@+id/dividerBooking1"
                             android:layout_width="match_parent"
                             android:layout_height="1dp"
                             android:layout_marginStart="18dp"
@@ -411,12 +421,14 @@
                             android:focusable="true">
 
                             <ImageView
+                                android:id="@+id/ivIconReviews"
                                 android:layout_width="22dp"
                                 android:layout_height="22dp"
                                 android:src="@drawable/ic_star"
                                 app:tint="#1B3C53" />
 
                             <TextView
+                                android:id="@+id/tvReviews"
                                 android:layout_width="0dp"
                                 android:layout_height="wrap_content"
                                 android:layout_weight="1"
@@ -426,6 +438,7 @@
                                 android:textSize="15.5sp" />
 
                             <ImageView
+                                android:id="@+id/ivChevronReviews"
                                 android:layout_width="20dp"
                                 android:layout_height="20dp"
                                 android:src="@drawable/outline_chevron_right_24"
@@ -433,6 +446,7 @@
                         </LinearLayout>
 
                         <View
+                            android:id="@+id/dividerReviews1"
                             android:layout_width="match_parent"
                             android:layout_height="1dp"
                             android:layout_marginStart="18dp"
@@ -452,12 +466,14 @@
                             android:focusable="true">
 
                             <ImageView
+                                android:id="@+id/ivIconFeedback"
                                 android:layout_width="22dp"
                                 android:layout_height="22dp"
                                 android:src="@drawable/ic_chat_bubble"
                                 app:tint="#1B3C53" />
 
                             <TextView
+                                android:id="@+id/tvFeedback"
                                 android:layout_width="0dp"
                                 android:layout_height="wrap_content"
                                 android:layout_weight="1"
@@ -467,6 +483,7 @@
                                 android:textSize="15.5sp" />
 
                             <ImageView
+                                android:id="@+id/ivChevronFeedback"
                                 android:layout_width="20dp"
                                 android:layout_height="20dp"
                                 android:src="@drawable/outline_chevron_right_24"
@@ -474,6 +491,7 @@
                         </LinearLayout>
 
                         <View
+                            android:id="@+id/dividerFeedback1"
                             android:layout_width="match_parent"
                             android:layout_height="1dp"
                             android:layout_marginStart="18dp"
@@ -500,6 +518,7 @@
                                 android:gravity="center" />
 
                             <TextView
+                                android:id="@+id/tvChangeLanguage"
                                 android:layout_width="0dp"
                                 android:layout_height="wrap_content"
                                 android:layout_weight="1"
@@ -518,6 +537,7 @@
                                 android:textSize="13.5sp" />
 
                             <ImageView
+                                android:id="@+id/ivChevronLanguage"
                                 android:layout_width="20dp"
                                 android:layout_height="20dp"
                                 android:src="@drawable/outline_chevron_right_24"
@@ -525,6 +545,7 @@
                         </LinearLayout>
 
                         <View
+                            android:id="@+id/dividerLanguage1"
                             android:layout_width="match_parent"
                             android:layout_height="1dp"
                             android:layout_marginStart="18dp"
@@ -544,12 +565,14 @@
                             android:focusable="true">
 
                             <ImageView
+                                android:id="@+id/ivIconSettingsRow"
                                 android:layout_width="22dp"
                                 android:layout_height="22dp"
                                 android:src="@drawable/ic_settings_gear"
                                 app:tint="#1B3C53" />
 
                             <TextView
+                                android:id="@+id/tvSettingsRow"
                                 android:layout_width="0dp"
                                 android:layout_height="wrap_content"
                                 android:layout_weight="1"
@@ -559,6 +582,7 @@
                                 android:textSize="15.5sp" />
 
                             <ImageView
+                                android:id="@+id/ivChevronSettings"
                                 android:layout_width="20dp"
                                 android:layout_height="20dp"
                                 android:src="@drawable/outline_chevron_right_24"
@@ -569,6 +593,7 @@
 
                 <!-- Log Out Card (plain leading icon, no badge box) -->
                 <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/cardLogout"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     app:cardCornerRadius="18dp"
@@ -591,12 +616,14 @@
                         android:focusable="true">
 
                         <ImageView
+                            android:id="@+id/ivIconLogout"
                             android:layout_width="22dp"
                             android:layout_height="22dp"
                             android:src="@drawable/outline_logout_24"
                             app:tint="#DC2626" />
 
                         <TextView
+                            android:id="@+id/tvLogoutText"
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
@@ -607,6 +634,7 @@
                             android:textStyle="bold" />
 
                         <ImageView
+                            android:id="@+id/ivChevronLogout"
                             android:layout_width="20dp"
                             android:layout_height="20dp"
                             android:src="@drawable/outline_chevron_right_24"

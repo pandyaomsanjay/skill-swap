@@ -3,8 +3,11 @@ package com.example.sgp
 import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
+import android.content.res.ColorStateList
+import android.content.res.Configuration
 import android.graphics.Color
 import android.graphics.Typeface
+import android.graphics.drawable.ColorDrawable
 import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
 import android.view.Gravity
@@ -18,6 +21,7 @@ import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.appcompat.app.ActionBarDrawerToggle
 import androidx.appcompat.app.AlertDialog
+import androidx.core.content.ContextCompat
 import androidx.core.view.GravityCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
@@ -26,6 +30,7 @@ import androidx.drawerlayout.widget.DrawerLayout
 import androidx.lifecycle.lifecycleScope
 import com.bumptech.glide.Glide
 import com.google.android.material.button.MaterialButton
+import com.google.android.material.card.MaterialCardView
 import com.google.android.material.navigation.NavigationView
 import com.google.android.material.snackbar.Snackbar
 import com.google.firebase.auth.FirebaseAuth
@@ -51,9 +56,46 @@ class Home : BaseActivity(), NavigationView.OnNavigationItemSelectedListener {
     private var receiverSwaps: List<Trade> = emptyList()
     private var currentUserIdForSwaps: String = ""
 
+    /** Shared with SettingsActivity — flipping dark mode there is reflected here on next resume. */
+    private var isDarkModeEnabled = false
+
     private val skillCategories = listOf(
         "TECHNOLOGY", "ARTS", "SPORTS", "HOME", "EDUCATION", "LIFESTYLE"
     )
+
+    // ---------------------------------------------------------------------
+    // LIGHT THEME PALETTE
+    // ---------------------------------------------------------------------
+    private val lightScreenBg = Color.parseColor("#EAF1F5")
+    private val lightCardBg = Color.parseColor("#FFFFFF")
+    private val lightCardStroke = Color.parseColor("#D2C1B6")
+    private val lightTextPrimary = Color.parseColor("#1B3C53")
+    private val lightTextSecondary = Color.parseColor("#456882")
+    private val lightHeaderBg = Color.parseColor("#1B3C53")
+    private val lightNavDrawerBg = Color.parseColor("#EAF1F5")
+    private val lightTonalBtnBg = Color.parseColor("#1B3C53")
+    private val lightTonalBtnText = Color.parseColor("#F9F3EF")
+    private val lightOutlineStroke = Color.parseColor("#D2C1B6")
+    private val lightOutlineText = Color.parseColor("#456882")
+
+    // ---------------------------------------------------------------------
+    // DARK THEME PALETTE
+    // ---------------------------------------------------------------------
+    private val darkScreenBg = Color.parseColor("#0F1B24")
+    private val darkCardBg = Color.parseColor("#16232E")
+    private val darkCardStroke = Color.parseColor("#2A3B48")
+    private val darkTextPrimary = Color.parseColor("#F5F7F8")
+    private val darkTextSecondary = Color.parseColor("#8FA6B8")
+    private val darkHeaderBg = Color.parseColor("#0B1620")
+    private val darkNavDrawerBg = Color.parseColor("#0F1B24")
+    private val darkTonalBtnBg = Color.parseColor("#22323D")
+    private val darkTonalBtnText = Color.parseColor("#F5F7F8")
+    private val darkOutlineStroke = Color.parseColor("#2A3B48")
+    private val darkOutlineText = Color.parseColor("#8FA6B8")
+
+    // Fixed brand colors used regardless of theme
+    private val cream = Color.parseColor("#F9F3EF")
+    private val headerTitleColor = Color.parseColor("#F9F3EF") // header is always dark, title always cream
 
     companion object {
         const val SHARED_PREFS_NAME = "SkillSwapPrefs"
@@ -66,6 +108,10 @@ class Home : BaseActivity(), NavigationView.OnNavigationItemSelectedListener {
         const val KEY_USER_TOTAL_SKILLS = "user_total_skills"
         const val KEY_USER_PROFILE_IMAGE = "user_profile_image"
 
+        // Same key SettingsActivity writes to, in the same prefs file — so the choice
+        // made on the Settings screen is picked up here automatically.
+        const val KEY_DARK_MODE = "dark_mode"
+
         private const val THEME_DARK_NAVY = "#1B3C53"
         private const val THEME_STEEL_BLUE = "#456882"
         private const val THEME_CREAM = "#F9F3EF"
@@ -77,9 +123,8 @@ class Home : BaseActivity(), NavigationView.OnNavigationItemSelectedListener {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_home)
 
-        applyThemeSystemBars()
-
         sharedPreferences = getSharedPreferences(SHARED_PREFS_NAME, Context.MODE_PRIVATE)
+        isDarkModeEnabled = sharedPreferences.getBoolean(KEY_DARK_MODE, false)
 
         drawerLayout = findViewById(R.id.main)
         navigationView = findViewById(R.id.navigationView)
@@ -88,12 +133,6 @@ class Home : BaseActivity(), NavigationView.OnNavigationItemSelectedListener {
         val toolbar: androidx.appcompat.widget.Toolbar = findViewById(R.id.toolbar)
         setSupportActionBar(toolbar)
         supportActionBar?.setDisplayShowTitleEnabled(false)
-
-        ViewCompat.setOnApplyWindowInsetsListener(toolbar) { view, insets ->
-            val statusBarInsets = insets.getInsets(WindowInsetsCompat.Type.statusBars())
-            view.setPadding(view.paddingLeft, statusBarInsets.top, view.paddingRight, view.paddingBottom)
-            insets
-        }
 
         val toggle = ActionBarDrawerToggle(
             this,
@@ -135,6 +174,8 @@ class Home : BaseActivity(), NavigationView.OnNavigationItemSelectedListener {
             startActivity(Intent(this, Profile::class.java))
         }
 
+        applyTheme(isDarkModeEnabled)
+
         setupQuickActions()
         listenForPopularSkillCategories()
         updateGreetingMessage()
@@ -147,6 +188,21 @@ class Home : BaseActivity(), NavigationView.OnNavigationItemSelectedListener {
         super.onStart()
         // Ensure OneSignal stays subscribed for users who were auto-logged in
         syncOneSignalPushSubscription()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        // Pick up a dark-mode change made on the Settings screen since we last showed this one
+        val savedDarkMode = sharedPreferences.getBoolean(KEY_DARK_MODE, false)
+        if (savedDarkMode != isDarkModeEnabled) {
+            applyTheme(savedDarkMode)
+        }
+        loadUserData()
+    }
+
+    override fun onConfigurationChanged(newConfig: Configuration) {
+        super.onConfigurationChanged(newConfig)
+        applyTheme(isDarkModeEnabled)
     }
 
     private fun syncOneSignalPushSubscription() {
@@ -167,15 +223,206 @@ class Home : BaseActivity(), NavigationView.OnNavigationItemSelectedListener {
         }
     }
 
-    private fun applyThemeSystemBars() {
-        WindowCompat.setDecorFitsSystemWindows(window, false)
+    // ---------------------------------------------------------------------
+    // THEME ENGINE
+    // ---------------------------------------------------------------------
 
-        window.statusBarColor = Color.parseColor(THEME_DARK_NAVY)
-        window.navigationBarColor = Color.parseColor(THEME_BACKGROUND)
+    /** Recolors every themed view on the page to match light/dark mode. */
+    private fun applyTheme(isDark: Boolean) {
+        isDarkModeEnabled = isDark
+
+        val screenBg = if (isDark) darkScreenBg else lightScreenBg
+        val cardBg = if (isDark) darkCardBg else lightCardBg
+        val cardStroke = if (isDark) darkCardStroke else lightCardStroke
+        val textPrimary = if (isDark) darkTextPrimary else lightTextPrimary
+        val textSecondary = if (isDark) darkTextSecondary else lightTextSecondary
+        val headerBg = if (isDark) darkHeaderBg else lightHeaderBg
+        val navDrawerBg = if (isDark) darkNavDrawerBg else lightNavDrawerBg
+        val tonalBtnBg = if (isDark) darkTonalBtnBg else lightTonalBtnBg
+        val tonalBtnText = if (isDark) darkTonalBtnText else lightTonalBtnText
+        val outlineStroke = if (isDark) darkOutlineStroke else lightOutlineStroke
+        val outlineText = if (isDark) darkOutlineText else lightOutlineText
+
+        // Root background
+        findViewById<View>(R.id.homeRootLayout)?.setBackgroundColor(screenBg)
+
+        // Toolbar / header
+        findViewById<androidx.appcompat.widget.Toolbar>(R.id.toolbar)?.apply {
+            setBackgroundColor(headerBg)
+            title = "SkillSwap"
+            setTitleTextColor(headerTitleColor)
+        }
+
+        // Profile / points card
+        findViewById<MaterialCardView>(R.id.cardProfilePoints)?.apply {
+            setCardBackgroundColor(cardBg)
+            strokeColor = cardStroke
+        }
+        findViewById<TextView>(R.id.tvGreeting)?.setTextColor(textSecondary)
+        findViewById<TextView>(R.id.tvUserName)?.setTextColor(textPrimary)
+        findViewById<TextView>(R.id.tvPoints)?.setTextColor(textPrimary)
+        findViewById<TextView>(R.id.tvPointsLabel)?.setTextColor(textSecondary)
+
+        findViewById<TextView>(R.id.tvQuickActionsLabel)?.setTextColor(textSecondary)
+
+        // Quick action buttons
+        findViewById<MaterialButton>(R.id.btnNearby)?.apply {
+            backgroundTintList = ColorStateList.valueOf(tonalBtnBg)
+            setTextColor(tonalBtnText)
+            iconTint = ColorStateList.valueOf(tonalBtnText)
+        }
+        findViewById<MaterialButton>(R.id.btnFilter)?.apply {
+            strokeColor = ColorStateList.valueOf(outlineStroke)
+            setTextColor(outlineText)
+            iconTint = ColorStateList.valueOf(outlineText)
+        }
+
+        // Quick action tiles (Find / Teach / Create)
+        listOf(R.id.cardTileFind, R.id.cardTileTeach, R.id.cardTileCreate).forEach { id ->
+            findViewById<MaterialCardView>(id)?.apply {
+                setCardBackgroundColor(cardBg)
+                strokeColor = cardStroke
+            }
+        }
+        listOf(R.id.ivTileFindIcon, R.id.ivTileTeachIcon, R.id.ivTileCreateIcon).forEach { id ->
+            findViewById<ImageView>(id)?.imageTintList = ColorStateList.valueOf(textPrimary)
+        }
+        listOf(R.id.tvTileFindTitle, R.id.tvTileTeachTitle, R.id.tvTileCreateTitle).forEach { id ->
+            findViewById<TextView>(id)?.setTextColor(textPrimary)
+        }
+        listOf(R.id.tvTileFindSub, R.id.tvTileTeachSub, R.id.tvTileCreateSub).forEach { id ->
+            findViewById<TextView>(id)?.setTextColor(textSecondary)
+        }
+
+        // Section titles / "see all" links
+        findViewById<TextView>(R.id.tvPopularSkillsTitle)?.setTextColor(textPrimary)
+        findViewById<TextView>(R.id.tvSeeAll)?.setTextColor(textPrimary)
+        findViewById<TextView>(R.id.tvRecentSwapsTitle)?.setTextColor(textPrimary)
+        findViewById<TextView>(R.id.tvViewAllTrades)?.setTextColor(textPrimary)
+        findViewById<TextView>(R.id.tvNoSwaps)?.setTextColor(textSecondary)
+
+        // Nav drawer background + header fields
+        navigationView.setBackgroundColor(navDrawerBg)
+
+        // Dynamic text/icon colors for the drawer menu items (Home, My Skills, etc.)
+        val drawerItemTextColor = if (isDark) Color.WHITE else lightTextPrimary
+        val drawerItemIconTint = if (isDark) Color.WHITE else lightTextPrimary
+        navigationView.itemTextColor = ColorStateList.valueOf(drawerItemTextColor)
+        navigationView.itemIconTintList = ColorStateList.valueOf(drawerItemIconTint)
+
+        // Header text is forced to WHITE because the header background is always dark blue
+        navigationView.getHeaderView(0)?.let { header ->
+            header.setBackgroundColor(headerBg)
+            header.findViewById<TextView>(R.id.tvNavUserName)?.setTextColor(Color.WHITE)
+            header.findViewById<TextView>(R.id.tvNavUserEmail)?.setTextColor(Color.WHITE)
+            header.findViewById<TextView>(R.id.tvNavUserPoints)?.setTextColor(Color.WHITE)
+            header.findViewById<TextView>(R.id.nav_trades_value)?.setTextColor(Color.WHITE)
+            header.findViewById<TextView>(R.id.nav_rating_value)?.setTextColor(Color.WHITE)
+            header.findViewById<TextView>(R.id.nav_skills_value)?.setTextColor(Color.WHITE)
+            // Stats labels
+            header.findViewById<TextView>(R.id.nav_trades_label)?.setTextColor(Color.WHITE)
+            header.findViewById<TextView>(R.id.nav_rating_label)?.setTextColor(Color.WHITE)
+            header.findViewById<TextView>(R.id.nav_skills_label)?.setTextColor(Color.WHITE)
+        }
+
+        // Re-theme already-inflated runtime items (popular skill categories, recent swaps)
+        themeInflatedCategoryCards(textPrimary, textSecondary, cardBg, cardStroke, textPrimary)
+        themeInflatedSwapCards(textPrimary, textSecondary, cardBg, cardStroke, textSecondary)
+        themeBottomNavigation()
+
+        // Force redraw on views that can otherwise keep a stale cached layer
+        forceRedraw(R.id.homeRootLayout)
+        forceRedraw(R.id.toolbar)
+
+        applyThemeSystemBars(headerBg, screenBg)
+    }
+
+    /** Best-effort recolor of already-inflated item_popular_skill_category.xml views. */
+    private fun themeInflatedCategoryCards(
+        textPrimary: Int,
+        textSecondary: Int,
+        cardBg: Int,
+        cardStroke: Int,
+        iconTint: Int
+    ) {
+        val container = findViewById<LinearLayout>(R.id.popularSkillsLayout) ?: return
+        for (i in 0 until container.childCount) {
+            val card = container.getChildAt(i) as? MaterialCardView ?: continue
+            card.setCardBackgroundColor(cardBg)
+            card.strokeColor = cardStroke
+            card.findViewById<ImageView>(R.id.ivCategoryIcon)?.imageTintList = ColorStateList.valueOf(iconTint)
+            card.findViewById<TextView>(R.id.tvCategoryName)?.setTextColor(textPrimary)
+            card.findViewById<TextView>(R.id.tvCategoryCount)?.setTextColor(textSecondary)
+        }
+    }
+
+    /** Best-effort recolor of already-inflated item_recent_swap.xml views. */
+    private fun themeInflatedSwapCards(
+        textPrimary: Int,
+        textSecondary: Int,
+        cardBg: Int,
+        cardStroke: Int,
+        iconTint: Int
+    ) {
+        val container = findViewById<LinearLayout>(R.id.recentSwapsContainer) ?: return
+        for (i in 0 until container.childCount) {
+            val card = container.getChildAt(i) as? MaterialCardView ?: continue
+            card.setCardBackgroundColor(cardBg)
+            card.strokeColor = cardStroke
+            card.findViewById<ImageView>(R.id.ivSwapPartnerIcon)?.imageTintList = ColorStateList.valueOf(iconTint)
+            card.findViewById<TextView>(R.id.tvSwapPartner)?.setTextColor(textPrimary)
+            card.findViewById<TextView>(R.id.tvSwapDetail)?.setTextColor(textSecondary)
+            card.findViewById<TextView>(R.id.tvSwapStatus)?.setTextColor(textSecondary)
+            card.findViewById<TextView>(R.id.tvSwapRating)?.setTextColor(textSecondary)
+            card.findViewById<TextView>(R.id.tvSwapTime)?.setTextColor(textSecondary)
+        }
+    }
+
+    /** Recolors the custom bottom navigation bar based on the current theme and selected item. */
+    private fun themeBottomNavigation() {
+        // Use the dynamic color resources from values/colors.xml and values-night/colors.xml
+        val selectedCircleBg = ContextCompat.getColor(this, R.color.bottom_nav_selected_circle)
+        val selectedIconTint = ContextCompat.getColor(this, R.color.bottom_nav_selected_icon)
+        val unselectedIconTint = ContextCompat.getColor(this, R.color.bottom_nav_unselected_icon)
+
+        // Since this is Home.kt, the selected item is always HOME
+        val currentItem = BottomNavItem.HOME
+
+        val navItems = listOf(
+            Pair(R.id.cardHomeIcon, R.id.ivHomeIcon) to BottomNavItem.HOME,
+            Pair(R.id.cardExploreIcon, R.id.ivExploreIcon) to BottomNavItem.EXPLORE,
+            Pair(R.id.cardAddSkillIcon, R.id.ivAddSkillIcon) to BottomNavItem.ADD_SKILL,
+            Pair(R.id.cardTradesIcon, R.id.ivTradesIcon) to BottomNavItem.TRADES,
+            Pair(R.id.cardProfileIcon, R.id.ivProfileIcon) to BottomNavItem.PROFILE
+        )
+
+        navItems.forEach { (ids, item) ->
+            val isSelected = item == currentItem
+            findViewById<MaterialCardView>(ids.first)?.setCardBackgroundColor(if (isSelected) selectedCircleBg else Color.TRANSPARENT)
+            findViewById<ImageView>(ids.second)?.imageTintList = ColorStateList.valueOf(if (isSelected) selectedIconTint else unselectedIconTint)
+        }
+    }
+
+    /** Forces a view to drop any stale cached layer and redraw with its current properties. */
+    private fun forceRedraw(viewId: Int) {
+        val view = findViewById<View>(viewId) ?: return
+        view.postInvalidate()
+        view.requestLayout()
+    }
+
+    private fun applyThemeSystemBars(headerBg: Int, screenBg: Int) {
+        // Set the window background to the app's screen background color.
+        window.setBackgroundDrawable(ColorDrawable(screenBg))
+
+        // Explicitly set the system bar colors to match the app's theme.
+        window.statusBarColor = headerBg
+        window.navigationBarColor = screenBg
 
         val insetsController = WindowCompat.getInsetsController(window, window.decorView)
+        // Header is always dark navy, so we always want light (white) icons in the status bar
         insetsController.isAppearanceLightStatusBars = false
-        insetsController.isAppearanceLightNavigationBars = true
+        // Navigation bar icons should match the background (dark in light mode, light in dark mode)
+        insetsController.isAppearanceLightNavigationBars = !isDarkModeEnabled
     }
 
     private fun setupQuickActions() {
@@ -230,15 +477,31 @@ class Home : BaseActivity(), NavigationView.OnNavigationItemSelectedListener {
         val container = findViewById<LinearLayout>(R.id.popularSkillsLayout)
         container.removeAllViews()
 
+        val textPrimary = if (isDarkModeEnabled) darkTextPrimary else lightTextPrimary
+        val textSecondary = if (isDarkModeEnabled) darkTextSecondary else lightTextSecondary
+        val cardBg = if (isDarkModeEnabled) darkCardBg else lightCardBg
+        val cardStroke = if (isDarkModeEnabled) darkCardStroke else lightCardStroke
+
         val inflater = LayoutInflater.from(this)
         for ((index, category) in skillCategories.withIndex()) {
-            val card = inflater.inflate(R.layout.item_popular_skill_category, container, false)
+            val card = inflater.inflate(R.layout.item_popular_skill_category, container, false) as MaterialCardView
             val count = counts[category] ?: 0
 
-            card.findViewById<ImageView>(R.id.ivCategoryIcon).setImageResource(iconForCategory(category))
-            card.findViewById<TextView>(R.id.tvCategoryName).text = formatCategoryName(category)
-            card.findViewById<TextView>(R.id.tvCategoryCount).text =
-                "$count expert${if (count == 1) "" else "s"}"
+            card.setCardBackgroundColor(cardBg)
+            card.strokeColor = cardStroke
+
+            card.findViewById<ImageView>(R.id.ivCategoryIcon).apply {
+                setImageResource(iconForCategory(category))
+                imageTintList = ColorStateList.valueOf(textPrimary)
+            }
+            card.findViewById<TextView>(R.id.tvCategoryName).apply {
+                text = formatCategoryName(category)
+                setTextColor(textPrimary)
+            }
+            card.findViewById<TextView>(R.id.tvCategoryCount).apply {
+                text = "$count expert${if (count == 1) "" else "s"}"
+                setTextColor(textSecondary)
+            }
 
             card.setOnClickListener {
                 val exploreIntent = Intent(this, ExploreActivity::class.java)
@@ -459,21 +722,44 @@ class Home : BaseActivity(), NavigationView.OnNavigationItemSelectedListener {
         emptyView.visibility = View.GONE
         container.visibility = View.VISIBLE
 
+        val textPrimary = if (isDarkModeEnabled) darkTextPrimary else lightTextPrimary
+        val textSecondary = if (isDarkModeEnabled) darkTextSecondary else lightTextSecondary
+        val cardBg = if (isDarkModeEnabled) darkCardBg else lightCardBg
+        val cardStroke = if (isDarkModeEnabled) darkCardStroke else lightCardStroke
+
         val inflater = LayoutInflater.from(this)
         for (swap in swaps) {
-            val card = inflater.inflate(R.layout.item_recent_swap, container, false)
+            val card = inflater.inflate(R.layout.item_recent_swap, container, false) as MaterialCardView
+
+            card.setCardBackgroundColor(cardBg)
+            card.strokeColor = cardStroke
 
             val isCurrentUserRequester = swap.requesterId == currentUserIdForSwaps
             val otherName = if (isCurrentUserRequester) swap.receiverName else swap.requesterName
             val mySkill = if (isCurrentUserRequester) swap.requesterSkill else swap.receiverSkill
             val theirSkill = if (isCurrentUserRequester) swap.receiverSkill else swap.requesterSkill
 
-            card.findViewById<TextView>(R.id.tvSwapPartner).text = otherName.ifBlank { "Unknown user" }
-            card.findViewById<TextView>(R.id.tvSwapDetail).text = "$mySkill ↔ $theirSkill"
-            card.findViewById<TextView>(R.id.tvSwapStatus).text = swap.status.ifBlank { "Pending" }
-            card.findViewById<TextView>(R.id.tvSwapRating).text =
-                if (swap.rating > 0f) "★ ${String.format("%.1f", swap.rating)}" else "—"
-            card.findViewById<TextView>(R.id.tvSwapTime).text = timeAgo(swap.timestamp)
+            card.findViewById<ImageView>(R.id.ivSwapPartnerIcon)?.imageTintList = ColorStateList.valueOf(textSecondary)
+            card.findViewById<TextView>(R.id.tvSwapPartner).apply {
+                text = otherName.ifBlank { "Unknown user" }
+                setTextColor(textPrimary)
+            }
+            card.findViewById<TextView>(R.id.tvSwapDetail).apply {
+                text = "$mySkill ↔ $theirSkill"
+                setTextColor(textSecondary)
+            }
+            card.findViewById<TextView>(R.id.tvSwapStatus).apply {
+                text = swap.status.ifBlank { "Pending" }
+                setTextColor(textSecondary)
+            }
+            card.findViewById<TextView>(R.id.tvSwapRating).apply {
+                text = if (swap.rating > 0f) "★ ${String.format("%.1f", swap.rating)}" else "—"
+                setTextColor(textSecondary)
+            }
+            card.findViewById<TextView>(R.id.tvSwapTime).apply {
+                text = timeAgo(swap.timestamp)
+                setTextColor(textSecondary)
+            }
 
             card.setOnClickListener {
                 val tradeIntent = Intent(this, MyTradesActivity::class.java)
@@ -506,7 +792,7 @@ class Home : BaseActivity(), NavigationView.OnNavigationItemSelectedListener {
     override fun onNavigationItemSelected(item: MenuItem): Boolean {
         when (item.itemId) {
             R.id.nav_home -> { }
-            R.id.nav_my_skills -> showMessage("My Skills")
+            R.id.nav_my_skills -> startActivity(Intent(this, MySkillsActivity::class.java)) // <-- Changed from toast
             R.id.nav_my_trades -> startActivity(Intent(this, MyTradesActivity::class.java))
             R.id.nav_messages -> startActivity(Intent(this, ChatListActivity::class.java))
             R.id.nav_notifications -> startActivity(Intent(this, NotificationsActivity::class.java))
@@ -514,7 +800,7 @@ class Home : BaseActivity(), NavigationView.OnNavigationItemSelectedListener {
             R.id.nav_history -> showMessage("History")
             R.id.nav_settings -> startActivity(Intent(this, SettingsActivity::class.java))
             R.id.nav_help -> startActivity(Intent(this, HelpSupportActivity::class.java))
-            R.id.nav_about -> startActivity(Intent(this, AboutActivity::class.java))   // ← changed
+            R.id.nav_about -> startActivity(Intent(this, AboutActivity::class.java))
             R.id.nav_logout -> performLogout()
         }
         drawerLayout.closeDrawer(GravityCompat.START)
@@ -558,7 +844,7 @@ class Home : BaseActivity(), NavigationView.OnNavigationItemSelectedListener {
 
         root.addView(TextView(this).apply {
             text = getString(R.string.logout_confirmation_title)
-            setTextColor(Color.parseColor(THEME_DARK_NAVY))
+            setTextColor(currentDialogTextPrimary())
             textSize = 17f
             setTypeface(typeface, Typeface.BOLD)
             gravity = Gravity.CENTER
@@ -566,7 +852,7 @@ class Home : BaseActivity(), NavigationView.OnNavigationItemSelectedListener {
 
         root.addView(TextView(this).apply {
             text = getString(R.string.logout_confirmation_message)
-            setTextColor(Color.parseColor(THEME_STEEL_BLUE))
+            setTextColor(currentDialogTextSecondary())
             textSize = 13f
             gravity = Gravity.CENTER
             layoutParams = LinearLayout.LayoutParams(
@@ -585,16 +871,16 @@ class Home : BaseActivity(), NavigationView.OnNavigationItemSelectedListener {
 
         val btnCancel = pillButton(
             getString(R.string.cancel),
-            Color.parseColor(THEME_BACKGROUND),
-            Color.parseColor(THEME_STEEL_BLUE)
+            currentDialogSecondaryBtnBg(),
+            currentDialogSecondaryBtnText()
         ).apply {
             setOnClickListener { dialog.dismiss() }
         }
 
         val btnLogout = pillButton(
             getString(R.string.logout),
-            Color.parseColor("#DC2626"),
-            Color.parseColor(THEME_CREAM)
+            if (isDarkModeEnabled) Color.parseColor("#B3261E") else Color.parseColor("#DC2626"),
+            Color.WHITE
         ).apply {
             setOnClickListener {
                 dialog.dismiss()
@@ -616,6 +902,12 @@ class Home : BaseActivity(), NavigationView.OnNavigationItemSelectedListener {
 
         dialog.show()
     }
+
+    private fun currentDialogTextPrimary(): Int = if (isDarkModeEnabled) darkTextPrimary else Color.parseColor(THEME_DARK_NAVY)
+    private fun currentDialogTextSecondary(): Int = if (isDarkModeEnabled) darkTextSecondary else Color.parseColor(THEME_STEEL_BLUE)
+    private fun currentDialogBg(): Int = if (isDarkModeEnabled) darkCardBg else Color.WHITE
+    private fun currentDialogSecondaryBtnBg(): Int = if (isDarkModeEnabled) darkCardStroke else Color.parseColor(THEME_BACKGROUND)
+    private fun currentDialogSecondaryBtnText(): Int = if (isDarkModeEnabled) darkTextPrimary else Color.parseColor(THEME_STEEL_BLUE)
 
     private fun logoutUser() {
         requesterSwapsListener?.remove()
@@ -643,7 +935,7 @@ class Home : BaseActivity(), NavigationView.OnNavigationItemSelectedListener {
             setPadding(dp(20), dp(22), dp(20), dp(20))
             background = GradientDrawable().apply {
                 cornerRadius = dp(20).toFloat()
-                setColor(Color.WHITE)
+                setColor(currentDialogBg())
             }
         }
     }
@@ -655,7 +947,7 @@ class Home : BaseActivity(), NavigationView.OnNavigationItemSelectedListener {
             textSize = 14f
             setTypeface(typeface, Typeface.BOLD)
             gravity = Gravity.CENTER
-            setPadding(0, dp(12), 0, dp(12))
+            setPadding(dp(12), dp(12), dp(12), dp(12))
             background = GradientDrawable().apply {
                 cornerRadius = dp(24).toFloat()
                 setColor(bgColor)
@@ -677,11 +969,6 @@ class Home : BaseActivity(), NavigationView.OnNavigationItemSelectedListener {
                 word
             }
         }
-    }
-
-    override fun onResume() {
-        super.onResume()
-        loadUserData()
     }
 
     override fun onDestroy() {

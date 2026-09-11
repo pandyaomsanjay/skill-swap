@@ -188,4 +188,11 @@
 
     <color name="admin_bg_light_blue">#EAF1F5</color>
 
+
+    <!-- Bottom Navigation Light Mode Colors -->
+    <color name="bottom_nav_bg">#1B3C53</color>
+    <color name="bottom_nav_selected_circle">#FFFFFF</color>
+    <color name="bottom_nav_selected_icon">#1B3C53</color>
+    <color name="bottom_nav_unselected_icon">#FFFFFF</color>
+
 </resources>

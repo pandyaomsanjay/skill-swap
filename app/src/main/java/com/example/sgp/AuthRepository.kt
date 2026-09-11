@@ -6,6 +6,7 @@ import com.google.firebase.firestore.FirebaseFirestore
 import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.auth.OtpType
 import io.github.jan.supabase.auth.providers.builtin.Email
+import io.github.jan.supabase.functions.functions
 import io.github.jan.supabase.postgrest.postgrest
 import kotlinx.coroutines.tasks.await
 import kotlinx.serialization.SerialName
@@ -45,6 +46,10 @@ data class LoginLockStatus(
     @SerialName("seconds_remaining") val secondsRemaining: Int,
     @SerialName("attempts_remaining") val attemptsRemaining: Int
 )
+
+@Serializable
+data class ChangePasswordResponse(val success: Boolean, val message: String)
+
 
 object AuthRepository {
 
@@ -247,6 +252,7 @@ object AuthRepository {
             SupabaseClient.client.auth.updateUser {
                 password = newPassword
             }
+            syncFirebasePassword(newPassword)
             ResetPasswordResponse(success = true, message = "Password updated successfully.")
         } catch (e: Exception) {
             android.util.Log.e(TAG, "resetPassword failed: ${e.message}", e)
@@ -254,6 +260,78 @@ object AuthRepository {
                 success = false,
                 message = e.message ?: "Couldn't reset password. Please try again."
             )
+        }
+    }
+
+    /**
+     * Changes the password for an email/password user.
+     *
+     * Flow:
+     *  1. Reject if new == current (short-circuit).
+     *  2. Reject if the new password appears in the common-password dictionary.
+     *  3. Verify the CURRENT password by re-authenticating via
+     *     [loginWithPassword] — which routes through the same server-side
+     *     rate-limiting RPCs, so a brute-force on this screen can't be used
+     *     to sidestep the login lock.
+     *  4. If verification succeeds, update the password on Supabase Auth.
+     *  5. Best-effort sync the same password to Firebase via the
+     *     sync-firebase-password Edge Function (Admin API, no reauth needed).
+     */
+    suspend fun changePassword(
+        email: String,
+        currentPassword: String,
+        newPassword: String
+    ): ChangePasswordResponse {
+        val normalizedEmail = normalize(email)
+
+        if (newPassword == currentPassword) {
+            return ChangePasswordResponse(
+                false,
+                "New password must be different from your current password."
+            )
+        }
+        if (isPasswordCommon(newPassword)) {
+            return ChangePasswordResponse(
+                false,
+                "This password is too common or predictable. Please choose a stronger one."
+            )
+        }
+
+        // Verify against Supabase — the actual source of truth for login —
+        // through the same rate-limited path as a normal login attempt.
+        val verify = loginWithPassword(normalizedEmail, currentPassword)
+        if (!verify.success) {
+            return ChangePasswordResponse(false, verify.message)
+        }
+
+        return try {
+            SupabaseClient.client.auth.updateUser { password = newPassword }
+            syncFirebasePassword(newPassword)
+            ChangePasswordResponse(true, "Password updated successfully.")
+        } catch (e: Exception) {
+            android.util.Log.e(TAG, "changePassword failed: ${e.message}", e)
+            ChangePasswordResponse(
+                false,
+                e.message ?: "Couldn't update password. Please try again."
+            )
+        }
+    }
+
+    /**
+     * Best-effort sync of the Firebase password to match what was just set on
+     * Supabase, via the sync-firebase-password Edge Function (which uses the
+     * Firebase Admin API — no reauthentication needed). Supabase is already
+     * the source of truth by the time this runs, so a failure here is logged
+     * but never surfaced as a login-blocking error.
+     */
+    private suspend fun syncFirebasePassword(newPassword: String) {
+        try {
+            SupabaseClient.client.functions.invoke(
+                function = "sync-firebase-password",
+                body = buildJsonObject { put("password", newPassword) }
+            )
+        } catch (e: Exception) {
+            android.util.Log.e(TAG, "syncFirebasePassword failed: ${e.message}", e)
         }
     }
 }

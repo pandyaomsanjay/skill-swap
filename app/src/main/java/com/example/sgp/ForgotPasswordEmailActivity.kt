@@ -1,12 +1,13 @@
 package com.example.sgp
 
+import android.content.Context
 import android.content.Intent
+import android.content.res.Configuration
 import android.graphics.Color
 import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
 import android.view.Gravity
-import android.view.MenuItem
 import android.view.View
 import android.widget.FrameLayout
 import android.widget.ImageView
@@ -15,8 +16,12 @@ import android.widget.ProgressBar
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.updatePadding
 import androidx.lifecycle.lifecycleScope
 import com.example.sgp.api.AuthRepository
+import com.google.android.material.appbar.MaterialToolbar
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.card.MaterialCardView
 import com.google.android.material.textfield.TextInputEditText
@@ -25,29 +30,68 @@ import kotlinx.coroutines.launch
 
 class ForgotPasswordEmailActivity : BaseActivity() {
 
+    private lateinit var toolbar: MaterialToolbar
     private lateinit var etEmail: TextInputEditText
     private lateinit var emailLayout: TextInputLayout
     private lateinit var btnSendOtp: MaterialButton
     private lateinit var tvBackToLogin: TextView
     private lateinit var progressBar: ProgressBar
 
+    private var isDarkModeEnabled = false
+
+    // ---------------------------------------------------------------------
+    // LIGHT / DARK PALETTE (for the themed dialog)
+    // ---------------------------------------------------------------------
+    private val lightDialogBg = Color.WHITE
+    private val lightTextPrimary = Color.parseColor("#1B3C53")
+    private val lightTextSecondary = Color.parseColor("#456882")
+    private val lightIconCircleBg = Color.parseColor("#F5EDE1")
+    private val lightIconCircleStroke = Color.parseColor("#D4A857")
+
+    private val darkDialogBg = Color.parseColor("#16232E")
+    private val darkTextPrimary = Color.parseColor("#F5F7F8")
+    private val darkTextSecondary = Color.parseColor("#8FA6B8")
+    private val darkIconCircleBg = Color.parseColor("#3A2E14")
+    private val darkIconCircleStroke = Color.parseColor("#E8C468")
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_forgot_password_email)
 
-        val toolbar: androidx.appcompat.widget.Toolbar = findViewById(R.id.toolbar)
-        setSupportActionBar(toolbar)
-        supportActionBar?.setDisplayHomeAsUpEnabled(true)
-        supportActionBar?.setDisplayShowTitleEnabled(false)
+        isDarkModeEnabled = getSharedPreferences(SettingsActivity.PREFS_NAME, Context.MODE_PRIVATE)
+            .getBoolean(SettingsActivity.KEY_DARK_MODE, false)
 
+        toolbar = findViewById(R.id.toolbar)
         emailLayout = findViewById(R.id.emailLayout)
         etEmail = findViewById(R.id.etEmail)
         btnSendOtp = findViewById(R.id.btnSendOtp)
         tvBackToLogin = findViewById(R.id.tvBackToLogin)
         progressBar = findViewById(R.id.progressBar)
 
+        // ── Push the toolbar down past the status bar (+20dp for more breathing room).
+        ViewCompat.setOnApplyWindowInsetsListener(toolbar) { view, insets ->
+            val statusBarTop = insets.getInsets(WindowInsetsCompat.Type.statusBars()).top
+            view.updatePadding(top = statusBarTop + dp(20))
+            insets
+        }
+
+        // ── Direct navigation click — always fires, regardless of inset overlap.
+        toolbar.setNavigationOnClickListener { finish() }
+
+        // Pre-fill when launched from a screen that already knows the user's email
+        intent.getStringExtra("email")?.takeIf { it.isNotBlank() }?.let {
+            etEmail.setText(it)
+            etEmail.setSelection(it.length)
+        }
+
         btnSendOtp.setOnClickListener { sendOtp() }
         tvBackToLogin.setOnClickListener { finish() }
+    }
+
+    override fun onConfigurationChanged(newConfig: Configuration) {
+        super.onConfigurationChanged(newConfig)
+        isDarkModeEnabled = getSharedPreferences(SettingsActivity.PREFS_NAME, Context.MODE_PRIVATE)
+            .getBoolean(SettingsActivity.KEY_DARK_MODE, false)
     }
 
     private fun sendOtp() {
@@ -68,7 +112,6 @@ class ForgotPasswordEmailActivity : BaseActivity() {
         setLoading(true)
         lifecycleScope.launch {
             try {
-                // Step 1: check how this account was created
                 val loginProvider = AuthRepository.getLoginProvider(email)
 
                 val isSocialLogin = loginProvider != null &&
@@ -82,7 +125,6 @@ class ForgotPasswordEmailActivity : BaseActivity() {
                     return@launch
                 }
 
-                // Step 2: normal email/password flow — proceed to OTP
                 val result = AuthRepository.forgotPassword(email)
                 setLoading(false)
 
@@ -118,7 +160,6 @@ class ForgotPasswordEmailActivity : BaseActivity() {
 
         val root = dialogCard()
 
-        // Lock icon in a tinted circle, sized down and centered properly
         val iconCircle = MaterialCardView(this).apply {
             layoutParams = LinearLayout.LayoutParams(dp(56), dp(56)).apply {
                 gravity = Gravity.CENTER_HORIZONTAL
@@ -126,8 +167,8 @@ class ForgotPasswordEmailActivity : BaseActivity() {
             }
             radius = dp(28).toFloat()
             cardElevation = 0f
-            setCardBackgroundColor(Color.parseColor("#F5EDE1"))
-            strokeColor = Color.parseColor("#D4A857")
+            setCardBackgroundColor(if (isDarkModeEnabled) darkIconCircleBg else lightIconCircleBg)
+            strokeColor = if (isDarkModeEnabled) darkIconCircleStroke else lightIconCircleStroke
             strokeWidth = dp(1)
 
             val iconWrapper = FrameLayout(this@ForgotPasswordEmailActivity)
@@ -136,9 +177,8 @@ class ForgotPasswordEmailActivity : BaseActivity() {
                     gravity = Gravity.CENTER
                 }
                 scaleType = ImageView.ScaleType.FIT_CENTER
-                // TODO: replace with your own lock drawable, e.g. R.drawable.ic_lock_outline
                 setImageResource(android.R.drawable.ic_lock_idle_lock)
-                setColorFilter(Color.parseColor("#1B3C53"))
+                setColorFilter(if (isDarkModeEnabled) darkTextPrimary else lightTextPrimary)
             })
             addView(iconWrapper)
         }
@@ -146,7 +186,7 @@ class ForgotPasswordEmailActivity : BaseActivity() {
 
         root.addView(TextView(this).apply {
             text = "Password change not available"
-            setTextColor(Color.parseColor("#1B3C53"))
+            setTextColor(if (isDarkModeEnabled) darkTextPrimary else lightTextPrimary)
             textSize = 15.5f
             setTypeface(typeface, Typeface.BOLD)
             gravity = Gravity.CENTER
@@ -155,7 +195,7 @@ class ForgotPasswordEmailActivity : BaseActivity() {
         root.addView(TextView(this).apply {
             text = "This account was created using $providerName Sign-In. " +
                     "You can't reset a password for it."
-            setTextColor(Color.parseColor("#456882"))
+            setTextColor(if (isDarkModeEnabled) darkTextSecondary else lightTextSecondary)
             textSize = 12f
             gravity = Gravity.CENTER
             setLineSpacing(dp(2).toFloat(), 1f)
@@ -174,7 +214,11 @@ class ForgotPasswordEmailActivity : BaseActivity() {
             .create()
         dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
 
-        val btnOk = pillButton("OK", Color.parseColor("#1B3C53"), Color.WHITE).apply {
+        val btnOk = pillButton(
+            "OK",
+            if (isDarkModeEnabled) darkTextPrimary else lightTextPrimary,
+            if (isDarkModeEnabled) Color.parseColor("#16232E") else Color.WHITE
+        ).apply {
             layoutParams = LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT
@@ -198,7 +242,7 @@ class ForgotPasswordEmailActivity : BaseActivity() {
             setPadding(dp(22), dp(20), dp(22), dp(18))
             background = GradientDrawable().apply {
                 cornerRadius = dp(20).toFloat()
-                setColor(Color.WHITE)
+                setColor(if (isDarkModeEnabled) darkDialogBg else lightDialogBg)
             }
         }
     }
@@ -223,13 +267,5 @@ class ForgotPasswordEmailActivity : BaseActivity() {
     private fun setLoading(loading: Boolean) {
         btnSendOtp.isEnabled = !loading
         progressBar.visibility = if (loading) View.VISIBLE else View.GONE
-    }
-
-    override fun onOptionsItemSelected(item: MenuItem): Boolean {
-        if (item.itemId == android.R.id.home) {
-            finish()
-            return true
-        }
-        return super.onOptionsItemSelected(item)
     }
 }

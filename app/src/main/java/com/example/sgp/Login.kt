@@ -152,8 +152,15 @@ class Login : BaseActivity() {
             startActivity(Intent(this, Createaccount::class.java))
         }
 
+        // ⭐ Pass whatever the user already typed in the email field, so
+        // ForgotPasswordEmailActivity opens pre-filled instead of forcing
+        // them to retype it. If the field is blank, we just open the
+        // screen empty and let them type it there.
         tvForgotPassword.setOnClickListener {
-            startActivity(Intent(this, ForgotPasswordEmailActivity::class.java))
+            val email = emailInput.editText?.text.toString().trim().lowercase()
+            startActivity(Intent(this, ForgotPasswordEmailActivity::class.java).apply {
+                if (email.isNotBlank()) putExtra("email", email)
+            })
         }
 
         btnGoogleSignIn.setOnClickListener {

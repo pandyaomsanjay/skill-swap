@@ -2,6 +2,7 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/rootLayout"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
@@ -9,13 +10,15 @@
     android:background="#EAF1F5"
     tools:context=".SettingsActivity">
 
-    <!-- ===================== Header ===================== -->
+    <!-- ===================== Header (fixed, non-scrolling) ===================== -->
     <LinearLayout
+        android:id="@+id/headerBar"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:gravity="center_vertical"
         android:background="#1B3C53"
+        android:elevation="6dp"
         android:paddingStart="20dp"
         android:paddingEnd="20dp"
         android:paddingTop="22dp"
@@ -35,6 +38,7 @@
             android:foreground="?attr/selectableItemBackground">
 
             <ImageView
+                android:id="@+id/ivBackIcon"
                 android:layout_width="20dp"
                 android:layout_height="20dp"
                 android:layout_gravity="center"
@@ -44,6 +48,7 @@
         </com.google.android.material.card.MaterialCardView>
 
         <TextView
+            android:id="@+id/tvSettingsTitle"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
@@ -75,6 +80,7 @@
 
             <!-- Hero Profile Header Card -->
             <com.google.android.material.card.MaterialCardView
+                android:id="@+id/cardProfile"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="24dp"
@@ -131,6 +137,7 @@
                     </LinearLayout>
 
                     <ImageView
+                        android:id="@+id/ivChevronProfile"
                         android:layout_width="24dp"
                         android:layout_height="24dp"
                         android:importantForAccessibility="no"
@@ -149,12 +156,14 @@
                 android:layout_marginBottom="14dp">
 
                 <View
+                    android:id="@+id/barSection1"
                     android:layout_width="4dp"
                     android:layout_height="16dp"
                     android:background="#1B3C53"
                     android:layout_marginEnd="8dp"/>
 
                 <TextView
+                    android:id="@+id/tvSectionSecurity"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="@string/account_security"
@@ -165,6 +174,7 @@
             </LinearLayout>
 
             <com.google.android.material.card.MaterialCardView
+                android:id="@+id/cardSecurity"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="28dp"
@@ -194,6 +204,7 @@
                         android:paddingVertical="12dp">
 
                         <com.google.android.material.card.MaterialCardView
+                            android:id="@+id/iconBgChangePassword"
                             android:layout_width="40dp"
                             android:layout_height="40dp"
                             app:cardCornerRadius="13dp"
@@ -201,6 +212,7 @@
                             app:cardBackgroundColor="#EAE1DA">
 
                             <ImageView
+                                android:id="@+id/ivIconChangePassword"
                                 android:layout_width="20dp"
                                 android:layout_height="20dp"
                                 android:layout_gravity="center"
@@ -216,6 +228,7 @@
                             android:orientation="vertical">
 
                             <TextView
+                                android:id="@+id/tvChangePasswordTitle"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:text="@string/change_password"
@@ -223,6 +236,7 @@
                                 android:textSize="14sp" />
 
                             <TextView
+                                android:id="@+id/tvChangePasswordSubtitle"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:text="@string/change_password_subtitle"
@@ -231,6 +245,7 @@
                         </LinearLayout>
 
                         <ImageView
+                            android:id="@+id/ivChevronChangePassword"
                             android:layout_width="24dp"
                             android:layout_height="24dp"
                             android:importantForAccessibility="no"
@@ -239,6 +254,7 @@
                     </LinearLayout>
 
                     <View
+                        android:id="@+id/dividerPassword1"
                         android:layout_width="match_parent"
                         android:layout_height="1dp"
                         android:layout_marginStart="72dp"
@@ -260,6 +276,7 @@
                         android:paddingVertical="12dp">
 
                         <com.google.android.material.card.MaterialCardView
+                            android:id="@+id/iconBgForgotPassword"
                             android:layout_width="40dp"
                             android:layout_height="40dp"
                             app:cardCornerRadius="13dp"
@@ -267,6 +284,7 @@
                             app:cardBackgroundColor="#EAE1DA">
 
                             <ImageView
+                                android:id="@+id/ivIconForgotPassword"
                                 android:layout_width="18dp"
                                 android:layout_height="20dp"
                                 android:layout_gravity="center"
@@ -282,6 +300,7 @@
                             android:orientation="vertical">
 
                             <TextView
+                                android:id="@+id/tvForgotPasswordTitle"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:text="@string/forgot_password"
@@ -289,6 +308,7 @@
                                 android:textSize="14sp" />
 
                             <TextView
+                                android:id="@+id/tvForgotPasswordSubtitle"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:text="@string/forgot_password_subtitle"
@@ -297,6 +317,7 @@
                         </LinearLayout>
 
                         <ImageView
+                            android:id="@+id/ivChevronForgotPassword"
                             android:layout_width="24dp"
                             android:layout_height="24dp"
                             android:importantForAccessibility="no"
@@ -317,12 +338,14 @@
                 android:layout_marginBottom="14dp">
 
                 <View
+                    android:id="@+id/barSection2"
                     android:layout_width="4dp"
                     android:layout_height="16dp"
                     android:background="#456882"
                     android:layout_marginEnd="8dp"/>
 
                 <TextView
+                    android:id="@+id/tvSectionPreferences"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="@string/preferences"
@@ -333,6 +356,7 @@
             </LinearLayout>
 
             <com.google.android.material.card.MaterialCardView
+                android:id="@+id/cardPreferences"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="28dp"
@@ -358,6 +382,7 @@
                         android:paddingVertical="12dp">
 
                         <com.google.android.material.card.MaterialCardView
+                            android:id="@+id/iconBgPush"
                             android:layout_width="40dp"
                             android:layout_height="40dp"
                             app:cardCornerRadius="13dp"
@@ -365,6 +390,7 @@
                             app:cardBackgroundColor="#DCEEE8">
 
                             <ImageView
+                                android:id="@+id/ivIconPush"
                                 android:layout_width="20dp"
                                 android:layout_height="20dp"
                                 android:layout_gravity="center"
@@ -380,6 +406,7 @@
                             android:orientation="vertical">
 
                             <TextView
+                                android:id="@+id/tvPushTitle"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:text="@string/push_notifications"
@@ -387,6 +414,7 @@
                                 android:textSize="14sp" />
 
                             <TextView
+                                android:id="@+id/tvPushSubtitle"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:text="@string/push_notifications_subtitle"
@@ -403,6 +431,7 @@
                     </LinearLayout>
 
                     <View
+                        android:id="@+id/dividerPref1"
                         android:layout_width="match_parent"
                         android:layout_height="1dp"
                         android:layout_marginStart="72dp"
@@ -420,6 +449,7 @@
                         android:paddingVertical="12dp">
 
                         <com.google.android.material.card.MaterialCardView
+                            android:id="@+id/iconBgDark"
                             android:layout_width="40dp"
                             android:layout_height="40dp"
                             app:cardCornerRadius="13dp"
@@ -427,6 +457,7 @@
                             app:cardBackgroundColor="#F3E7CE">
 
                             <ImageView
+                                android:id="@+id/ivIconDark"
                                 android:layout_width="20dp"
                                 android:layout_height="20dp"
                                 android:layout_gravity="center"
@@ -442,6 +473,7 @@
                             android:orientation="vertical">
 
                             <TextView
+                                android:id="@+id/tvDarkTitle"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:text="@string/dark_theme"
@@ -449,6 +481,7 @@
                                 android:textSize="14sp" />
 
                             <TextView
+                                android:id="@+id/tvDarkSubtitle"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:text="@string/dark_theme_subtitle"
@@ -465,6 +498,7 @@
                     </LinearLayout>
 
                     <View
+                        android:id="@+id/dividerPref2"
                         android:layout_width="match_parent"
                         android:layout_height="1dp"
                         android:layout_marginStart="72dp"
@@ -486,6 +520,7 @@
                         android:paddingVertical="12dp">
 
                         <com.google.android.material.card.MaterialCardView
+                            android:id="@+id/iconBgLanguage"
                             android:layout_width="40dp"
                             android:layout_height="40dp"
                             app:cardCornerRadius="13dp"
@@ -493,6 +528,7 @@
                             app:cardBackgroundColor="#EAE1DA">
 
                             <ImageView
+                                android:id="@+id/ivIconLanguage"
                                 android:layout_width="20dp"
                                 android:layout_height="20dp"
                                 android:layout_gravity="center"
@@ -501,6 +537,7 @@
                         </com.google.android.material.card.MaterialCardView>
 
                         <TextView
+                            android:id="@+id/tvLanguageLabel"
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_marginStart="16dp"
@@ -520,6 +557,7 @@
                             android:textSize="12.5sp" />
 
                         <ImageView
+                            android:id="@+id/ivChevronLanguage"
                             android:layout_width="24dp"
                             android:layout_height="24dp"
                             android:importantForAccessibility="no"
@@ -539,12 +577,14 @@
                 android:layout_marginBottom="14dp">
 
                 <View
+                    android:id="@+id/barSection3"
                     android:layout_width="4dp"
                     android:layout_height="16dp"
                     android:background="#456882"
                     android:layout_marginEnd="8dp"/>
 
                 <TextView
+                    android:id="@+id/tvSectionSupport"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="@string/about_support"
@@ -555,6 +595,7 @@
             </LinearLayout>
 
             <com.google.android.material.card.MaterialCardView
+                android:id="@+id/cardSupport"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="32dp"
@@ -584,6 +625,7 @@
                         android:paddingVertical="12dp">
 
                         <ImageView
+                            android:id="@+id/ivIconHelp"
                             android:layout_width="22dp"
                             android:layout_height="22dp"
                             android:importantForAccessibility="no"
@@ -591,6 +633,7 @@
                             app:tint="#456882" />
 
                         <TextView
+                            android:id="@+id/tvHelpSupport"
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_marginStart="16dp"
@@ -600,6 +643,7 @@
                             android:textSize="14sp" />
 
                         <ImageView
+                            android:id="@+id/ivChevronHelp"
                             android:layout_width="24dp"
                             android:layout_height="24dp"
                             android:importantForAccessibility="no"
@@ -608,6 +652,7 @@
                     </LinearLayout>
 
                     <View
+                        android:id="@+id/dividerSupport1"
                         android:layout_width="match_parent"
                         android:layout_height="1dp"
                         android:layout_marginStart="54dp"
@@ -629,6 +674,7 @@
                         android:paddingVertical="12dp">
 
                         <ImageView
+                            android:id="@+id/ivIconPrivacy"
                             android:layout_width="22dp"
                             android:layout_height="22dp"
                             android:importantForAccessibility="no"
@@ -636,6 +682,7 @@
                             app:tint="#456882" />
 
                         <TextView
+                            android:id="@+id/tvPrivacyPolicy"
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_marginStart="16dp"
@@ -645,6 +692,7 @@
                             android:textSize="14sp" />
 
                         <ImageView
+                            android:id="@+id/ivChevronPrivacy"
                             android:layout_width="24dp"
                             android:layout_height="24dp"
                             android:importantForAccessibility="no"
@@ -653,6 +701,7 @@
                     </LinearLayout>
 
                     <View
+                        android:id="@+id/dividerSupport2"
                         android:layout_width="match_parent"
                         android:layout_height="1dp"
                         android:layout_marginStart="54dp"
@@ -674,6 +723,7 @@
                         android:paddingVertical="12dp">
 
                         <ImageView
+                            android:id="@+id/ivIconTerms"
                             android:layout_width="22dp"
                             android:layout_height="22dp"
                             android:importantForAccessibility="no"
@@ -681,6 +731,7 @@
                             app:tint="#456882" />
 
                         <TextView
+                            android:id="@+id/tvTermsOfService"
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_marginStart="16dp"
@@ -690,6 +741,7 @@
                             android:textSize="14sp" />
 
                         <ImageView
+                            android:id="@+id/ivChevronTerms"
                             android:layout_width="24dp"
                             android:layout_height="24dp"
                             android:importantForAccessibility="no"
@@ -698,6 +750,7 @@
                     </LinearLayout>
 
                     <View
+                        android:id="@+id/dividerSupport3"
                         android:layout_width="match_parent"
                         android:layout_height="1dp"
                         android:layout_marginStart="54dp"
@@ -719,6 +772,7 @@
                         android:paddingVertical="12dp">
 
                         <ImageView
+                            android:id="@+id/ivIconRate"
                             android:layout_width="22dp"
                             android:layout_height="22dp"
                             android:importantForAccessibility="no"
@@ -726,6 +780,7 @@
                             app:tint="#456882" />
 
                         <TextView
+                            android:id="@+id/tvRateUs"
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_marginStart="16dp"
@@ -735,6 +790,7 @@
                             android:textSize="14sp" />
 
                         <ImageView
+                            android:id="@+id/ivChevronRate"
                             android:layout_width="24dp"
                             android:layout_height="24dp"
                             android:importantForAccessibility="no"
@@ -743,6 +799,7 @@
                     </LinearLayout>
 
                     <View
+                        android:id="@+id/dividerSupport4"
                         android:layout_width="match_parent"
                         android:layout_height="1dp"
                         android:layout_marginStart="54dp"
@@ -764,6 +821,7 @@
                         android:paddingVertical="12dp">
 
                         <ImageView
+                            android:id="@+id/ivIconAbout"
                             android:layout_width="22dp"
                             android:layout_height="22dp"
                             android:importantForAccessibility="no"
@@ -771,6 +829,7 @@
                             app:tint="#456882" />
 
                         <TextView
+                            android:id="@+id/tvAboutSkillSwap"
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_marginStart="16dp"
@@ -780,6 +839,7 @@
                             android:textSize="14sp" />
 
                         <ImageView
+                            android:id="@+id/ivChevronAbout"
                             android:layout_width="24dp"
                             android:layout_height="24dp"
                             android:importantForAccessibility="no"
@@ -788,6 +848,7 @@
                     </LinearLayout>
 
                     <View
+                        android:id="@+id/dividerSupport5"
                         android:layout_width="match_parent"
                         android:layout_height="1dp"
                         android:layout_marginStart="54dp"
@@ -805,6 +866,7 @@
                         android:paddingVertical="12dp">
 
                         <ImageView
+                            android:id="@+id/ivIconVersion"
                             android:layout_width="22dp"
                             android:layout_height="22dp"
                             android:importantForAccessibility="no"
@@ -812,6 +874,7 @@
                             app:tint="#456882" />
 
                         <TextView
+                            android:id="@+id/tvAppVersionLabel"
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_marginStart="16dp"
@@ -833,6 +896,7 @@
             </com.google.android.material.card.MaterialCardView>
 
             <!-- Sign Out Button -->
+            <!-- FIX: Ensured text color is set to a highly visible color for both themes -->
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnLogout"
                 android:layout_width="match_parent"
@@ -841,7 +905,7 @@
                 android:textAllCaps="false"
                 android:textStyle="bold"
                 android:textSize="14.5sp"
-                android:textColor="#C0392B"
+                android:textColor="#FFFFFF"
                 app:backgroundTint="#F6DEDE"
                 app:cornerRadius="18dp"
                 app:strokeColor="#E8C4C4"

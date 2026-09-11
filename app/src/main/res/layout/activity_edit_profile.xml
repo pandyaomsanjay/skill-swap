@@ -2,6 +2,7 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/rootLayout"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
@@ -11,6 +12,7 @@
 
     <!-- ===================== Header ===================== -->
     <LinearLayout
+        android:id="@+id/headerBar"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
@@ -35,6 +37,7 @@
             android:foreground="?attr/selectableItemBackground">
 
             <ImageView
+                android:id="@+id/ivBackIcon"
                 android:layout_width="20dp"
                 android:layout_height="20dp"
                 android:layout_gravity="center"
@@ -44,6 +47,7 @@
         </com.google.android.material.card.MaterialCardView>
 
         <TextView
+            android:id="@+id/tvHeaderTitle"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
@@ -75,6 +79,7 @@
 
             <!-- Intro card -->
             <com.google.android.material.card.MaterialCardView
+                android:id="@+id/cardIntro"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="24dp"
@@ -92,6 +97,7 @@
                     android:padding="16dp">
 
                     <com.google.android.material.card.MaterialCardView
+                        android:id="@+id/iconBgIntro"
                         android:layout_width="48dp"
                         android:layout_height="48dp"
                         app:cardCornerRadius="16dp"
@@ -99,6 +105,7 @@
                         app:cardBackgroundColor="#EAE1DA">
 
                         <ImageView
+                            android:id="@+id/ivIconIntro"
                             android:layout_width="24dp"
                             android:layout_height="24dp"
                             android:layout_gravity="center"
@@ -114,6 +121,7 @@
                         android:orientation="vertical">
 
                         <TextView
+                            android:id="@+id/tvIntroTitle"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="Keep your profile up to date"
@@ -123,6 +131,7 @@
                             android:textStyle="bold" />
 
                         <TextView
+                            android:id="@+id/tvIntroSubtitle"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="2dp"
@@ -149,6 +158,7 @@
                     android:layout_marginEnd="8dp"/>
 
                 <TextView
+                    android:id="@+id/tvSectionPersonalInfo"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="Personal Information"
@@ -159,6 +169,7 @@
             </LinearLayout>
 
             <com.google.android.material.card.MaterialCardView
+                android:id="@+id/cardPersonalInfo"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="28dp"
@@ -255,6 +266,7 @@
                     android:layout_marginEnd="8dp"/>
 
                 <TextView
+                    android:id="@+id/tvSectionSkills"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="Skills"
@@ -265,6 +277,7 @@
             </LinearLayout>
 
             <com.google.android.material.card.MaterialCardView
+                android:id="@+id/cardSkills"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="16dp"

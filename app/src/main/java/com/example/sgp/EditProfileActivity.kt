@@ -1,8 +1,13 @@
 package com.example.sgp
 
+import android.content.res.ColorStateList
+import android.graphics.Color
 import android.os.Bundle
 import android.view.MotionEvent
+import android.view.View
 import android.widget.Button
+import android.widget.ImageView
+import android.widget.TextView
 import android.widget.Toast
 import com.google.android.material.card.MaterialCardView
 import com.google.android.material.textfield.TextInputLayout
@@ -14,11 +19,52 @@ class EditProfileActivity : BaseActivity() {
 
     private lateinit var db: FirebaseFirestore
 
+    /** Tracks current theme so anything built after onCreate stays consistent. */
+    private var isDarkModeEnabled = false
+
+    // ---------------------------------------------------------------------
+    // LIGHT THEME PALETTE
+    // ---------------------------------------------------------------------
+    private val lightScreenBg = Color.parseColor("#EAF1F5")
+    private val lightCardBg = Color.parseColor("#FFFFFF")
+    private val lightCardStroke = Color.parseColor("#D2C1B6")
+    private val lightTextPrimary = Color.parseColor("#1B3C53")
+    private val lightTextSecondary = Color.parseColor("#456882")
+    private val lightIconChipNeutralBg = Color.parseColor("#EAE1DA")
+    private val lightIconChipNeutralTint = Color.parseColor("#1B3C53")
+    private val lightHeaderBg = Color.parseColor("#1B3C53")
+    private val lightBackButtonBg = Color.parseColor("#456882")
+
+    // Text-input specific (Settings/Profile don't have inputs, so these are
+    // new but drawn from the same navy/cream family).
+    private val lightInputBg = Color.parseColor("#F9FBFC")
+    private val lightInputStroke = Color.parseColor("#1B3C53")
+
+    // ---------------------------------------------------------------------
+    // DARK THEME PALETTE
+    // ---------------------------------------------------------------------
+    private val darkScreenBg = Color.parseColor("#0F1B24")
+    private val darkCardBg = Color.parseColor("#16232E")
+    private val darkCardStroke = Color.parseColor("#2A3B48")
+    private val darkTextPrimary = Color.parseColor("#F5F7F8")
+    private val darkTextSecondary = Color.parseColor("#8FA6B8")
+    private val darkIconChipNeutralBg = Color.parseColor("#26343F")
+    private val darkIconChipNeutralTint = Color.parseColor("#C9D6DE")
+    private val darkHeaderBg = Color.parseColor("#0B1620")
+    private val darkBackButtonBg = Color.parseColor("#22323D")
+
+    private val darkInputBg = Color.parseColor("#1C2B36")
+    private val darkInputStroke = Color.parseColor("#3FA7D6")
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_edit_profile)
 
         db = Firebase.firestore
+
+        val sharedPreferences = getSharedPreferences(SettingsActivity.PREFS_NAME, MODE_PRIVATE)
+        isDarkModeEnabled = sharedPreferences.getBoolean(SettingsActivity.KEY_DARK_MODE, false)
+        applyTheme(isDarkModeEnabled)
 
         var currentUserEmail = intent.getStringExtra("email")
         if (currentUserEmail.isNullOrEmpty()) {
@@ -33,6 +79,89 @@ class EditProfileActivity : BaseActivity() {
         }
 
         initializeViews(currentUserEmail)
+    }
+
+    override fun onResume() {
+        super.onResume()
+        // Dark mode may have been toggled from the Settings screen while we were away.
+        val sharedPreferences = getSharedPreferences(SettingsActivity.PREFS_NAME, MODE_PRIVATE)
+        isDarkModeEnabled = sharedPreferences.getBoolean(SettingsActivity.KEY_DARK_MODE, false)
+        applyTheme(isDarkModeEnabled)
+    }
+
+    // ---------------------------------------------------------------------
+    // THEME ENGINE
+    // ---------------------------------------------------------------------
+
+    private fun applyTheme(isDark: Boolean) {
+        isDarkModeEnabled = isDark
+
+        val screenBg = if (isDark) darkScreenBg else lightScreenBg
+        val cardBg = if (isDark) darkCardBg else lightCardBg
+        val cardStroke = if (isDark) darkCardStroke else lightCardStroke
+        val textPrimary = if (isDark) darkTextPrimary else lightTextPrimary
+        val textSecondary = if (isDark) darkTextSecondary else lightTextSecondary
+        val iconChipBg = if (isDark) darkIconChipNeutralBg else lightIconChipNeutralBg
+        val iconChipTint = if (isDark) darkIconChipNeutralTint else lightIconChipNeutralTint
+        val headerBg = if (isDark) darkHeaderBg else lightHeaderBg
+        val backButtonBg = if (isDark) darkBackButtonBg else lightBackButtonBg
+
+        // Root + header (header stays dark navy in both themes, just deepens)
+        findViewById<View>(R.id.rootLayout)?.setBackgroundColor(screenBg)
+        findViewById<View>(R.id.headerBar)?.setBackgroundColor(headerBg)
+        findViewById<MaterialCardView>(R.id.btnBack)?.setCardBackgroundColor(backButtonBg)
+
+        // Intro card
+        findViewById<MaterialCardView>(R.id.cardIntro)?.apply {
+            setCardBackgroundColor(cardBg)
+            strokeColor = cardStroke
+        }
+        findViewById<MaterialCardView>(R.id.iconBgIntro)?.setCardBackgroundColor(iconChipBg)
+        findViewById<ImageView>(R.id.ivIconIntro)?.imageTintList = ColorStateList.valueOf(iconChipTint)
+        findViewById<TextView>(R.id.tvIntroTitle)?.setTextColor(textPrimary)
+        findViewById<TextView>(R.id.tvIntroSubtitle)?.setTextColor(textSecondary)
+
+        // Section headers
+        findViewById<TextView>(R.id.tvSectionPersonalInfo)?.setTextColor(textPrimary)
+        findViewById<TextView>(R.id.tvSectionSkills)?.setTextColor(textPrimary)
+
+        // Personal Information + Skills cards
+        findViewById<MaterialCardView>(R.id.cardPersonalInfo)?.apply {
+            setCardBackgroundColor(cardBg)
+            strokeColor = cardStroke
+        }
+        findViewById<MaterialCardView>(R.id.cardSkills)?.apply {
+            setCardBackgroundColor(cardBg)
+            strokeColor = cardStroke
+        }
+
+        // Text input fields
+        listOf(R.id.name, R.id.phone, R.id.location, R.id.skillsTeach, R.id.skillsLearn)
+            .forEach { id -> styleTextInputLayout(findViewById(id), isDark) }
+
+        // Status/nav bar contrast
+        val insetsController = androidx.core.view.WindowCompat.getInsetsController(window, window.decorView)
+        insetsController.isAppearanceLightStatusBars = !isDark
+        insetsController.isAppearanceLightNavigationBars = !isDark
+        window.statusBarColor = headerBg
+        window.navigationBarColor = screenBg
+    }
+
+    /** Recolors an outlined TextInputLayout (box, hint, stroke, and its EditText) for the theme. */
+    private fun styleTextInputLayout(layout: TextInputLayout?, isDark: Boolean) {
+        if (layout == null) return
+
+        val inputBg = if (isDark) darkInputBg else lightInputBg
+        val inputStroke = if (isDark) darkInputStroke else lightInputStroke
+        val hintColor = if (isDark) darkTextSecondary else lightTextSecondary
+        val textColor = if (isDark) darkTextPrimary else lightTextPrimary
+
+        layout.boxBackgroundColor = inputBg
+        layout.boxStrokeColor = inputStroke
+        layout.hintTextColor = ColorStateList.valueOf(hintColor)
+        layout.defaultHintTextColor = ColorStateList.valueOf(hintColor)
+        layout.editText?.setTextColor(textColor)
+        layout.editText?.setHintTextColor(hintColor)
     }
 
     private fun initializeViews(email: String) {

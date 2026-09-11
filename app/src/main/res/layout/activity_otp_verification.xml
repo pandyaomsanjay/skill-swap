@@ -56,21 +56,25 @@
         app:cardElevation="0dp"
         app:cardBackgroundColor="#331B3C53" />
 
-    <!-- ===================== Transparent back toolbar ===================== -->
+    <!-- ===================== Transparent back toolbar =====================
+         height changed to wrap_content + minHeight so we can safely add
+         top padding at runtime for the status bar without clipping the icon. -->
     <com.google.android.material.appbar.MaterialToolbar
         android:id="@+id/toolbar"
         android:layout_width="match_parent"
-        android:layout_height="?attr/actionBarSize"
+        android:layout_height="wrap_content"
+        android:minHeight="?attr/actionBarSize"
         android:layout_gravity="top"
         android:background="@android:color/transparent"
         app:navigationIcon="@drawable/outline_arrow_back_24"
         app:navigationIconTint="@color/brand_navy" />
 
-    <!-- ===================== Scrolling content ===================== -->
+    <!-- ===================== Scrolling content =====================
+         fitsSystemWindows removed so the toolbar's inset listener is the
+         single owner of the top inset. -->
     <ScrollView
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:fitsSystemWindows="true"
         android:overScrollMode="never"
         android:fillViewport="true">
 

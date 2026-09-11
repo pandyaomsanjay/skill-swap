@@ -15,8 +15,12 @@ import android.widget.EditText
 import android.widget.ProgressBar
 import android.widget.TextView
 import android.widget.Toast
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.updatePadding
 import androidx.lifecycle.lifecycleScope
 import com.example.sgp.api.AuthRepository
+import com.google.android.material.appbar.MaterialToolbar
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.card.MaterialCardView
 import kotlinx.coroutines.launch
@@ -36,7 +40,7 @@ class OtpVerificationActivity : BaseActivity() {
     private lateinit var otpCards: List<MaterialCardView>
     private lateinit var tvResend: TextView
     private lateinit var tvEmailInfo: TextView
-    private lateinit var toolbar: com.google.android.material.appbar.MaterialToolbar
+    private lateinit var toolbar: MaterialToolbar
 
     private var expiryTimer: CountDownTimer? = null
     private var lockoutTimer: CountDownTimer? = null
@@ -45,7 +49,6 @@ class OtpVerificationActivity : BaseActivity() {
     private val maxAttempts = 5
     private val lockoutMinutes = 5L
 
-    // ── Palette (matched to signup OTP screen) ──────────────────────
     private val C_CARD               = Color.parseColor("#FFFFFF")
     private val C_CARD_BORDER        = Color.parseColor("#D4A857")
     private val C_BOX_FILL           = Color.parseColor("#F5F5F5")
@@ -68,7 +71,7 @@ class OtpVerificationActivity : BaseActivity() {
         const val TIMER_GREEN = 0
         const val TIMER_AMBER = 1
         const val TIMER_RED   = 2
-        const val TIMER_DURATION = 60000L // 60 seconds
+        const val TIMER_DURATION = 60000L
     }
 
     private var currentTimerState = TIMER_GREEN
@@ -82,6 +85,15 @@ class OtpVerificationActivity : BaseActivity() {
         }
 
         toolbar = findViewById(R.id.toolbar)
+
+        // Push the toolbar down past the status bar (+20dp for breathing room).
+        // dp(20f) returns Int now (see helper below), so this compiles cleanly.
+        ViewCompat.setOnApplyWindowInsetsListener(toolbar) { view, insets ->
+            val statusBarTop = insets.getInsets(WindowInsetsCompat.Type.statusBars()).top
+            view.updatePadding(top = statusBarTop + dp(20f))
+            insets
+        }
+
         toolbar.setNavigationOnClickListener { finish() }
 
         progressBar  = findViewById(R.id.progressBar)
@@ -110,9 +122,8 @@ class OtpVerificationActivity : BaseActivity() {
 
         cardMain.setCardBackgroundColor(C_CARD)
         cardMain.strokeColor = C_CARD_BORDER
-        cardMain.strokeWidth = dp(1.5f).toInt()
+        cardMain.strokeWidth = dp(1.5f)
 
-        // Highlight the email in the subtitle
         val emailText = "Enter the 6-digit code sent to $email"
         val spannable = android.text.SpannableString(emailText)
         val start = emailText.indexOf(email)
@@ -130,7 +141,6 @@ class OtpVerificationActivity : BaseActivity() {
         }
         tvEmailInfo.text = spannable
 
-        // Disable resend initially — same cooldown as the timer itself
         tvResend.isEnabled = false
         tvResend.alpha = 0.5f
 
@@ -155,8 +165,6 @@ class OtpVerificationActivity : BaseActivity() {
             if (tvResend.isEnabled) resendOtp()
         }
     }
-
-    // ─── Timer ──────────────────────────────────────────────
 
     private fun startExpiryTimer() {
         expiryTimer?.cancel()
@@ -237,8 +245,6 @@ class OtpVerificationActivity : BaseActivity() {
         timerPill.startAnimation(anim)
     }
 
-    // ─── OTP Boxes ─────────────────────────────────
-
     private fun setupOtpBoxes() {
         otpBoxes.forEachIndexed { index, box ->
             box.addTextChangedListener(object : TextWatcher {
@@ -304,17 +310,17 @@ class OtpVerificationActivity : BaseActivity() {
             active -> {
                 card.strokeColor = C_BOX_ACTIVE_BORDER
                 card.setCardBackgroundColor(C_BOX_FILL)
-                card.strokeWidth = dp(2.5f).toInt()
+                card.strokeWidth = dp(2.5f)
             }
             filled -> {
                 card.strokeColor = C_BOX_FILLED_BORDER
                 card.setCardBackgroundColor(C_BOX_FILL)
-                card.strokeWidth = dp(1.5f).toInt()
+                card.strokeWidth = dp(1.5f)
             }
             else -> {
                 card.strokeColor = C_BOX_EMPTY_BORDER
                 card.setCardBackgroundColor(C_BOX_FILL)
-                card.strokeWidth = dp(1.5f).toInt()
+                card.strokeWidth = dp(1.5f)
             }
         }
     }
@@ -338,8 +344,6 @@ class OtpVerificationActivity : BaseActivity() {
         setBoxStyle(0, active = true, filled = false)
     }
 
-    // ─── Error helpers ─────────────────────────────────────────────
-
     private fun showError(msg: String) {
         tvError.text = msg
         tvError.visibility = View.VISIBLE
@@ -349,9 +353,9 @@ class OtpVerificationActivity : BaseActivity() {
         tvError.visibility = View.GONE
     }
 
-    private fun dp(v: Float) = v * resources.displayMetrics.density
-
-    // ─── Verify / Resend (Supabase built-in via AuthRepository) ────
+    // FIXED: takes Float, returns Int. Existing dp(1.5f) calls now work
+    // without .toInt(); insets listener works because dp(20f) yields Int.
+    private fun dp(v: Float): Int = (v * resources.displayMetrics.density).toInt()
 
     private fun verifyOtp(otp: String) {
         setLoading(true)
@@ -404,8 +408,6 @@ class OtpVerificationActivity : BaseActivity() {
             }
         }
     }
-
-    // ─── Lockout (5 min) ────────────────────────────────
 
     private fun lockOtpEntry() {
         expiryTimer?.cancel()

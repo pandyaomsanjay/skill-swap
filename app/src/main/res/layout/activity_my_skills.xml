@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/rootLayout"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:fitsSystemWindows="true"
+    android:background="#EAF1F5">
+
+    <!-- Header (Themed) -->
+    <LinearLayout
+        android:id="@+id/headerBar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:background="#1B3C53"
+        android:elevation="6dp"
+        android:paddingStart="20dp"
+        android:paddingEnd="20dp"
+        android:paddingTop="22dp"
+        android:paddingBottom="22dp">
+
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/btnBack"
+            android:layout_width="44dp"
+            android:layout_height="44dp"
+            app:cardCornerRadius="14dp"
+            app:cardElevation="0dp"
+            app:strokeWidth="1dp"
+            app:strokeColor="#456882"
+            app:cardBackgroundColor="#456882"
+            android:clickable="true"
+            android:focusable="true"
+            android:foreground="?attr/selectableItemBackground">
+
+            <ImageView
+                android:id="@+id/ivBackIcon"
+                android:layout_width="20dp"
+                android:layout_height="20dp"
+                android:layout_gravity="center"
+                android:src="@drawable/outline_arrow_back_24"
+                app:tint="#F9F3EF"
+                android:contentDescription="@null"/>
+        </com.google.android.material.card.MaterialCardView>
+
+        <TextView
+            android:id="@+id/tvTitle"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="16dp"
+            android:text="My Skills"
+            android:textColor="#F9F3EF"
+            android:textSize="19sp"
+            android:fontFamily="sans-serif-medium"
+            android:textStyle="bold"
+            android:letterSpacing="0.01"/>
+    </LinearLayout>
+
+    <!-- Scrollable Content -->
+    <androidx.core.widget.NestedScrollView
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:clipToPadding="false"
+        android:overScrollMode="never"
+        android:scrollbars="none"
+        android:paddingHorizontal="16dp"
+        android:paddingTop="16dp"
+        android:paddingBottom="24dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <!-- Add Skill Button -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnAddNewSkill"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Add New Skill"
+                android:textAllCaps="false"
+                android:textStyle="bold"
+                android:textSize="14.5sp"
+                android:textColor="#F9F3EF"
+                app:backgroundTint="#1B3C53"
+                app:cornerRadius="16dp"
+                android:layout_marginBottom="20dp" />
+
+            <!-- Container for skill cards -->
+            <LinearLayout
+                android:id="@+id/skillsContainer"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical" />
+
+            <!-- Empty State -->
+            <TextView
+                android:id="@+id/tvNoSkills"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="No skills added yet."
+                android:textColor="#456882"
+                android:textSize="14sp"
+                android:gravity="center"
+                android:paddingVertical="40dp"
+                android:visibility="gone" />
+        </LinearLayout>
+    </androidx.core.widget.NestedScrollView>
+</LinearLayout>
