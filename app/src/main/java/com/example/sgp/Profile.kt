@@ -245,6 +245,10 @@ class Profile : BaseActivity() {
         findViewById<LinearLayout>(R.id.layoutBookingHistory).setOnClickListener {
             Toast.makeText(this, "Booking History", Toast.LENGTH_SHORT).show()
         }
+        
+        findViewById<MaterialButton>(R.id.btnAddNewResource).setOnClickListener {
+            startActivity(Intent(this, AddResourceActivity::class.java))
+        }
 
         findViewById<LinearLayout>(R.id.layoutReviews).setOnClickListener {
             startActivity(Intent(this, RateUsActivity::class.java))

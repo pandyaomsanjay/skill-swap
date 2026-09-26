@@ -26,6 +26,15 @@
         android:layout_marginTop="4dp"/>
 
     <TextView
+        android:id="@+id/tvSchedule"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="🗓 Not scheduled"
+        android:textColor="#757575"
+        android:textSize="12sp"
+        android:layout_marginTop="4dp"/>
+
+    <TextView
         android:id="@+id/tvStatus"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"

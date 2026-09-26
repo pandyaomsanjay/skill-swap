@@ -1,7 +1,7 @@
-// MyTradesActivity.kt
 package com.example.sgp
 
 import android.os.Bundle
+import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentActivity
 import androidx.viewpager2.adapter.FragmentStateAdapter
 import androidx.viewpager2.widget.ViewPager2
@@ -17,6 +17,7 @@ class MyTradesActivity : BaseActivity() {
         val toolbar: androidx.appcompat.widget.Toolbar = findViewById(R.id.toolbar)
         setSupportActionBar(toolbar)
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
+        supportActionBar?.title = "My Trades"
 
         val tabLayout = findViewById<TabLayout>(R.id.tabLayout)
         val viewPager = findViewById<ViewPager2>(R.id.viewPager)
@@ -25,13 +26,15 @@ class MyTradesActivity : BaseActivity() {
 
         TabLayoutMediator(tabLayout, viewPager) { tab, position ->
             tab.text = when (position) {
-                0 -> getString(R.string.active_trades)
-                1 -> getString(R.string.completed_trades)
+                0 -> "Incoming"
+                1 -> "Sent"
+                2 -> "Active"
+                3 -> "Completed"
+                4 -> "Closed"
                 else -> ""
             }
         }.attach()
 
-        // Bottom navigation setup
         BottomNavHelper.setup(this, BottomNavItem.TRADES)
     }
 
@@ -41,10 +44,13 @@ class MyTradesActivity : BaseActivity() {
     }
 
     class TradesPagerAdapter(activity: FragmentActivity) : FragmentStateAdapter(activity) {
-        override fun getItemCount() = 2
-        override fun createFragment(position: Int) = when (position) {
-            0 -> ActiveTradesFragment()
-            1 -> CompletedTradesFragment()
+        override fun getItemCount() = 5
+        override fun createFragment(position: Int): Fragment = when (position) {
+            0 -> IncomingTradesFragment()
+            1 -> SentTradesFragment()
+            2 -> ActiveTradesFragment()
+            3 -> CompletedTradesFragment()
+            4 -> ClosedTradesFragment()
             else -> throw IndexOutOfBoundsException()
         }
     }

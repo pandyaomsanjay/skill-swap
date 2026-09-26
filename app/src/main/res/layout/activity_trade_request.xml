@@ -1,0 +1,266 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="#EAF1F5"
+    android:fitsSystemWindows="true">
+
+    <!-- ══════════════ Toolbar ══════════════ -->
+    <com.google.android.material.appbar.MaterialToolbar
+        android:id="@+id/toolbar"
+        android:layout_width="match_parent"
+        android:layout_height="?attr/actionBarSize"
+        android:background="@color/brand_navy"
+        app:title="Trade / Swap"
+        app:titleTextColor="@android:color/white"
+        app:navigationIcon="@drawable/outline_arrow_back_24"
+        app:navigationIconTint="@android:color/white" />
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:fillViewport="true"
+        android:padding="16dp"
+        android:overScrollMode="never">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <!-- ══════════════ Requested resource summary ══════════════ -->
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="20dp"
+                app:cardCornerRadius="16dp"
+                app:cardElevation="0dp"
+                app:strokeWidth="1dp"
+                app:strokeColor="@color/brand_tan"
+                app:cardBackgroundColor="#FFFFFF">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:padding="14dp"
+                    android:gravity="center_vertical">
+
+                    <ImageView
+                        android:id="@+id/ivRequestedThumb"
+                        android:layout_width="60dp"
+                        android:layout_height="60dp"
+                        android:scaleType="centerCrop"
+                        android:src="@drawable/baseline_videocam_24"
+                        android:background="@drawable/rounded_corners"
+                        android:contentDescription="Requested resource thumbnail" />
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:layout_marginStart="14dp"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="You want"
+                            android:textColor="@color/brand_steel"
+                            android:textSize="11sp"
+                            android:textStyle="bold"
+                            android:letterSpacing="0.06" />
+
+                        <TextView
+                            android:id="@+id/tvRequestedTitle"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="2dp"
+                            android:text="Resource"
+                            android:textColor="@color/brand_navy"
+                            android:textSize="15sp"
+                            android:textStyle="bold"
+                            android:maxLines="1"
+                            android:ellipsize="end" />
+
+                        <TextView
+                            android:id="@+id/tvRequestedType"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="2dp"
+                            android:text="📹 Video"
+                            android:textColor="@color/brand_steel"
+                            android:textSize="12sp" />
+
+                        <TextView
+                            android:id="@+id/tvReceiverName"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="4dp"
+                            android:text="From User"
+                            android:textColor="@color/brand_steel"
+                            android:textSize="11sp"
+                            android:textStyle="italic" />
+                    </LinearLayout>
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- ══════════════ Offered resource selection ══════════════ -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="What will you offer?"
+                android:textColor="@color/brand_navy"
+                android:textSize="15sp"
+                android:textStyle="bold"
+                android:layout_marginBottom="8dp" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnSelectOfferedResource"
+                android:layout_width="match_parent"
+                android:layout_height="54dp"
+                android:text="Select Resource to Offer"
+                android:textAllCaps="false"
+                android:textColor="@android:color/white"
+                android:textSize="14sp"
+                android:textStyle="bold"
+                app:backgroundTint="@color/brand_navy"
+                app:cornerRadius="14dp"
+                app:icon="@drawable/outline_psychology_24"
+                app:iconTint="@android:color/white"
+                app:iconGravity="textStart" />
+
+            <TextView
+                android:id="@+id/tvSelectedOfferedResource"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:layout_marginBottom="20dp"
+                android:padding="12dp"
+                android:text="No resource selected"
+                android:textColor="@color/brand_steel"
+                android:textSize="13sp"
+                android:background="@drawable/bg_offered_placeholder" />
+
+            <!-- ══════════════ Schedule ══════════════ -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:text="Preferred date &amp; time"
+                android:textColor="@color/brand_navy"
+                android:textSize="15sp"
+                android:textStyle="bold"
+                android:layout_marginBottom="8dp" />
+
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                app:cardCornerRadius="16dp"
+                app:cardElevation="0dp"
+                app:strokeWidth="1dp"
+                app:strokeColor="@color/brand_tan"
+                app:cardBackgroundColor="#FFFFFF">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:padding="14dp"
+                    android:gravity="center_vertical">
+
+                    <TextView
+                        android:id="@+id/tvScheduleValue"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="No schedule picked"
+                        android:textColor="@color/brand_navy"
+                        android:textSize="14sp"
+                        android:drawablePadding="8dp"
+                        android:gravity="center_vertical" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnPickSchedule"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Pick"
+                        android:textAllCaps="false"
+                        android:textColor="@android:color/white"
+                        app:backgroundTint="@color/brand_navy"
+                        app:cornerRadius="20dp"
+                        android:paddingStart="20dp"
+                        android:paddingEnd="20dp" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- ══════════════ Optional message ══════════════ -->
+            <com.google.android.material.textfield.TextInputLayout
+                style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="20dp"
+                android:hint="Optional message to the other user"
+                app:boxStrokeColor="@color/brand_steel"
+                app:hintTextColor="@color/brand_steel"
+                app:boxCornerRadiusTopStart="14dp"
+                app:boxCornerRadiusTopEnd="14dp"
+                app:boxCornerRadiusBottomStart="14dp"
+                app:boxCornerRadiusBottomEnd="14dp">
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/etMessage"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:minLines="3"
+                    android:maxLines="6"
+                    android:inputType="textMultiLine|textCapSentences"
+                    android:textColor="@color/brand_navy"
+                    android:textColorHint="@color/brand_steel_hint" />
+            </com.google.android.material.textfield.TextInputLayout>
+
+            <!-- ══════════════ Send button ══════════════ -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnSendTradeRequest"
+                android:layout_width="match_parent"
+                android:layout_height="58dp"
+                android:layout_marginTop="24dp"
+                android:text="Send Trade Request"
+                android:textAllCaps="false"
+                android:textColor="@android:color/white"
+                android:textSize="15sp"
+                android:textStyle="bold"
+                app:backgroundTint="@color/brand_navy"
+                app:cornerRadius="16dp"
+                app:icon="@drawable/baseline_send_24"
+                app:iconTint="@android:color/white"
+                app:iconGravity="textStart"
+                app:iconPadding="10dp" />
+
+            <!-- ══════════════ Loading indicator ══════════════ -->
+            <ProgressBar
+                android:id="@+id/progressBar"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_horizontal"
+                android:layout_marginTop="16dp"
+                android:indeterminateTint="@color/brand_navy"
+                android:visibility="gone" />
+
+            <!-- Helper text -->
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:gravity="center"
+                android:text="Your request will be sent to the other user for approval."
+                android:textColor="@color/brand_steel"
+                android:textSize="11.5sp"
+                android:paddingBottom="24dp" />
+
+        </LinearLayout>
+    </ScrollView>
+</LinearLayout>

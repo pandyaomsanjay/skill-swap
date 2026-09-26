@@ -209,6 +209,7 @@
     </string-array>
 
     <!-- API Keys (Replace with actual keys) -->
+    <string name="no_trades_found" translatable="false">No trades found</string>
     <string name="default_web_client_id">YOUR_DEFAULT_WEB_CLIENT_ID</string>
     <string name="places_api_key">YOUR_PLACES_API_KEY</string>
 </resources>

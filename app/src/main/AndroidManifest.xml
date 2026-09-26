@@ -96,8 +96,7 @@
             android:theme="@style/Theme.SGP.Admin" />
         <activity
             android:name=".SettingsActivity"
-            android:exported="false"
-            android:configChanges="uiMode|orientation|screenSize" />
+            android:exported="false" />
         <activity
             android:name=".MyTradesActivity"
             android:exported="false" />
@@ -162,8 +161,7 @@
         <activity android:name=".SubmitFeedbackActivity" />
         <activity
             android:name=".ChatActivity"
-            android:exported="false"
-            android:windowSoftInputMode="adjustResize" />
+            android:exported="false" />
         <activity
             android:name=".ChatListActivity"
             android:exported="false" />
@@ -197,13 +195,22 @@
             android:name=".AddPlaylistVideoActivity"
             android:exported="false"
             android:windowSoftInputMode="adjustResize" />
-
         <activity
-            android:name=".MySkillsActivity"
+            android:name=".TradeRequestActivity"
             android:exported="false"
-            android:configChanges="uiMode" />
-
-
+            android:windowSoftInputMode="adjustResize" />
+        <activity
+            android:name=".TradeDetailActivity"
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
+        <activity
+            android:name=".SelectResourceActivity"
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
+        <activity
+            android:name=".AddResourceActivity"
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
     </application>
 
 </manifest>

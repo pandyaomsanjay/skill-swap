@@ -1,8 +1,6 @@
 package com.example.sgp
 
 import android.app.PictureInPictureParams
-import android.content.Context
-import android.content.SharedPreferences
 import android.content.pm.ActivityInfo
 import android.content.res.Configuration
 import android.graphics.Color
@@ -20,7 +18,6 @@ import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
 import android.view.WindowManager
-import android.widget.EditText
 import android.widget.FrameLayout
 import android.widget.LinearLayout
 import android.widget.MediaController
@@ -28,6 +25,7 @@ import android.widget.ProgressBar
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
+import androidx.appcompat.app.AppCompatActivity
 import androidx.core.widget.NestedScrollView
 import com.google.firebase.Firebase
 import com.google.firebase.auth.FirebaseAuth
@@ -36,7 +34,6 @@ import com.google.firebase.firestore.firestore
 
 class VideoPlayerActivity : BaseActivity() {
 
-    private lateinit var rootLayout: View
     private lateinit var videoView: ResizableVideoView
     private lateinit var videoContainer: FrameLayout
     private lateinit var scrollContent: NestedScrollView
@@ -44,13 +41,6 @@ class VideoPlayerActivity : BaseActivity() {
     private lateinit var mediaController: MediaController
     private lateinit var tvFullscreenIcon: TextView
     private lateinit var progressBar: ProgressBar
-    private lateinit var tvVideoTitle: TextView
-    private lateinit var tvVideoSubtitle: TextView
-    private lateinit var tvDescriptionLabel: TextView
-    private lateinit var tvVideoDescription: TextView
-    private lateinit var dividerAboveDescription: View
-    private lateinit var btnFeedback: TextView
-    private lateinit var btnReport: TextView
 
     private val db: FirebaseFirestore by lazy { Firebase.firestore }
 
@@ -77,33 +67,8 @@ class VideoPlayerActivity : BaseActivity() {
     private var skillUserId: String = ""
     private var skillUserName: String = ""
 
-    private var selectedFeedbackRating = 0
-
+    // Handler for delayed progress update
     private val handler = Handler(Looper.getMainLooper())
-
-    private lateinit var sharedPreferences: SharedPreferences
-    private var isDarkModeEnabled = false
-
-    companion object {
-        private const val PREFS_NAME = "SkillSwapPrefs"
-        private const val KEY_DARK_MODE = "dark_mode"
-    }
-
-    // ---- Light palette ----
-    private val lightScreenBg = Color.parseColor("#EAF1F5")
-    private val lightTextPrimary = Color.parseColor("#1B3C53")
-    private val lightTextSecondary = Color.parseColor("#456882")
-    private val lightDivider = Color.parseColor("#D9E3EA")
-    private val lightPillLightBg = Color.parseColor("#F9F3EF")
-    private val lightPillNavyBg = Color.parseColor("#1B3C53")
-
-    // ---- Dark palette ----
-    private val darkScreenBg = Color.parseColor("#0F1B24")
-    private val darkTextPrimary = Color.parseColor("#F5F7F8")
-    private val darkTextSecondary = Color.parseColor("#8FA6B8")
-    private val darkDivider = Color.parseColor("#2A3B48")
-    private val darkPillLightBg = Color.parseColor("#26343F")
-    private val darkPillNavyBg = Color.parseColor("#0B1620")
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -111,25 +76,19 @@ class VideoPlayerActivity : BaseActivity() {
 
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
 
-        sharedPreferences = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-        isDarkModeEnabled = sharedPreferences.getBoolean(KEY_DARK_MODE, false)
-
-        rootLayout = findViewById(R.id.rootLayout)
         videoView = findViewById(R.id.videoView)
         videoContainer = findViewById(R.id.videoContainer)
         scrollContent = findViewById(R.id.scrollContent)
         topBar = findViewById(R.id.topBar)
         progressBar = findViewById(R.id.progressBar)
-        tvVideoTitle = findViewById(R.id.tvVideoTitle)
-        tvVideoSubtitle = findViewById(R.id.tvVideoSubtitle)
-        tvDescriptionLabel = findViewById(R.id.tvDescriptionLabel)
-        tvVideoDescription = findViewById(R.id.tvVideoDescription)
-        dividerAboveDescription = findViewById(R.id.dividerAboveDescription)
+        val tvTitle: TextView = findViewById(R.id.tvVideoTitle)
+        val tvSubtitle: TextView = findViewById(R.id.tvVideoSubtitle)
+        val tvDescription: TextView = findViewById(R.id.tvVideoDescription)
         val btnClose: View = findViewById(R.id.btnClose)
         val btnFullscreen: View = findViewById(R.id.btnFullscreen)
         val btnPip: View = findViewById(R.id.btnPip)
-        btnReport = findViewById(R.id.btnReport)
-        btnFeedback = findViewById(R.id.btnFeedback)
+        val btnReport: View = findViewById(R.id.btnReport)
+        val btnTradeSwap: View = findViewById(R.id.btnTradeSwap)   // ← NEW
         tvFullscreenIcon = findViewById(R.id.tvFullscreenIcon)
 
         originalVideoContainerParams = videoContainer.layoutParams
@@ -143,6 +102,7 @@ class VideoPlayerActivity : BaseActivity() {
         val credits = intent.getIntExtra("skillCredits", 0)
         val description = intent.getStringExtra("skillDescription") ?: ""
 
+        // Playlist progress tracking extras
         playlistId = intent.getStringExtra("playlistId")
         videoId = intent.getStringExtra("videoId")
         totalVideos = intent.getIntExtra("totalVideos", 0)
@@ -155,17 +115,19 @@ class VideoPlayerActivity : BaseActivity() {
         Log.d("VideoPlayerActivity", "  videoUrl: ${videoUrl?.take(50)}...")
         Log.d("VideoPlayerActivity", "========================================")
 
-        tvVideoTitle.text = skillTitle
-        tvVideoSubtitle.text = listOfNotNull(
+        tvTitle.text = skillTitle
+        tvSubtitle.text = listOfNotNull(
             category.ifBlank { null },
             "By $skillUserName",
             "$credits credits"
         ).joinToString(" • ")
-        tvVideoDescription.text = description.ifBlank { "No description provided." }
+        tvDescription.text = description.ifBlank { "No description provided." }
 
-        applyTheme(isDarkModeEnabled)
+        // ── Trade / Swap button (only for other users' videos) ────────────
+        setupTradeSwapButton(btnTradeSwap)
 
         btnClose.setOnClickListener {
+            // If video was playing and progress not marked, try to mark it
             if (!progressMarked && videoId != null && playlistId != null) {
                 Log.d("VideoPlayerActivity", "Close button pressed - marking progress")
                 markProgressIfNeeded()
@@ -175,7 +137,6 @@ class VideoPlayerActivity : BaseActivity() {
         btnFullscreen.setOnClickListener { toggleFullscreen() }
         btnPip.setOnClickListener { enterPip() }
         btnReport.setOnClickListener { showReportDialog() }
-        btnFeedback.setOnClickListener { showFeedbackDialog() }
 
         if (videoUrl.isNullOrBlank()) {
             Toast.makeText(this, "No video available", Toast.LENGTH_SHORT).show()
@@ -203,53 +164,46 @@ class VideoPlayerActivity : BaseActivity() {
             true
         }
 
+        // Track video completion for playlist progress
         videoView.setOnCompletionListener {
             Log.d("VideoPlayerActivity", "========================================")
             Log.d("VideoPlayerActivity", "🎬 Video COMPLETED! (via completion listener)")
             Log.d("VideoPlayerActivity", "========================================")
             videoCompleted = true
+            // Delay slightly to ensure everything is ready
             handler.postDelayed({
                 markProgressIfNeeded()
             }, 500)
         }
     }
 
-    override fun onResume() {
-        super.onResume()
-        val storedDarkMode = sharedPreferences.getBoolean(KEY_DARK_MODE, false)
-        if (storedDarkMode != isDarkModeEnabled) {
-            applyTheme(storedDarkMode)
+    // ─────────────────────────────────────────────────────────────
+    // Trade / Swap button wiring
+    // ─────────────────────────────────────────────────────────────
+    private fun setupTradeSwapButton(btnTradeSwap: View) {
+        val ownerEmail = skillUserId
+        val myEmail = FirebaseAuth.getInstance().currentUser?.email.orEmpty()
+
+        val isOwnVideo = ownerEmail.isBlank() ||
+                myEmail.isBlank() ||
+                ownerEmail.equals(myEmail, ignoreCase = true)
+
+        if (isOwnVideo) {
+            // Hide the trade button on your own videos
+            btnTradeSwap.visibility = View.GONE
+            return
         }
-    }
 
-    // ---------------------------------------------------------------------
-    // THEME ENGINE
-    // ---------------------------------------------------------------------
-    private fun applyTheme(isDark: Boolean) {
-        isDarkModeEnabled = isDark
-
-        val screenBg = if (isDark) darkScreenBg else lightScreenBg
-        val textPrimary = if (isDark) darkTextPrimary else lightTextPrimary
-        val textSecondary = if (isDark) darkTextSecondary else lightTextSecondary
-        val divider = if (isDark) darkDivider else lightDivider
-        val pillLightBg = if (isDark) darkPillLightBg else lightPillLightBg
-        val pillNavyBg = if (isDark) darkPillNavyBg else lightPillNavyBg
-
-        rootLayout.setBackgroundColor(screenBg)
-        tvVideoTitle.setTextColor(textPrimary)
-        tvVideoSubtitle.setTextColor(textSecondary)
-        tvDescriptionLabel.setTextColor(textPrimary)
-        tvVideoDescription.setTextColor(textPrimary)
-        dividerAboveDescription.setBackgroundColor(divider)
-
-        btnFeedback.setTextColor(textPrimary)
-        btnFeedback.background = GradientDrawable().apply {
-            cornerRadius = dp(24).toFloat()
-            setColor(pillLightBg)
-        }
-        btnReport.background = GradientDrawable().apply {
-            cornerRadius = dp(24).toFloat()
-            setColor(pillNavyBg)
+        btnTradeSwap.visibility = View.VISIBLE
+        btnTradeSwap.setOnClickListener {
+            TradeRequestActivity.start(
+                context = this,
+                requestedResourceId = skillId,
+                requestedResourceTitle = skillTitle,
+                requestedResourceType = TradeResourceType.VIDEO,
+                receiverId = ownerEmail,
+                receiverName = skillUserName
+            )
         }
     }
 
@@ -291,8 +245,10 @@ class VideoPlayerActivity : BaseActivity() {
         Log.d("VideoPlayerActivity", "✅ Updating progress for playlist: $pid, video: $vid, total: $totalVideos")
         progressMarked = true
 
+        // Call PlaylistManager to update progress
         PlaylistManager.updateProgress(uid, pid, vid, totalVideos)
 
+        // Show toast to indicate progress was saved
         Toast.makeText(this, "✅ Progress saved!", Toast.LENGTH_SHORT).show()
     }
 
@@ -301,11 +257,13 @@ class VideoPlayerActivity : BaseActivity() {
         Log.d("VideoPlayerActivity", "onDestroy called")
         Log.d("VideoPlayerActivity", "  videoCompleted: $videoCompleted, progressMarked: $progressMarked")
 
+        // If video was completed but progress not marked, try to mark it
         if (videoCompleted && !progressMarked) {
             Log.d("VideoPlayerActivity", "Video completed but progress not marked - marking now in onDestroy")
             markProgressIfNeeded()
         }
 
+        // Remove any pending handler callbacks
         handler.removeCallbacksAndMessages(null)
 
         if (::videoView.isInitialized && videoView.isPlaying) {
@@ -318,6 +276,7 @@ class VideoPlayerActivity : BaseActivity() {
             toggleFullscreen()
             return
         }
+        // If video was playing and progress not marked, try to mark it
         if (!progressMarked && videoId != null && playlistId != null) {
             Log.d("VideoPlayerActivity", "Back pressed - marking progress")
             markProgressIfNeeded()
@@ -344,7 +303,7 @@ class VideoPlayerActivity : BaseActivity() {
         root.addView(dialogTitle("Report \"$skillTitle\""))
         root.addView(TextView(this).apply {
             text = "Help us understand what's wrong"
-            setTextColor(currentTextSecondary())
+            setTextColor(Color.parseColor("#456882"))
             textSize = 13f
             setPadding(0, dp(4), 0, dp(4))
         })
@@ -363,7 +322,7 @@ class VideoPlayerActivity : BaseActivity() {
             }
         }
 
-        val btnCancel = pillButton("Cancel", currentSecondaryBtnBg(), currentSecondaryBtnText()).apply {
+        val btnCancel = pillButton("Cancel", Color.parseColor("#EAF1F5"), Color.parseColor("#456882")).apply {
             layoutParams = LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.WRAP_CONTENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT
@@ -384,7 +343,7 @@ class VideoPlayerActivity : BaseActivity() {
         theme.resolveAttribute(android.R.attr.selectableItemBackground, outValue, true)
         return TextView(this).apply {
             this.text = text
-            setTextColor(currentTextPrimary())
+            setTextColor(Color.parseColor("#1B3C53"))
             textSize = 15f
             setPadding(dp(4), dp(8), dp(4), dp(8))
             setBackgroundResource(outValue.resourceId)
@@ -404,8 +363,7 @@ class VideoPlayerActivity : BaseActivity() {
             reason = reason,
             description = "Reported skill: \"$skillTitle\" (Skill ID: $skillId)",
             status = "pending",
-            timestamp = System.currentTimeMillis(),
-            type = "video"
+            timestamp = System.currentTimeMillis()
         )
         docRef.set(report)
             .addOnSuccessListener {
@@ -416,141 +374,8 @@ class VideoPlayerActivity : BaseActivity() {
             }
     }
 
-    // ---------------- Feedback (themed dialog) ----------------
-
-    private fun showFeedbackDialog() {
-        val reporterEmail = FirebaseAuth.getInstance().currentUser?.email
-        if (reporterEmail.isNullOrEmpty()) {
-            Toast.makeText(this, "Please log in to leave feedback", Toast.LENGTH_SHORT).show()
-            return
-        }
-        if (reporterEmail == skillUserId) {
-            Toast.makeText(this, "You can't leave feedback on your own upload", Toast.LENGTH_SHORT).show()
-            return
-        }
-        selectedFeedbackRating = 0
-
-        val root = dialogCard()
-        root.addView(dialogTitle("Give Feedback"))
-        root.addView(TextView(this).apply {
-            text = "How was \"$skillTitle\"?"
-            setTextColor(currentTextSecondary())
-            textSize = 13f
-            setPadding(0, dp(4), 0, dp(10))
-        })
-
-        val starRow = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-            layoutParams = LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.WRAP_CONTENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT
-            ).apply { bottomMargin = dp(8) }
-        }
-        val starViews = mutableListOf<TextView>()
-        for (i in 1..5) {
-            val star = TextView(this).apply {
-                text = "☆"
-                textSize = 28f
-                setTextColor(Color.parseColor("#D2C1B6"))
-                setPadding(dp(4), 0, dp(4), 0)
-                isClickable = true
-                isFocusable = true
-                setOnClickListener {
-                    selectedFeedbackRating = i
-                    starViews.forEachIndexed { idx, sv ->
-                        sv.text = if (idx < i) "★" else "☆"
-                        sv.setTextColor(if (idx < i) currentTextPrimary() else Color.parseColor("#D2C1B6"))
-                    }
-                }
-            }
-            starViews.add(star)
-            starRow.addView(star)
-        }
-        root.addView(starRow)
-
-        val etComment = EditText(this).apply {
-            hint = "Comment (optional)"
-            setTextColor(currentTextPrimary())
-            setHintTextColor(currentTextSecondary())
-            textSize = 13f
-            setPadding(dp(4), dp(10), dp(4), dp(10))
-            minLines = 2
-            maxLines = 4
-        }
-        root.addView(etComment)
-        root.addView(dividerLine())
-
-        val dialog = AlertDialog.Builder(this).setView(root).create()
-        dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
-
-        val row = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.END
-            layoutParams = LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT
-            ).apply { topMargin = dp(4) }
-        }
-        row.addView(pillButton("Cancel", currentSecondaryBtnBg(), currentSecondaryBtnText()).apply {
-            setPadding(dp(24), dp(10), dp(24), dp(10))
-            setOnClickListener { dialog.dismiss() }
-        })
-        row.addView(pillButton("Submit", currentTextPrimary(), Color.parseColor("#F9F3EF")).apply {
-            layoutParams = LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.WRAP_CONTENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT
-            ).apply { marginStart = dp(10) }
-            setPadding(dp(24), dp(10), dp(24), dp(10))
-            setOnClickListener {
-                dialog.dismiss()
-                submitContentFeedback(reporterEmail, etComment.text?.toString()?.trim().orEmpty())
-            }
-        })
-        root.addView(row)
-
-        dialog.show()
-    }
-
-    private fun submitContentFeedback(reporterEmail: String, comment: String) {
-        val reporterName = FirebaseAuth.getInstance().currentUser?.displayName?.ifBlank { reporterEmail } ?: reporterEmail
-        val docRef = db.collection("content_feedback").document()
-        val feedback = ContentFeedback(
-            id = docRef.id,
-            skillId = skillId,
-            videoId = "",
-            reporterId = reporterEmail,
-            reporterName = reporterName,
-            targetUserId = skillUserId,
-            rating = selectedFeedbackRating,
-            comment = comment,
-            timestamp = System.currentTimeMillis()
-        )
-        docRef.set(feedback)
-            .addOnSuccessListener {
-                Toast.makeText(this, "Thanks for your feedback!", Toast.LENGTH_SHORT).show()
-            }
-            .addOnFailureListener { e ->
-                Toast.makeText(this, "Failed to submit feedback: ${e.message}", Toast.LENGTH_LONG).show()
-            }
-    }
-
     // ---------------- Themed-dialog helpers ----------------
     private fun dp(value: Int): Int = (value * resources.displayMetrics.density).toInt()
-
-    private fun currentDialogBg(): Int =
-        if (isDarkModeEnabled) Color.parseColor("#16232E") else Color.WHITE
-
-    private fun currentTextPrimary(): Int =
-        if (isDarkModeEnabled) darkTextPrimary else lightTextPrimary
-
-    private fun currentTextSecondary(): Int =
-        if (isDarkModeEnabled) darkTextSecondary else lightTextSecondary
-
-    private fun currentSecondaryBtnBg(): Int =
-        if (isDarkModeEnabled) darkDivider else Color.parseColor("#EAF1F5")
-
-    private fun currentSecondaryBtnText(): Int =
-        if (isDarkModeEnabled) darkTextPrimary else lightTextSecondary
 
     private fun dialogCard(): LinearLayout {
         return LinearLayout(this).apply {
@@ -558,7 +383,7 @@ class VideoPlayerActivity : BaseActivity() {
             setPadding(dp(20), dp(22), dp(20), dp(20))
             background = GradientDrawable().apply {
                 cornerRadius = dp(20).toFloat()
-                setColor(currentDialogBg())
+                setColor(Color.WHITE)
             }
         }
     }
@@ -566,7 +391,7 @@ class VideoPlayerActivity : BaseActivity() {
     private fun dialogTitle(text: String): TextView {
         return TextView(this).apply {
             this.text = text
-            setTextColor(currentTextPrimary())
+            setTextColor(Color.parseColor("#1B3C53"))
             textSize = 17f
             setTypeface(typeface, Typeface.BOLD)
         }
@@ -581,7 +406,7 @@ class VideoPlayerActivity : BaseActivity() {
                 topMargin = dp(12)
                 bottomMargin = dp(12)
             }
-            setBackgroundColor(if (isDarkModeEnabled) darkDivider else Color.parseColor("#EAF1F5"))
+            setBackgroundColor(Color.parseColor("#EAF1F5"))
         }
     }
 

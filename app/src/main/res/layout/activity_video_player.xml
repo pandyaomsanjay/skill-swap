@@ -1,14 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    android:id="@+id/rootLayout"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
     android:background="#EAF1F5"
     android:fitsSystemWindows="true">
 
-    <!-- ===== Video (embedded) ===== -->
+    <!-- ===== Video (embedded, YouTube-watch-page style — not fullscreen by default) ===== -->
     <FrameLayout
         android:id="@+id/videoContainer"
         android:layout_width="match_parent"
@@ -16,6 +15,8 @@
         android:background="#000000"
         android:clipChildren="true">
 
+        <!-- Reuses the same center-crop VideoView as AdminVideoPlayerActivity so the
+             video fills this container instead of letterboxing. -->
         <com.example.sgp.ResizableVideoView
             android:id="@+id/videoView"
             android:layout_width="match_parent"
@@ -29,6 +30,7 @@
             android:layout_gravity="center"
             android:indeterminateTint="#F9F3EF" />
 
+        <!-- Back / close, top-left over the video -->
         <FrameLayout
             android:id="@+id/topBar"
             android:layout_width="wrap_content"
@@ -59,6 +61,7 @@
 
         </FrameLayout>
 
+        <!-- PiP + fullscreen, bottom-right over the video -->
         <LinearLayout
             android:id="@+id/videoControlsRow"
             android:layout_width="wrap_content"
@@ -115,7 +118,7 @@
 
     </FrameLayout>
 
-    <!-- ===== Details below the video ===== -->
+    <!-- ===== Details below the video (title, uploader, actions, description) ===== -->
     <androidx.core.widget.NestedScrollView
         android:id="@+id/scrollContent"
         android:layout_width="match_parent"
@@ -147,49 +150,43 @@
                 android:textColor="#456882"
                 android:textSize="12.5sp" />
 
-            <LinearLayout
+            <!-- ═══════════════ NEW: Trade / Swap button ═══════════════ -->
+            <TextView
+                android:id="@+id/btnTradeSwap"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="16dp"
-                android:orientation="horizontal">
+                android:gravity="center"
+                android:paddingTop="11dp"
+                android:paddingBottom="11dp"
+                android:text="🔁 Trade / Swap"
+                android:textColor="#FFFFFF"
+                android:textSize="13sp"
+                android:textStyle="bold"
+                android:background="@drawable/bg_pill_success"
+                android:clickable="true"
+                android:focusable="true"
+                android:visibility="gone" />
+            <!-- Hidden by default; shown in code when viewer ≠ uploader -->
 
-                <TextView
-                    android:id="@+id/btnFeedback"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:layout_marginEnd="8dp"
-                    android:gravity="center"
-                    android:paddingTop="11dp"
-                    android:paddingBottom="11dp"
-                    android:text="⭐ Give Feedback"
-                    android:textColor="#1B3C53"
-                    android:textSize="13sp"
-                    android:textStyle="bold"
-                    android:background="@drawable/bg_pill_light"
-                    android:clickable="true"
-                    android:focusable="true" />
-
-                <TextView
-                    android:id="@+id/btnReport"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:gravity="center"
-                    android:paddingTop="11dp"
-                    android:paddingBottom="11dp"
-                    android:text="🚩 Report"
-                    android:textColor="#FFFFFF"
-                    android:textSize="13sp"
-                    android:textStyle="bold"
-                    android:background="@drawable/bg_pill_navy"
-                    android:clickable="true"
-                    android:focusable="true" />
-
-            </LinearLayout>
+            <!-- Report row -->
+            <TextView
+                android:id="@+id/btnReport"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:gravity="center"
+                android:paddingTop="11dp"
+                android:paddingBottom="11dp"
+                android:text="🚩 Report"
+                android:textColor="#FFFFFF"
+                android:textSize="13sp"
+                android:textStyle="bold"
+                android:background="@drawable/bg_pill_navy"
+                android:clickable="true"
+                android:focusable="true" />
 
             <View
-                android:id="@+id/dividerAboveDescription"
                 android:layout_width="match_parent"
                 android:layout_height="1dp"
                 android:background="#D9E3EA"
@@ -197,7 +194,6 @@
                 android:layout_marginBottom="16dp" />
 
             <TextView
-                android:id="@+id/tvDescriptionLabel"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:text="Description"
