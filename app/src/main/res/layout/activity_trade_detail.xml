@@ -1,21 +1,58 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/rootLayout"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
     android:background="#EAF1F5"
     android:fitsSystemWindows="true">
 
-    <com.google.android.material.appbar.MaterialToolbar
-        android:id="@+id/toolbar"
+    <!-- ===================== Header (matches Explore / CreateTrade / MyTrades) ===================== -->
+    <LinearLayout
+        android:id="@+id/headerBar"
         android:layout_width="match_parent"
-        android:layout_height="?attr/actionBarSize"
-        android:background="@color/brand_navy"
-        app:title="Trade Details"
-        app:titleTextColor="@android:color/white"
-        app:navigationIcon="@drawable/outline_arrow_back_24"
-        app:navigationIconTint="@android:color/white" />
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:background="#1B3C53"
+        android:paddingStart="16dp"
+        android:paddingEnd="20dp"
+        android:paddingTop="18dp"
+        android:paddingBottom="18dp">
+
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/btnBack"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            app:cardCornerRadius="12dp"
+            app:cardElevation="0dp"
+            app:cardBackgroundColor="#456882"
+            android:clickable="true"
+            android:focusable="true"
+            android:foreground="?attr/selectableItemBackground">
+
+            <ImageView
+                android:id="@+id/ivBackIcon"
+                android:layout_width="20dp"
+                android:layout_height="20dp"
+                android:layout_gravity="center"
+                android:src="@drawable/outline_arrow_back_24"
+                app:tint="#F9F3EF" />
+        </com.google.android.material.card.MaterialCardView>
+
+        <TextView
+            android:id="@+id/tvTradeTitle"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="14dp"
+            android:text="Trade Details"
+            android:textColor="#F9F3EF"
+            android:textSize="19sp"
+            android:fontFamily="sans-serif-medium"
+            android:textStyle="bold" />
+    </LinearLayout>
 
     <ScrollView
         android:layout_width="match_parent"
@@ -31,12 +68,13 @@
 
             <!-- Status pill -->
             <com.google.android.material.card.MaterialCardView
+                android:id="@+id/cardStatusPill"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_gravity="center_horizontal"
                 app:cardCornerRadius="14dp"
                 app:cardElevation="0dp"
-                app:cardBackgroundColor="@color/brand_cream">
+                app:cardBackgroundColor="#F9F3EF">
 
                 <TextView
                     android:id="@+id/tvTradeStatus"
@@ -45,20 +83,21 @@
                     android:paddingHorizontal="16dp"
                     android:paddingVertical="6dp"
                     android:text="PENDING"
-                    android:textColor="@color/brand_navy"
+                    android:textColor="#1B3C53"
                     android:textSize="12sp"
                     android:textStyle="bold" />
             </com.google.android.material.card.MaterialCardView>
 
             <!-- ═══════════ Participants card ═══════════ -->
             <com.google.android.material.card.MaterialCardView
+                android:id="@+id/cardParticipants"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="16dp"
                 app:cardCornerRadius="16dp"
                 app:cardElevation="0dp"
                 app:strokeWidth="1dp"
-                app:strokeColor="@color/brand_tan"
+                app:strokeColor="#D2C1B6"
                 app:cardBackgroundColor="#FFFFFF">
 
                 <LinearLayout
@@ -89,7 +128,7 @@
                             android:layout_height="wrap_content"
                             android:layout_marginTop="6dp"
                             android:text="Requester"
-                            android:textColor="@color/brand_navy"
+                            android:textColor="#1B3C53"
                             android:textSize="12.5sp"
                             android:textStyle="bold"
                             android:maxLines="1"
@@ -100,15 +139,16 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="⭐ 0.0"
-                            android:textColor="@color/brand_steel"
+                            android:textColor="#456882"
                             android:textSize="11sp" />
                     </LinearLayout>
 
                     <TextView
+                        android:id="@+id/tvSwapArrow"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="⇅"
-                        android:textColor="@color/brand_navy"
+                        android:textColor="#1B3C53"
                         android:textSize="22sp"
                         android:textStyle="bold" />
 
@@ -133,7 +173,7 @@
                             android:layout_height="wrap_content"
                             android:layout_marginTop="6dp"
                             android:text="Receiver"
-                            android:textColor="@color/brand_navy"
+                            android:textColor="#1B3C53"
                             android:textSize="12.5sp"
                             android:textStyle="bold"
                             android:maxLines="1"
@@ -144,7 +184,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="⭐ 0.0"
-                            android:textColor="@color/brand_steel"
+                            android:textColor="#456882"
                             android:textSize="11sp" />
                     </LinearLayout>
                 </LinearLayout>
@@ -152,13 +192,14 @@
 
             <!-- ═══════════ Resources card ═══════════ -->
             <com.google.android.material.card.MaterialCardView
+                android:id="@+id/cardResources"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="12dp"
                 app:cardCornerRadius="16dp"
                 app:cardElevation="0dp"
                 app:strokeWidth="1dp"
-                app:strokeColor="@color/brand_tan"
+                app:strokeColor="#D2C1B6"
                 app:cardBackgroundColor="#FFFFFF">
 
                 <LinearLayout
@@ -168,10 +209,11 @@
                     android:padding="16dp">
 
                     <TextView
+                        android:id="@+id/tvLabelOffer"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="You Offer"
-                        android:textColor="@color/brand_steel"
+                        android:textColor="#456882"
                         android:textSize="11sp"
                         android:textStyle="bold" />
 
@@ -180,7 +222,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:text="—"
-                        android:textColor="@color/brand_navy"
+                        android:textColor="#1B3C53"
                         android:textSize="15sp"
                         android:textStyle="bold" />
 
@@ -189,21 +231,23 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="—"
-                        android:textColor="@color/brand_steel"
+                        android:textColor="#456882"
                         android:textSize="12sp"
                         android:layout_marginBottom="12dp" />
 
                     <View
+                        android:id="@+id/dividerResources"
                         android:layout_width="match_parent"
                         android:layout_height="1dp"
                         android:background="#EAF1F5"
                         android:layout_marginBottom="12dp" />
 
                     <TextView
+                        android:id="@+id/tvLabelReceive"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="You Receive"
-                        android:textColor="@color/brand_steel"
+                        android:textColor="#456882"
                         android:textSize="11sp"
                         android:textStyle="bold" />
 
@@ -212,7 +256,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:text="—"
-                        android:textColor="@color/brand_navy"
+                        android:textColor="#1B3C53"
                         android:textSize="15sp"
                         android:textStyle="bold" />
 
@@ -221,20 +265,21 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="—"
-                        android:textColor="@color/brand_steel"
+                        android:textColor="#456882"
                         android:textSize="12sp" />
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
             <!-- ═══════════ Schedule card ═══════════ -->
             <com.google.android.material.card.MaterialCardView
+                android:id="@+id/cardSchedule"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="12dp"
                 app:cardCornerRadius="16dp"
                 app:cardElevation="0dp"
                 app:strokeWidth="1dp"
-                app:strokeColor="@color/brand_tan"
+                app:strokeColor="#D2C1B6"
                 app:cardBackgroundColor="#FFFFFF">
 
                 <LinearLayout
@@ -244,10 +289,11 @@
                     android:padding="16dp">
 
                     <TextView
+                        android:id="@+id/tvLabelSchedule"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="Proposed Schedule"
-                        android:textColor="@color/brand_steel"
+                        android:textColor="#456882"
                         android:textSize="11sp"
                         android:textStyle="bold" />
 
@@ -256,7 +302,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:text="—"
-                        android:textColor="@color/brand_navy"
+                        android:textColor="#1B3C53"
                         android:textSize="14sp"
                         android:textStyle="bold" />
 
@@ -272,7 +318,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="Counter Schedule"
-                            android:textColor="#7C3AED"
+                            android:textColor="#8B5CF6"
                             android:textSize="11sp"
                             android:textStyle="bold" />
 
@@ -281,7 +327,7 @@
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:text="—"
-                            android:textColor="#7C3AED"
+                            android:textColor="#8B5CF6"
                             android:textSize="14sp"
                             android:textStyle="bold" />
                     </LinearLayout>
@@ -298,7 +344,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="📅 Final Schedule"
-                            android:textColor="#2E9E63"
+                            android:textColor="#34C77B"
                             android:textSize="11sp"
                             android:textStyle="bold" />
 
@@ -307,7 +353,7 @@
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:text="—"
-                            android:textColor="#2E9E63"
+                            android:textColor="#34C77B"
                             android:textSize="14sp"
                             android:textStyle="bold" />
                     </LinearLayout>
@@ -324,7 +370,7 @@
                 app:cardCornerRadius="16dp"
                 app:cardElevation="0dp"
                 app:strokeWidth="1dp"
-                app:strokeColor="@color/brand_tan"
+                app:strokeColor="#D2C1B6"
                 app:cardBackgroundColor="#FFFFFF">
 
                 <LinearLayout
@@ -334,10 +380,11 @@
                     android:padding="16dp">
 
                     <TextView
+                        android:id="@+id/tvLabelMeeting"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="Meeting Details"
-                        android:textColor="@color/brand_steel"
+                        android:textColor="#456882"
                         android:textSize="11sp"
                         android:textStyle="bold" />
 
@@ -347,7 +394,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginTop="4dp"
                         android:text="—"
-                        android:textColor="@color/brand_navy"
+                        android:textColor="#1B3C53"
                         android:textSize="14sp"
                         android:textStyle="bold" />
 
@@ -357,7 +404,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginTop="4dp"
                         android:text="—"
-                        android:textColor="@color/brand_steel"
+                        android:textColor="#456882"
                         android:textSize="13sp" />
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
@@ -371,7 +418,7 @@
                 app:cardCornerRadius="16dp"
                 app:cardElevation="0dp"
                 app:strokeWidth="1dp"
-                app:strokeColor="@color/brand_tan"
+                app:strokeColor="#D2C1B6"
                 app:cardBackgroundColor="#FFFFFF">
 
                 <LinearLayout
@@ -381,10 +428,11 @@
                     android:padding="16dp">
 
                     <TextView
+                        android:id="@+id/tvLabelMessage"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="Message"
-                        android:textColor="@color/brand_steel"
+                        android:textColor="#456882"
                         android:textSize="11sp"
                         android:textStyle="bold" />
 
@@ -394,7 +442,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginTop="4dp"
                         android:text="—"
-                        android:textColor="@color/brand_navy"
+                        android:textColor="#1B3C53"
                         android:textSize="13.5sp" />
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
@@ -450,7 +498,7 @@
                     android:visibility="gone"
                     android:textAllCaps="false"
                     android:textColor="@android:color/white"
-                    app:backgroundTint="@color/brand_navy"
+                    app:backgroundTint="#1B3C53"
                     app:cornerRadius="14dp"
                     android:layout_marginBottom="8dp" />
 

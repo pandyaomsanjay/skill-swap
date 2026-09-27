@@ -4,16 +4,27 @@ import android.app.DatePickerDialog
 import android.app.TimePickerDialog
 import android.content.Context
 import android.content.Intent
+import android.content.SharedPreferences
+import android.content.res.ColorStateList
+import android.content.res.Configuration
+import android.graphics.Color
+import android.graphics.Typeface
+import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
+import android.view.Gravity
 import android.view.View
+import android.view.ViewGroup
+import android.widget.EditText
 import android.widget.ImageView
+import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
+import androidx.core.view.WindowCompat
 import androidx.lifecycle.lifecycleScope
 import com.bumptech.glide.Glide
 import com.google.android.material.button.MaterialButton
-import com.google.android.material.textfield.TextInputEditText
+import com.google.android.material.card.MaterialCardView
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ListenerRegistration
@@ -26,6 +37,10 @@ import java.util.Locale
 /**
  * Full detail + action surface for one trade.
  * Works for both sides of the transaction; actions are gated by role + state.
+ *
+ * Theming follows the same pattern as ExploreActivity / CreateTradeActivity /
+ * MyTradesActivity: a boolean flag in SharedPreferences ("dark_mode"),
+ * applied by hand in applyTheme(), re-checked in onResume().
  */
 class TradeDetailActivity : BaseActivity() {
 
@@ -35,6 +50,32 @@ class TradeDetailActivity : BaseActivity() {
     private var isRequester: Boolean = false
 
     private val db = FirebaseFirestore.getInstance()
+
+    private lateinit var sharedPreferences: SharedPreferences
+    private var isDarkModeEnabled = false
+
+    // Header
+    private lateinit var rootLayout: View
+    private lateinit var headerBar: View
+    private lateinit var btnBack: MaterialCardView
+    private lateinit var ivBackIcon: ImageView
+    private lateinit var tvTradeTitle: TextView
+
+    // Cards (for theme recoloring)
+    private lateinit var cardStatusPill: MaterialCardView
+    private lateinit var cardParticipants: MaterialCardView
+    private lateinit var cardResources: MaterialCardView
+    private lateinit var cardScheduleCard: MaterialCardView
+    private lateinit var cardMessageCard: MaterialCardView
+    private lateinit var dividerResources: View
+    private lateinit var tvSwapArrow: TextView
+
+    // Section labels
+    private lateinit var tvLabelOffer: TextView
+    private lateinit var tvLabelReceive: TextView
+    private lateinit var tvLabelSchedule: TextView
+    private lateinit var tvLabelMeeting: TextView
+    private lateinit var tvLabelMessage: TextView
 
     // Views
     private lateinit var tvStatus: TextView
@@ -57,6 +98,39 @@ class TradeDetailActivity : BaseActivity() {
     private lateinit var tvMeetingPlatform: TextView
     private lateinit var tvMeetingLink: TextView
 
+    // ---------------------------------------------------------------------
+    // LIGHT THEME PALETTE (matches Explore / CreateTrade / MyTrades)
+    // ---------------------------------------------------------------------
+    private val lightScreenBg = Color.parseColor("#EAF1F5")
+    private val lightCardBg = Color.parseColor("#FFFFFF")
+    private val lightCardStroke = Color.parseColor("#D2C1B6")
+    private val lightTextPrimary = Color.parseColor("#1B3C53")
+    private val lightTextSecondary = Color.parseColor("#456882")
+    private val lightHeaderBg = Color.parseColor("#1B3C53")
+    private val lightBackButtonBg = Color.parseColor("#456882")
+    private val lightStatusPillBg = Color.parseColor("#F9F3EF")
+    private val lightDivider = Color.parseColor("#EAF1F5")
+
+    // ---------------------------------------------------------------------
+    // DARK THEME PALETTE (matches Explore / CreateTrade / MyTrades)
+    // ---------------------------------------------------------------------
+    private val darkScreenBg = Color.parseColor("#0F1B24")
+    private val darkCardBg = Color.parseColor("#16232E")
+    private val darkCardStroke = Color.parseColor("#2A3B48")
+    private val darkTextPrimary = Color.parseColor("#F5F7F8")
+    private val darkTextSecondary = Color.parseColor("#8FA6B8")
+    private val darkHeaderBg = Color.parseColor("#0B1620")
+    private val darkBackButtonBg = Color.parseColor("#22323D")
+    private val darkStatusPillBg = Color.parseColor("#22323D")
+    private val darkDivider = Color.parseColor("#2A3B48")
+
+    private val headerTitleColor = Color.parseColor("#F9F3EF")
+
+    // Action Button Colors
+    private val destructive = Color.parseColor("#DC2626")
+    private val acceptGreen = Color.parseColor("#2E7D32")
+    private val primaryBlue = Color.parseColor("#456882")
+
     // ═════════════════════════════════════════════════════════════
     // LIFECYCLE
     // ═════════════════════════════════════════════════════════════
@@ -64,6 +138,9 @@ class TradeDetailActivity : BaseActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_trade_detail)
+
+        sharedPreferences = getSharedPreferences(SettingsActivity.PREFS_NAME, Context.MODE_PRIVATE)
+        isDarkModeEnabled = sharedPreferences.getBoolean(SettingsActivity.KEY_DARK_MODE, false)
 
         myEmail = FirebaseAuth.getInstance().currentUser?.email.orEmpty()
         if (myEmail.isBlank()) {
@@ -80,8 +157,9 @@ class TradeDetailActivity : BaseActivity() {
         }
 
         bindViews()
-        setupToolbar()
+        setupHeader()
         setupActions()
+        applyTheme(isDarkModeEnabled)
 
         listener = TradeManager.listenToTrade(
             tradeId = tradeId,
@@ -112,7 +190,38 @@ class TradeDetailActivity : BaseActivity() {
         )
     }
 
+    override fun onResume() {
+        super.onResume()
+        val savedDark = sharedPreferences.getBoolean(SettingsActivity.KEY_DARK_MODE, false)
+        if (savedDark != isDarkModeEnabled) applyTheme(savedDark)
+    }
+
+    override fun onConfigurationChanged(newConfig: Configuration) {
+        super.onConfigurationChanged(newConfig)
+        applyTheme(isDarkModeEnabled)
+    }
+
     private fun bindViews() {
+        rootLayout = findViewById(R.id.rootLayout)
+        headerBar = findViewById(R.id.headerBar)
+        btnBack = findViewById(R.id.btnBack)
+        ivBackIcon = findViewById(R.id.ivBackIcon)
+        tvTradeTitle = findViewById(R.id.tvTradeTitle)
+
+        cardStatusPill = findViewById(R.id.cardStatusPill)
+        cardParticipants = findViewById(R.id.cardParticipants)
+        cardResources = findViewById(R.id.cardResources)
+        cardScheduleCard = findViewById(R.id.cardSchedule)
+        cardMessageCard = findViewById(R.id.cardMessage)
+        dividerResources = findViewById(R.id.dividerResources)
+        tvSwapArrow = findViewById(R.id.tvSwapArrow)
+
+        tvLabelOffer = findViewById(R.id.tvLabelOffer)
+        tvLabelReceive = findViewById(R.id.tvLabelReceive)
+        tvLabelSchedule = findViewById(R.id.tvLabelSchedule)
+        tvLabelMeeting = findViewById(R.id.tvLabelMeeting)
+        tvLabelMessage = findViewById(R.id.tvLabelMessage)
+
         tvStatus = findViewById(R.id.tvTradeStatus)
 
         btnAccept = findViewById(R.id.btnAcceptTrade)
@@ -135,9 +244,8 @@ class TradeDetailActivity : BaseActivity() {
         tvMeetingLink = findViewById(R.id.tvMeetingLink)
     }
 
-    private fun setupToolbar() {
-        findViewById<com.google.android.material.appbar.MaterialToolbar>(R.id.toolbar)
-            .setNavigationOnClickListener { finish() }
+    private fun setupHeader() {
+        btnBack.setOnClickListener { finish() }
     }
 
     private fun setupActions() {
@@ -147,6 +255,80 @@ class TradeDetailActivity : BaseActivity() {
         btnCancel.setOnClickListener { confirmCancel() }
         btnComplete.setOnClickListener { confirmComplete() }
         btnAcceptCounter.setOnClickListener { confirmAcceptCounter() }
+    }
+
+    // ---------------------------------------------------------------------
+    // THEME ENGINE
+    // ---------------------------------------------------------------------
+    private fun applyTheme(isDark: Boolean) {
+        isDarkModeEnabled = isDark
+
+        val screenBg = if (isDark) darkScreenBg else lightScreenBg
+        val cardBg = if (isDark) darkCardBg else lightCardBg
+        val cardStroke = if (isDark) darkCardStroke else lightCardStroke
+        val textPrimary = if (isDark) darkTextPrimary else lightTextPrimary
+        val textSecondary = if (isDark) darkTextSecondary else lightTextSecondary
+        val headerBg = if (isDark) darkHeaderBg else lightHeaderBg
+        val backButtonBg = if (isDark) darkBackButtonBg else lightBackButtonBg
+        val statusPillBg = if (isDark) darkStatusPillBg else lightStatusPillBg
+        val divider = if (isDark) darkDivider else lightDivider
+
+        // Header
+        rootLayout.setBackgroundColor(screenBg)
+        headerBar.setBackgroundColor(headerBg)
+        btnBack.setCardBackgroundColor(backButtonBg)
+        ivBackIcon.imageTintList = ColorStateList.valueOf(headerTitleColor)
+        tvTradeTitle.setTextColor(headerTitleColor)
+
+        // Status pill
+        cardStatusPill.setCardBackgroundColor(statusPillBg)
+        tvStatus.setTextColor(textPrimary)
+
+        // Cards
+        listOf(cardParticipants, cardResources, cardScheduleCard, cardMessageCard).forEach {
+            it.setCardBackgroundColor(cardBg)
+            it.strokeColor = cardStroke
+        }
+        (cardMeetingDetails as? MaterialCardView)?.apply {
+            setCardBackgroundColor(cardBg)
+            strokeColor = cardStroke
+        }
+
+        // Participants
+        tvSwapArrow.setTextColor(textPrimary)
+        tvRequesterName.setTextColor(textPrimary)
+        tvRequesterRating.setTextColor(textSecondary)
+        tvReceiverName.setTextColor(textPrimary)
+        tvReceiverRating.setTextColor(textSecondary)
+
+        // Resources
+        tvLabelOffer.setTextColor(textSecondary)
+        tvLabelReceive.setTextColor(textSecondary)
+        dividerResources.setBackgroundColor(divider)
+        findViewById<TextView>(R.id.tvOfferedTitle).setTextColor(textPrimary)
+        findViewById<TextView>(R.id.tvOfferedType).setTextColor(textSecondary)
+        findViewById<TextView>(R.id.tvRequestedTitle).setTextColor(textPrimary)
+        findViewById<TextView>(R.id.tvRequestedType).setTextColor(textSecondary)
+
+        // Schedule
+        tvLabelSchedule.setTextColor(textSecondary)
+        findViewById<TextView>(R.id.tvProposedSchedule).setTextColor(textPrimary)
+
+        // Meeting details
+        tvLabelMeeting.setTextColor(textSecondary)
+        tvMeetingPlatform.setTextColor(textPrimary)
+        tvMeetingLink.setTextColor(textSecondary)
+
+        // Message
+        tvLabelMessage.setTextColor(textSecondary)
+        findViewById<TextView>(R.id.tvMessage).setTextColor(textPrimary)
+
+        // System bars
+        val insetsController = WindowCompat.getInsetsController(window, window.decorView)
+        insetsController.isAppearanceLightStatusBars = !isDark
+        insetsController.isAppearanceLightNavigationBars = !isDark
+        window.statusBarColor = headerBg
+        window.navigationBarColor = screenBg
     }
 
     // ═════════════════════════════════════════════════════════════
@@ -225,45 +407,30 @@ class TradeDetailActivity : BaseActivity() {
         applyActionVisibility(trade)
     }
 
-    /**
-     * The single source of truth for which action buttons are visible.
-     * Never allows an invalid action for the current state/role.
-     */
     private fun applyActionVisibility(trade: Trade) {
         resetActions()
         val s = trade.statusEnum
 
         when {
-            // ─── Receiver, awaiting their decision ───
             s == TradeStatus.PENDING && !isRequester -> {
                 btnAccept.visibility = View.VISIBLE
                 btnCounter.visibility = View.VISIBLE
                 btnReject.visibility = View.VISIBLE
             }
-
-            // ─── Requester, receiver has countered ───
             s == TradeStatus.COUNTER_PROPOSED && isRequester -> {
                 btnAcceptCounter.visibility = View.VISIBLE
                 btnCancel.visibility = View.VISIBLE
             }
-
-            // ─── Receiver, they've already countered, can still cancel ───
             s == TradeStatus.COUNTER_PROPOSED && !isRequester -> {
                 btnCancel.visibility = View.VISIBLE
             }
-
-            // ─── Requester, still pending ───
             s == TradeStatus.PENDING && isRequester -> {
                 btnCancel.visibility = View.VISIBLE
             }
-
-            // ─── Schedule finalized — either party can complete or cancel ───
             s == TradeStatus.SCHEDULE_FINALIZED || s == TradeStatus.ACCEPTED -> {
                 btnComplete.visibility = View.VISIBLE
                 btnCancel.visibility = View.VISIBLE
             }
-
-            // ─── COMPLETED, CANCELLED, REJECTED, EXPIRED → no actions ───
             else -> { /* terminal — all buttons hidden by resetActions() */ }
         }
     }
@@ -274,7 +441,7 @@ class TradeDetailActivity : BaseActivity() {
     }
 
     // ═════════════════════════════════════════════════════════════
-    // MEETING DETAILS (live session only, after finalization)
+    // MEETING DETAILS
     // ═════════════════════════════════════════════════════════════
 
     private fun bindMeetingDetails(trade: Trade) {
@@ -305,17 +472,143 @@ class TradeDetailActivity : BaseActivity() {
     }
 
     // ═════════════════════════════════════════════════════════════
+    // THEMED DIALOG HELPERS (Refactored from Profile.kt)
+    // ═════════════════════════════════════════════════════════════
+
+    private fun currentDialogBg(): Int = if (isDarkModeEnabled) darkCardBg else Color.WHITE
+    private fun currentTextPrimary(): Int = if (isDarkModeEnabled) darkTextPrimary else lightTextPrimary
+    private fun currentTextSecondary(): Int = if (isDarkModeEnabled) darkTextSecondary else lightTextSecondary
+    private fun currentSecondaryBtnBg(): Int = if (isDarkModeEnabled) darkCardStroke else lightScreenBg
+    private fun currentDividerColor(): Int = if (isDarkModeEnabled) darkDivider else lightDivider
+
+    private fun dp(value: Int): Int = (value * resources.displayMetrics.density).toInt()
+
+    private fun dialogCard(): LinearLayout {
+        return LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(20), dp(22), dp(20), dp(20))
+            background = GradientDrawable().apply {
+                cornerRadius = dp(20).toFloat()
+                setColor(currentDialogBg())
+            }
+        }
+    }
+
+    private fun dialogTitle(text: String): TextView {
+        return TextView(this).apply {
+            this.text = text
+            setTextColor(currentTextPrimary())
+            textSize = 17f
+            setTypeface(typeface, Typeface.BOLD)
+        }
+    }
+
+    private fun dialogDivider(): View {
+        return View(this).apply {
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                dp(1)
+            ).apply {
+                topMargin = dp(12)
+                bottomMargin = dp(12)
+            }
+            setBackgroundColor(currentDividerColor())
+        }
+    }
+
+    private fun pillButton(text: String, bgColor: Int, textColor: Int): TextView {
+        return TextView(this).apply {
+            this.text = text
+            setTextColor(textColor)
+            textSize = 14f
+            setTypeface(typeface, Typeface.BOLD)
+            gravity = Gravity.CENTER
+            setPadding(0, dp(12), 0, dp(12))
+            background = GradientDrawable().apply {
+                cornerRadius = dp(24).toFloat()
+                setColor(bgColor)
+            }
+            isClickable = true
+            isFocusable = true
+        }
+    }
+
+    private fun dialogInputField(hint: String, initialText: String = ""): EditText {
+        return EditText(this).apply {
+            this.hint = hint
+            if (initialText.isNotEmpty()) setText(initialText)
+            setTextColor(currentTextPrimary())
+            setHintTextColor(currentTextSecondary())
+            textSize = 14f
+            setPadding(dp(16), dp(12), dp(16), dp(12))
+            background = GradientDrawable().apply {
+                cornerRadius = dp(12).toFloat()
+                setColor(if (isDarkModeEnabled) Color.parseColor("#1E2C38") else Color.parseColor("#F4F8FA"))
+                setStroke(dp(1), if (isDarkModeEnabled) darkCardStroke else lightCardStroke)
+            }
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply {
+                topMargin = dp(8)
+                bottomMargin = dp(16)
+            }
+        }
+    }
+
+    private fun showCustomConfirmDialog(
+        title: String,
+        message: String,
+        positiveText: String,
+        isDestructive: Boolean = false,
+        onConfirm: () -> Unit
+    ) {
+        val root = dialogCard()
+        root.addView(dialogTitle(title))
+        if (message.isNotEmpty()) {
+            root.addView(TextView(this).apply {
+                text = message
+                setTextColor(currentTextSecondary())
+                textSize = 14f
+                setPadding(0, dp(10), 0, dp(10))
+            })
+        }
+        root.addView(dialogDivider())
+
+        val dialog = AlertDialog.Builder(this).setView(root).create()
+        dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
+
+        val buttonRow = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+        val btnCancel = pillButton("Cancel", currentSecondaryBtnBg(), currentTextPrimary()).apply {
+            setOnClickListener { dialog.dismiss() }
+        }
+        val confirmBg = if (isDestructive) destructive else acceptGreen
+        val btnConfirm = pillButton(positiveText, confirmBg, Color.WHITE).apply {
+            setOnClickListener {
+                dialog.dismiss()
+                onConfirm()
+            }
+        }
+        buttonRow.addView(btnCancel, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply { marginEnd = dp(8) })
+        buttonRow.addView(btnConfirm, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
+        root.addView(buttonRow)
+
+        dialog.show()
+    }
+
+    // ═════════════════════════════════════════════════════════════
     // ACCEPT
     // ═════════════════════════════════════════════════════════════
 
     private fun confirmAccept() {
         val trade = currentTrade ?: return
-        AlertDialog.Builder(this)
-            .setTitle("Accept trade?")
-            .setMessage("Finalize the schedule at ${format(trade.proposedSchedule)}?")
-            .setPositiveButton("Accept") { _, _ -> performAccept(trade) }
-            .setNegativeButton("Cancel", null)
-            .show()
+        showCustomConfirmDialog(
+            title = "Accept trade?",
+            message = "Finalize the schedule at ${format(trade.proposedSchedule)}?",
+            positiveText = "Accept",
+            isDestructive = false,
+            onConfirm = { performAccept(trade) }
+        )
     }
 
     private fun performAccept(trade: Trade) {
@@ -326,7 +619,6 @@ class TradeDetailActivity : BaseActivity() {
 
             result.fold(
                 onSuccess = {
-                    // Schedule the reminders now that the schedule is finalized
                     TradeManager.scheduleRemindersAfterFinalize(applicationContext, trade.id)
                     Toast.makeText(
                         this@TradeDetailActivity,
@@ -349,12 +641,13 @@ class TradeDetailActivity : BaseActivity() {
 
     private fun confirmAcceptCounter() {
         val trade = currentTrade ?: return
-        AlertDialog.Builder(this)
-            .setTitle("Accept counter-schedule?")
-            .setMessage("Finalize at ${format(trade.counterSchedule)}?")
-            .setPositiveButton("Accept") { _, _ -> performAcceptCounter(trade) }
-            .setNegativeButton("Cancel", null)
-            .show()
+        showCustomConfirmDialog(
+            title = "Accept counter-schedule?",
+            message = "Finalize at ${format(trade.counterSchedule)}?",
+            positiveText = "Accept",
+            isDestructive = false,
+            onConfirm = { performAcceptCounter(trade) }
+        )
     }
 
     private fun performAcceptCounter(trade: Trade) {
@@ -387,12 +680,13 @@ class TradeDetailActivity : BaseActivity() {
 
     private fun confirmReject() {
         val trade = currentTrade ?: return
-        AlertDialog.Builder(this)
-            .setTitle("Reject trade?")
-            .setMessage("The requester will be notified.")
-            .setPositiveButton("Reject") { _, _ -> performReject(trade) }
-            .setNegativeButton("Cancel", null)
-            .show()
+        showCustomConfirmDialog(
+            title = "Reject trade?",
+            message = "The requester will be notified.",
+            positiveText = "Reject",
+            isDestructive = true,
+            onConfirm = { performReject(trade) }
+        )
     }
 
     private fun performReject(trade: Trade) {
@@ -427,18 +721,32 @@ class TradeDetailActivity : BaseActivity() {
 
     private fun confirmCancel() {
         val trade = currentTrade ?: return
-        val input = TextInputEditText(this).apply {
-            hint = "Reason (optional)"
-            setPadding(40, 30, 40, 30)
+
+        val root = dialogCard()
+        root.addView(dialogTitle("Cancel trade?"))
+
+        val input = dialogInputField("Reason (optional)")
+        root.addView(input)
+        root.addView(dialogDivider())
+
+        val dialog = AlertDialog.Builder(this).setView(root).create()
+        dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
+
+        val buttonRow = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+        val btnKeep = pillButton("Keep", currentSecondaryBtnBg(), currentTextPrimary()).apply {
+            setOnClickListener { dialog.dismiss() }
         }
-        AlertDialog.Builder(this)
-            .setTitle("Cancel trade?")
-            .setView(input)
-            .setPositiveButton("Cancel trade") { _, _ ->
+        val btnCancelTrade = pillButton("Cancel trade", destructive, Color.WHITE).apply {
+            setOnClickListener {
+                dialog.dismiss()
                 performCancel(trade, input.text?.toString().orEmpty())
             }
-            .setNegativeButton("Keep", null)
-            .show()
+        }
+        buttonRow.addView(btnKeep, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply { marginEnd = dp(8) })
+        buttonRow.addView(btnCancelTrade, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
+        root.addView(buttonRow)
+
+        dialog.show()
     }
 
     private fun performCancel(trade: Trade, reason: String) {
@@ -473,12 +781,13 @@ class TradeDetailActivity : BaseActivity() {
 
     private fun confirmComplete() {
         val trade = currentTrade ?: return
-        AlertDialog.Builder(this)
-            .setTitle("Mark trade as completed?")
-            .setMessage("This will finalize the trade for both users and increment your completed-trade count.")
-            .setPositiveButton("Complete") { _, _ -> performComplete(trade) }
-            .setNegativeButton("Cancel", null)
-            .show()
+        showCustomConfirmDialog(
+            title = "Mark trade as completed?",
+            message = "This will finalize the trade for both users and increment your completed-trade count.",
+            positiveText = "Complete",
+            isDestructive = false,
+            onConfirm = { performComplete(trade) }
+        )
     }
 
     private fun performComplete(trade: Trade) {
@@ -565,22 +874,34 @@ class TradeDetailActivity : BaseActivity() {
     private fun showCounterMessageDialog(newSchedule: Long) {
         val trade = currentTrade ?: return
 
-        val input = TextInputEditText(this).apply {
-            hint = "Optional message to the requester"
-            setText(
-                "I'm not available at the proposed time. Can we meet at this time instead?"
-            )
-            setPadding(40, 30, 40, 30)
-        }
+        val root = dialogCard()
+        root.addView(dialogTitle("Send counter-schedule\n${format(newSchedule)}"))
 
-        AlertDialog.Builder(this)
-            .setTitle("Send counter-schedule\n${format(newSchedule)}")
-            .setView(input)
-            .setPositiveButton("Send") { _, _ ->
+        val input = dialogInputField(
+            hint = "Optional message to the requester",
+            initialText = "I'm not available at the proposed time. Can we meet at this time instead?"
+        )
+        root.addView(input)
+        root.addView(dialogDivider())
+
+        val dialog = AlertDialog.Builder(this).setView(root).create()
+        dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
+
+        val buttonRow = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+        val btnCancel = pillButton("Cancel", currentSecondaryBtnBg(), currentTextPrimary()).apply {
+            setOnClickListener { dialog.dismiss() }
+        }
+        val btnSend = pillButton("Send", primaryBlue, Color.WHITE).apply {
+            setOnClickListener {
+                dialog.dismiss()
                 performCounterSchedule(trade, newSchedule, input.text?.toString().orEmpty())
             }
-            .setNegativeButton("Cancel", null)
-            .show()
+        }
+        buttonRow.addView(btnCancel, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply { marginEnd = dp(8) })
+        buttonRow.addView(btnSend, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
+        root.addView(buttonRow)
+
+        dialog.show()
     }
 
     private fun performCounterSchedule(trade: Trade, newSchedule: Long, message: String) {

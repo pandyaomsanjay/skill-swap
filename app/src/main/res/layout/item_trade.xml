@@ -1,44 +1,118 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<!--
+  NOTE ON DARK MODE:
+  Colors here are the light-mode defaults, matching item_explore_skill.xml's
+  static baseline. SkillAdapter sets its item colors in Kotlin per-bind based
+  on isDarkMode, because a single XML file can't react to a runtime theme
+  toggle on its own. To get this card themed the same way in dark mode,
+  TradeAdapter.onBindViewHolder needs the same treatment — set
+  rootCard.setCardBackgroundColor(...) / strokeColor / text colors there,
+  the same way SkillAdapter does for cardBg / cardStroke / textPrimary /
+  textSecondary. Share TradeAdapter.kt and this can be wired up fully.
+-->
+<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/rootCard"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:orientation="vertical"
-    android:background="@android:color/white"
-    android:padding="16dp"
-    android:layout_marginBottom="8dp">
+    android:layout_marginBottom="12dp"
+    app:cardCornerRadius="20dp"
+    app:cardElevation="0dp"
+    app:strokeWidth="1dp"
+    app:strokeColor="#D2C1B6"
+    app:cardBackgroundColor="#FFFFFF">
 
-    <TextView
-        android:id="@+id/tvPartner"
-        android:layout_width="wrap_content"
+    <LinearLayout
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="With: John Doe"
-        android:textColor="#212121"
-        android:textSize="16sp"
-        android:textStyle="bold"/>
+        android:orientation="vertical"
+        android:padding="16dp">
 
-    <TextView
-        android:id="@+id/tvSkills"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Guitar ⇄ Cooking"
-        android:textColor="#757575"
-        android:textSize="14sp"
-        android:layout_marginTop="4dp"/>
+        <!-- Partner + status pill -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
 
-    <TextView
-        android:id="@+id/tvSchedule"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="🗓 Not scheduled"
-        android:textColor="#757575"
-        android:textSize="12sp"
-        android:layout_marginTop="4dp"/>
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                app:cardCornerRadius="12dp"
+                app:cardElevation="0dp"
+                app:cardBackgroundColor="#EAE1DA">
 
-    <TextView
-        android:id="@+id/tvStatus"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="pending"
-        android:textSize="12sp"
-        android:layout_marginTop="8dp"/>
-</LinearLayout>
+                <ImageView
+                    android:layout_width="20dp"
+                    android:layout_height="20dp"
+                    android:layout_gravity="center"
+                    android:src="@drawable/outline_handshake_24"
+                    app:tint="#1B3C53" />
+            </com.google.android.material.card.MaterialCardView>
+
+            <TextView
+                android:id="@+id/tvPartner"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginStart="12dp"
+                android:text="With: John Doe"
+                android:textColor="#1B3C53"
+                android:textSize="15sp"
+                android:fontFamily="sans-serif-medium"
+                android:textStyle="bold"
+                android:maxLines="1"
+                android:ellipsize="end" />
+
+            <TextView
+                android:id="@+id/tvStatus"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="pending"
+                android:textColor="#E58A2A"
+                android:textSize="10sp"
+                android:textStyle="bold"
+                android:background="@drawable/status_pill_bg"
+                android:paddingStart="10dp"
+                android:paddingEnd="10dp"
+                android:paddingTop="4dp"
+                android:paddingBottom="4dp" />
+        </LinearLayout>
+
+        <!-- Skills exchanged -->
+        <TextView
+            android:id="@+id/tvSkills"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:text="Guitar ⇄ Cooking"
+            android:textColor="#456882"
+            android:textSize="13sp" />
+
+        <!-- Schedule -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginTop="8dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="🗓"
+                android:textSize="12sp"
+                android:layout_marginEnd="6dp" />
+
+            <TextView
+                android:id="@+id/tvSchedule"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Not scheduled"
+                android:textColor="#456882"
+                android:textSize="12sp" />
+        </LinearLayout>
+
+    </LinearLayout>
+</com.google.android.material.card.MaterialCardView>

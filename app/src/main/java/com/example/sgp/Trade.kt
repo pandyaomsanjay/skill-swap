@@ -1,6 +1,5 @@
 package com.example.sgp
 
-import com.google.firebase.firestore.DocumentId
 import com.google.firebase.firestore.ServerTimestamp
 import java.util.Date
 
@@ -10,9 +9,15 @@ import java.util.Date
  *
  * All additions are backward-compatible: legacy docs without the new
  * fields simply deserialize to safe defaults via the typed accessors.
+ *
+ * NOTE: `id` is a plain property, NOT @DocumentId. It is set manually
+ * wherever a Trade is created or read (e.g. `.copy(id = docRef.id)` on
+ * write, `.copy(id = doc.id)` on read). Combining @DocumentId with a
+ * document that also stores a literal "id" field causes Firestore to
+ * throw at deserialization time, which is why the annotation was removed.
  */
 data class Trade(
-    @DocumentId var id: String = "",
+    var id: String = "",
 
     // ── Participants ──
     val requesterId: String = "",          // email of the person who initiated

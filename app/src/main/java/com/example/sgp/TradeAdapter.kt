@@ -1,6 +1,8 @@
 package com.example.sgp
 
+import android.content.res.ColorStateList
 import android.graphics.Color
+import android.graphics.drawable.GradientDrawable
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -13,10 +15,22 @@ import java.util.Locale
 class TradeAdapter(
     private val trades: List<Trade>,
     private val currentUserEmail: String,
+    private val isDarkMode: Boolean,
     private val onClick: (Trade) -> Unit
 ) : RecyclerView.Adapter<TradeAdapter.VH>() {
 
     private val fmt = SimpleDateFormat("d MMM, h:mm a", Locale.getDefault())
+
+    // Theme Colors
+    private val lightCardBg = Color.parseColor("#FFFFFF")
+    private val lightCardStroke = Color.parseColor("#D2C1B6")
+    private val lightTextPrimary = Color.parseColor("#1B3C53")
+    private val lightTextSecondary = Color.parseColor("#456882")
+
+    private val darkCardBg = Color.parseColor("#16232E")
+    private val darkCardStroke = Color.parseColor("#2A3B48")
+    private val darkTextPrimary = Color.parseColor("#F5F7F8")
+    private val darkTextSecondary = Color.parseColor("#8FA6B8")
 
     inner class VH(v: View) : RecyclerView.ViewHolder(v) {
         val tvPartner: TextView = v.findViewById(R.id.tvPartner)
@@ -34,9 +48,33 @@ class TradeAdapter(
         val partner = if (iAmRequester) t.receiverName.ifBlank { t.receiverId }
         else t.requesterName.ifBlank { t.requesterId }
 
+        // Apply Theme to Item Background (Assuming root of item_trade is a MaterialCardView)
+        // If the root is a LinearLayout, use holder.itemView.setBackgroundColor(...)
+        if (holder.itemView is com.google.android.material.card.MaterialCardView) {
+            val card = holder.itemView as com.google.android.material.card.MaterialCardView
+            card.setCardBackgroundColor(if (isDarkMode) darkCardBg else lightCardBg)
+            card.strokeColor = if (isDarkMode) darkCardStroke else lightCardStroke
+        } else {
+            holder.itemView.background = GradientDrawable().apply {
+                cornerRadius = 16f * holder.itemView.resources.displayMetrics.density
+                setColor(if (isDarkMode) darkCardBg else lightCardBg)
+                setStroke(
+                    (1 * holder.itemView.resources.displayMetrics.density).toInt(),
+                    if (isDarkMode) darkCardStroke else lightCardStroke
+                )
+            }
+        }
+
+        // Apply Theme to Text Colors
+        val textPrimary = if (isDarkMode) darkTextPrimary else lightTextPrimary
+        val textSecondary = if (isDarkMode) darkTextSecondary else lightTextSecondary
+
         holder.tvPartner.text = "With: $partner"
+        holder.tvPartner.setTextColor(textPrimary)
+
         holder.tvSkills.text =
             "${t.offeredResourceTypeEnum.emoji} ${t.offeredResourceTitle}  ⇄  ${t.requestedResourceTypeEnum.emoji} ${t.requestedResourceTitle}"
+        holder.tvSkills.setTextColor(textPrimary)
 
         holder.tvStatus.text = t.statusEnum.name.replace('_', ' ')
         holder.tvStatus.setTextColor(when (t.statusEnum) {
@@ -50,6 +88,7 @@ class TradeAdapter(
 
         holder.tvSchedule?.text = t.effectiveSchedule.takeIf { it > 0L }
             ?.let { "🗓 ${fmt.format(Date(it))}" } ?: "🗓 Not scheduled"
+        holder.tvSchedule?.setTextColor(textSecondary)
 
         holder.itemView.setOnClickListener { onClick(t) }
     }

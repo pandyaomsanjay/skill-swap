@@ -2,7 +2,7 @@
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#EAF1F5">
+    android:background="@android:color/transparent">
 
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/recyclerView"
@@ -27,7 +27,15 @@
             android:text="🔄"
             android:textSize="40sp" />
 
+        <!--
+             NOTE: The text color below is hardcoded to light-mode secondary text (#456882).
+             In dark mode, this will be hard to read against the dark navy background.
+             It is highly recommended to set this text color dynamically in your Fragment code
+             based on the `isDarkMode` boolean.
+             e.g., tvEmptyState.setTextColor(if (isDarkMode) Color.parseColor("#8FA6B8") else Color.parseColor("#456882"))
+        -->
         <TextView
+            android:id="@+id/tvEmptyStateText"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="12dp"

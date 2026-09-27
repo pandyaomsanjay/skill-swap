@@ -42,11 +42,15 @@ class ActiveTradesFragment : Fragment() {
         emptyState = v.findViewById(R.id.emptyState)
         recyclerView.layoutManager = LinearLayoutManager(requireContext())
 
+        // Extract dark mode state passed from MyTradesActivity
+        val isDarkMode = arguments?.getBoolean("isDarkMode") ?: false
+
         val email = requireContext()
             .getSharedPreferences("SkillSwapPrefs", Context.MODE_PRIVATE)
             .getString("user_email", "").orEmpty()
 
-        adapter = TradeAdapter(tradeList, email) { trade ->
+        // Pass isDarkMode to the adapter
+        adapter = TradeAdapter(tradeList, email, isDarkMode) { trade ->
             TradeDetailActivity.start(requireContext(), trade.id)
         }
         recyclerView.adapter = adapter

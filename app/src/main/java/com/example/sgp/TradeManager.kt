@@ -503,7 +503,8 @@ object TradeManager {
                     onError(err)
                     return@addSnapshotListener
                 }
-                onUpdate(snap?.toObject(Trade::class.java))
+                // @DocumentId was removed from Trade.kt, so id must be set manually here.
+                onUpdate(snap?.toObject(Trade::class.java)?.copy(id = tradeId))
             }
 
     // ═════════════════════════════════════════════════════════════
@@ -519,7 +520,8 @@ object TradeManager {
     suspend fun scheduleRemindersAfterFinalize(context: Context, tradeId: String) {
         try {
             val doc = db.collection("trades").document(tradeId).get().await()
-            val trade = doc.toObject(Trade::class.java)
+            // @DocumentId was removed from Trade.kt, so id must be set manually here.
+            val trade = doc.toObject(Trade::class.java)?.copy(id = tradeId)
             if (trade == null) {
                 Log.w(TAG, "Cannot schedule reminders — trade not found: $tradeId")
                 return

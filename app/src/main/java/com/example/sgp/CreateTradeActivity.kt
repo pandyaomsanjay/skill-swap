@@ -1,5 +1,7 @@
 package com.example.sgp
 
+import android.app.DatePickerDialog
+import android.app.TimePickerDialog
 import android.content.Context
 import android.content.SharedPreferences
 import android.content.res.ColorStateList
@@ -17,13 +19,20 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.core.view.WindowCompat
+import androidx.lifecycle.lifecycleScope
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.card.MaterialCardView
 import com.google.android.material.textfield.TextInputEditText
 import com.google.android.material.textfield.TextInputLayout
 import com.google.firebase.Firebase
+import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.firestore
+import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
+import java.util.Calendar
+import java.util.Date
+import java.util.Locale
 
 class CreateTradeActivity : BaseActivity() {
 
@@ -47,6 +56,9 @@ class CreateTradeActivity : BaseActivity() {
 
     private var selectedYourSkill: Skill? = null
     private var selectedPartnerSkill: Skill? = null
+
+    // ── Proposed schedule (millis). Required by Firestore rules: must be > now. ──
+    private var selectedScheduleMillis = 0L
 
     // ---------------------------------------------------------------------
     // LIGHT THEME PALETTE
@@ -92,7 +104,10 @@ class CreateTradeActivity : BaseActivity() {
         sharedPreferences = getSharedPreferences(SettingsActivity.PREFS_NAME, Context.MODE_PRIVATE)
         isDarkModeEnabled = sharedPreferences.getBoolean(SettingsActivity.KEY_DARK_MODE, false)
 
-        currentUserEmail = sharedPreferences.getString("user_email", "") ?: ""
+        // ── Live auth email — must match request.auth.token.email in Firestore rules exactly. ──
+        // A cached SharedPreferences copy can silently drift from this and cause
+        // PERMISSION_DENIED on trade creation, so we always read it live.
+        currentUserEmail = FirebaseAuth.getInstance().currentUser?.email.orEmpty()
         currentUserName = sharedPreferences.getString("user_name", "") ?: ""
 
         if (currentUserEmail.isEmpty()) {
@@ -237,7 +252,15 @@ class CreateTradeActivity : BaseActivity() {
             }
         }
 
-        btnPropose.setOnClickListener { proposeTrade() }
+        btnPropose.setOnClickListener {
+            // Schedule must be picked before we attempt the write — Firestore
+            // rules reject any trade whose proposedSchedule isn't a future timestamp.
+            if (selectedScheduleMillis <= System.currentTimeMillis()) {
+                showDatePicker()
+            } else {
+                proposeTrade()
+            }
+        }
     }
 
     private fun loadYourSkills() {
@@ -247,7 +270,7 @@ class CreateTradeActivity : BaseActivity() {
             .addOnSuccessListener { snapshot ->
                 val skills = mutableListOf<Skill>()
                 snapshot.documents.forEach { doc ->
-                    doc.toObject(Skill::class.java)?.let { skills.add(it) }
+                    doc.toObject(Skill::class.java)?.copy(id = doc.id)?.let { skills.add(it) }
                 }
                 if (skills.isEmpty()) {
                     etYourSkill.setText("No skills found. Please add a skill first.")
@@ -272,7 +295,7 @@ class CreateTradeActivity : BaseActivity() {
             .addOnSuccessListener { snapshot ->
                 val skills = mutableListOf<Skill>()
                 snapshot.documents.forEach { doc ->
-                    doc.toObject(Skill::class.java)?.let { skills.add(it) }
+                    doc.toObject(Skill::class.java)?.copy(id = doc.id)?.let { skills.add(it) }
                 }
                 if (skills.isEmpty()) {
                     Toast.makeText(
@@ -447,6 +470,61 @@ class CreateTradeActivity : BaseActivity() {
             }
     }
 
+    // ============================ Schedule picker ============================
+    // Firestore rules require proposedSchedule to be a real future timestamp,
+    // so we collect one here before dispatching the trade (same UX pattern as
+    // TradeRequestActivity's showDatePicker/showTimePicker).
+
+    private fun showDatePicker() {
+        val cal = Calendar.getInstance()
+        DatePickerDialog(
+            this,
+            { _, y, m, d ->
+                val picked = Calendar.getInstance().apply {
+                    set(Calendar.YEAR, y)
+                    set(Calendar.MONTH, m)
+                    set(Calendar.DAY_OF_MONTH, d)
+                }
+                showTimePicker(picked)
+            },
+            cal.get(Calendar.YEAR),
+            cal.get(Calendar.MONTH),
+            cal.get(Calendar.DAY_OF_MONTH)
+        ).apply {
+            datePicker.minDate = System.currentTimeMillis() - 1000
+        }.show()
+    }
+
+    private fun showTimePicker(dateCal: Calendar) {
+        TimePickerDialog(
+            this,
+            { _, h, min ->
+                dateCal.set(Calendar.HOUR_OF_DAY, h)
+                dateCal.set(Calendar.MINUTE, min)
+                dateCal.set(Calendar.SECOND, 0)
+                dateCal.set(Calendar.MILLISECOND, 0)
+
+                if (dateCal.timeInMillis <= System.currentTimeMillis()) {
+                    Toast.makeText(this, "Please choose a future time", Toast.LENGTH_SHORT).show()
+                    return@TimePickerDialog
+                }
+                selectedScheduleMillis = dateCal.timeInMillis
+
+                val label = SimpleDateFormat("d MMM yyyy, h:mm a", Locale.getDefault())
+                    .format(Date(selectedScheduleMillis))
+                Toast.makeText(this, "Meeting time set: $label", Toast.LENGTH_SHORT).show()
+
+                // Time is picked — now actually run the proposal.
+                proposeTrade()
+            },
+            dateCal.get(Calendar.HOUR_OF_DAY),
+            dateCal.get(Calendar.MINUTE),
+            false
+        ).show()
+    }
+
+    // ============================ Propose ============================
+
     private fun proposeTrade() {
         val yourSkillObj = selectedYourSkill
         val partnerSkillObj = selectedPartnerSkill
@@ -465,60 +543,81 @@ class CreateTradeActivity : BaseActivity() {
             partnerSkillLayout.error = "Select the skill you want"
             return
         }
+        if (selectedScheduleMillis <= System.currentTimeMillis()) {
+            Toast.makeText(this, "Please pick a future meeting time", Toast.LENGTH_SHORT).show()
+            return
+        }
 
         partnerEmailLayout.error = null
+        btnPropose.isEnabled = false
 
         db.collection("users").whereEqualTo("email", partnerEmail).get()
             .addOnSuccessListener { snapshot ->
                 if (snapshot.isEmpty) {
+                    btnPropose.isEnabled = true
                     partnerEmailLayout.error = "Partner not registered"
                     return@addOnSuccessListener
                 }
                 val partnerDoc = snapshot.documents[0]
                 val partner = partnerDoc.toObject(Users::class.java)
                 if (partner == null) {
+                    btnPropose.isEnabled = true
                     partnerEmailLayout.error = "Partner not registered"
                     return@addOnSuccessListener
                 }
 
-                val tradeId = db.collection("trades").document().id
+                // ── Build the trade with the fields the Firestore rules actually require ──
                 val trade = Trade(
-                    id = tradeId,
                     requesterId = currentUserEmail,
-                    receiverId = partnerEmail,
-                    requesterSkill = yourSkillObj.title,
-                    receiverSkill = partnerSkillObj.title,
-                    status = "pending",
                     requesterName = currentUserName,
+                    receiverId = partnerEmail,
                     receiverName = partner.name,
-                    timestamp = System.currentTimeMillis(),
-                    videoUrl = yourSkillObj.videoUrl ?: "",
-                    isActive = true,
-                    uploaderName = currentUserName,
-                    skillOffered = yourSkillObj.title,
-                    skillRequested = partnerSkillObj.title,
-                    rating = 0f,
-                    uploaderAvatar = R.drawable.ic_default_profile
+
+                    // These three were previously left at their empty/zero
+                    // defaults, which is exactly why every create was rejected
+                    // by isValidTradeCreate() in firestore.rules.
+                    requestedResourceId = partnerSkillObj.id,
+                    requestedResourceType = partnerSkillObj.resourceTypeEnum.name,
+                    requestedResourceTitle = partnerSkillObj.title,
+
+                    offeredResourceId = yourSkillObj.id,
+                    offeredResourceType = yourSkillObj.resourceTypeEnum.name,
+                    offeredResourceTitle = yourSkillObj.title,
+
+                    proposedSchedule = selectedScheduleMillis,
+                    message = message,
+                    status = TradeStatus.PENDING.value
                 )
 
-                db.collection("trades").document(tradeId).set(trade)
-                    .addOnSuccessListener {
-                        Toast.makeText(
-                            this@CreateTradeActivity,
-                            "Trade proposed!",
-                            Toast.LENGTH_SHORT
-                        ).show()
-                        finish()
-                    }
-                    .addOnFailureListener { e ->
-                        Toast.makeText(
-                            this@CreateTradeActivity,
-                            "Failed: ${e.message}",
-                            Toast.LENGTH_SHORT
-                        ).show()
-                    }
+                // Route through TradeManager so we get the same duplicate-request
+                // guard, availability check, and notification-on-create that
+                // TradeRequestActivity already relies on, instead of a raw db.set().
+                lifecycleScope.launch {
+                    val result = TradeManager.createTrade(trade)
+                    btnPropose.isEnabled = true
+
+                    result.fold(
+                        onSuccess = {
+                            Toast.makeText(
+                                this@CreateTradeActivity,
+                                "Trade proposed!",
+                                Toast.LENGTH_SHORT
+                            ).show()
+                            finish()
+                        },
+                        onFailure = { e ->
+                            android.util.Log.e("CreateTradeActivity", "Trade create failed", e)
+                            Toast.makeText(
+                                this@CreateTradeActivity,
+                                e.message ?: "Failed to propose trade",
+                                Toast.LENGTH_LONG
+                            ).show()
+                        }
+                    )
+                }
             }
             .addOnFailureListener {
+                btnPropose.isEnabled = true
                 Toast.makeText(this, "Error finding partner", Toast.LENGTH_SHORT).show()
             }
     }
