@@ -4,7 +4,7 @@
 
 Skill Swap is a peer-to-peer Android application designed to connect people who want to **teach their skills, learn new skills, and exchange knowledge with others**.
 
-Users can create profiles, add skills, discover other users, exchange skills through trade requests, communicate through real-time chat, share skill videos, create playlists, provide ratings and feedback, and receive push notifications.
+Users can create profiles, add skills, upload learning resources, discover other users, exchange skills through a full trade-request workflow, communicate through real-time chat, share skill videos and live sessions, create playlists, provide ratings and feedback, and receive push notifications and scheduled reminders.
 
 ---
 
@@ -13,7 +13,10 @@ Users can create profiles, add skills, discover other users, exchange skills thr
 * 🔐 User Authentication
 * 👤 User Profiles
 * 🎯 Skill Management
-* 🔄 Skill Exchange / Trade Requests
+* 📦 Multi-Type Resource Uploads (Video, Notes, PDF, Document, Course, Live Session)
+* 🔄 Skill Exchange / Trade Requests with Scheduling & Counter-Scheduling
+* 🗂️ 5-Tab Trade Dashboard (Incoming, Sent, Active, Completed, Closed)
+* ⏰ Meeting Reminders & Notifications (WorkManager)
 * 💬 Real-Time Chat
 * 🎥 Skill Video Sharing
 * 📑 Skill Playlists
@@ -63,7 +66,7 @@ Users can create and manage their personal profiles.
 * Number of Trades
 * Number of Skills
 
-Users can update their profile information whenever required.
+Users can update their profile information whenever required, and can add new **resources** (notes, PDFs, courses, live sessions, etc.) directly from the **+ Add Resource** button on their Profile screen, which opens `AddResourceActivity`.
 
 ---
 
@@ -92,50 +95,130 @@ Users can add and manage the skills they want to teach or share.
 
 ---
 
+## 📦 Resource Upload
+
+In addition to skill videos, users can upload multiple types of learning resources from their profile via `AddResourceActivity`:
+
+* 🎥 Videos
+* 📝 Notes (text-based)
+* 📄 PDFs
+* 📃 Documents
+* 🎓 Courses
+* 🖥️ Live Teaching Sessions
+* 📦 Other Resources
+
+### Resource Upload Features
+
+* Resource type selection
+* Title, category, and description fields
+* Credit value assignment
+* File picker with **25 MB size limit validation**
+* Supabase file upload + Firestore resource saving
+* Loading and error handling
+
+### Live Teaching Session Support
+
+Live session resources carry extra metadata, stored via `LiveSessionInfo.kt`:
+
+* Platform (e.g. Google Meet, Zoom)
+* Online or offline mode
+* Duration (minutes)
+* Meeting link
+* Physical location (for offline sessions)
+
+---
+
 # 🔄 Skill Exchange / Trading
 
-The core functionality of Skill Swap is exchanging knowledge between users.
-
-A user can select:
-
-1. A skill they can teach
-2. A skill they want to learn
-3. Another user to exchange skills with
-4. An optional message
+The core functionality of Skill Swap is exchanging knowledge and resources between users through a complete trade-management system.
 
 ### Trade Process
 
 ```text
-Find Skill
-    ↓
-Select User
-    ↓
-Choose Skill to Offer
-    ↓
-Choose Skill to Learn
-    ↓
+Browse Skill / Resource
+        ↓
+Select Resource to Offer
+        ↓
+Propose Date & Time
+        ↓
 Send Trade Request
-    ↓
-Accept / Reject
-    ↓
-Start Skill Exchange
-    ↓
-Complete Trade
-    ↓
+        ↓
+Receiver: Accept / Reject / Counter-Schedule
+        ↓
+Requester Accepts Counter-Schedule (if any)
+        ↓
+Schedule Finalized
+        ↓
+Complete / Cancel Trade
+        ↓
 Rating & Feedback
 ```
 
-Trade information can include:
+### Trade Status Lifecycle
 
-* Requester
-* Receiver
-* Offered Skill
-* Requested Skill
-* Trade Status
-* Timestamp
-* User Information
-* Skill Information
-* Rating / Feedback Information
+```text
+Pending → Counter Proposed → Accepted → Schedule Finalized → Completed
+                                              ↓
+                                   Cancelled / Rejected / Expired
+```
+
+### My Trades — 5 Sections
+
+| Tab | Description |
+|---|---|
+| **Incoming** | Trade requests received from other users |
+| **Sent** | Trade requests sent by the current user |
+| **Active** | Pending and currently active trades |
+| **Completed** | Successfully completed trades |
+| **Closed** | Cancelled, rejected, or expired trades |
+
+Active and Completed tabs load trades for both requester and receiver roles, merge and deduplicate results via real-time Firestore listeners, sort client-side, and show empty states when there are no trades.
+
+### Resource Selection for Trades
+
+Before sending a trade request, users pick which of their own resources to offer via `SelectResourceActivity`, which shows resource title, description, type, duration, and thumbnail, with empty/error states and a retry option.
+
+### Trade Data Includes
+
+* Requester & Receiver
+* Requested Resource & Offered Resource details
+* Proposed schedule / counter-schedule
+* Trade status
+* Completion & cancellation timestamps
+* Live session data (if applicable)
+
+### Main Trade Components
+
+```text
+TradeRequestActivity.kt
+TradeDetailActivity.kt
+TradeManager.kt
+Trade.kt
+TradeStatus.kt
+TradeValidator.kt
+SelectResourceActivity.kt
+MyTradesActivity.kt
+```
+
+---
+
+## ⏰ Meeting Reminders & Notifications
+
+Scheduled reminders for finalized trade meetings are powered by **WorkManager**:
+
+* Reminder **24 hours** before a finalized meeting
+* Reminder **1 hour** before a finalized meeting
+* Delivered via Android notification channels
+* Reminder records stored in Firestore
+* Reminders automatically cancelled if a trade is cancelled or rejected
+* Duplicate-reminder prevention using unique WorkManager task names
+
+### Main Components
+
+```text
+MeetingReminderScheduler.kt
+MeetingReminderWorker.kt
+```
 
 ---
 
@@ -172,10 +255,11 @@ Users can share videos related to their skills.
 ### Video Features
 
 * Upload Skill Videos
-* View Videos
-* Play Videos
+* View & Play Videos
 * Browse Skill Videos
 * Create / View Playlists
+* **Trade / Swap button** on another user's video, opening `TradeRequestActivity` (hidden on a user's own videos)
+* Playlist progress tracking preserved
 * Admin Video Management
 
 ### Main Components
@@ -249,6 +333,7 @@ Notifications can be triggered for events such as:
 * 📑 Playlist Purchases
 * 🎓 Playlist Completion
 * ⭐ Feedback / Rating Events
+* ⏰ Meeting Reminders
 * 📢 Important Application Notifications
 
 ### Notification Architecture
@@ -289,23 +374,53 @@ Location functionality can be used to:
 
 # 🌐 Multi-Language Support
 
-Skill Swap supports multiple languages.
+Skill Swap supports multiple languages to make the application accessible and easy to use for users from different regions.
 
-### Supported Languages
+## 🗣️ Available Languages
 
-* 🇬🇧 English
-* 🇮🇳 Hindi
-* 🇮🇳 Gujarati
+| Language                    | Code | Status      |
+| --------------------------- | ---- | ----------- |
+| 🇬🇧 **English**            | `en` | ✅ Supported |
+| 🇮🇳 **Hindi (हिन्दी)**     | `hi` | ✅ Supported |
+| 🇮🇳 **Gujarati (ગુજરાતી)** | `gu` | ✅ Supported |
 
-Language preferences are managed using:
+## ⚙️ Language Selection
+
+Users can select their preferred language from **two locations**:
+
+### 🔐 Login Page
+
+When a user opens the Skill Swap application and reaches the Login page, the application asks the user to select their preferred language:
+
+**English | हिन्दी | ગુજરાતી**
+
+### 👤 Profile Page
+
+After logging in, users can change their preferred language anytime from **Profile → Language**. The selection is saved and applied automatically across the application.
+
+### 🔧 Implementation
 
 ```text
 LocaleHelper.kt
 ```
 
-Users can change their preferred language through the application settings.
+```text
+res/
+├── values/
+│   └── strings.xml          # English
+├── values-hi/
+│   └── strings.xml          # Hindi
+└── values-gu/
+    └── strings.xml          # Gujarati
+```
 
-The selected language is persisted across sessions.
+### 🔄 Language Flow
+
+```text
+Open Skill Swap → Login Page → Select Language → English / Hindi / Gujarati
+        → Login / Continue → Application Opens → Profile → Language
+        → Change Language Anytime
+```
 
 ---
 
@@ -338,6 +453,7 @@ BaseActivity.kt
 | **Cloud Firestore**            | Application data & real-time chat                      |
 | **Firebase Realtime Database** | Real-time data                                         |
 | **Firebase Storage**           | File / media storage                                   |
+| **WorkManager**                | Scheduled meeting reminders                            |
 | **OneSignal**                  | Push notifications                                     |
 | **Google Sign-In**             | Google authentication                                  |
 | **Google Places**              | Location functionality                                 |
@@ -375,21 +491,11 @@ Skill Swap
 
 ## 🔥 Firebase
 
-Firebase is used for:
-
-* Authentication
-* Cloud Firestore
-* Realtime Database
-* Firebase Storage
-* Real-time chat
+Firebase is used for Authentication, Cloud Firestore, Realtime Database, Firebase Storage, and real-time chat.
 
 ## 🟢 Supabase
 
-Supabase is integrated for authentication and backend security functionality.
-
 Supabase Auth handles email/password authentication, while PostgreSQL hosts custom security functions.
-
-Important components:
 
 ```text
 SupabaseClient.kt
@@ -398,13 +504,7 @@ SupabaseImageUploader.kt
 
 ## 🔔 OneSignal
 
-OneSignal manages:
-
-* Push notifications
-* Notification targeting
-* User identification
-* Notification data
-* Notification management
+OneSignal manages push notifications, notification targeting, user identification, notification data, and notification management.
 
 ---
 
@@ -421,10 +521,12 @@ skill-swap/
 │   │       │   ├── Authentication/
 │   │       │   ├── User & Profile/
 │   │       │   ├── Skills/
+│   │       │   ├── Resources/
 │   │       │   ├── Trades/
 │   │       │   ├── Chat/
 │   │       │   ├── Videos/
 │   │       │   ├── Feedback/
+│   │       │   ├── Notifications/
 │   │       │   ├── Supabase/
 │   │       │   ├── Utils/
 │   │       │   └── Other Components
@@ -447,8 +549,6 @@ skill-swap/
 ---
 
 # 🗄️ Main Data Structure
-
-The application uses Firebase data collections for major application entities:
 
 ```text
 users
@@ -476,17 +576,21 @@ Sign Up / Login
       ↓
 Profile Completion
       ↓
-Explore Skills
+Explore Skills / Resources
       ↓
 Find a User
       ↓
+Select Resource to Offer & Propose Schedule
+      ↓
 Create Trade
       ↓
-Accepted / Rejected
+Accepted / Rejected / Counter-Scheduled
       │
-      └── Accepted
+      └── Accepted → Schedule Finalized
             ↓
           Chat
+            ↓
+      Meeting Reminders (24h / 1h)
             ↓
       Complete Trade
             ↓
@@ -532,151 +636,80 @@ cd skill-swap
 
 ## 2. Open in Android Studio
 
-Open the cloned project using Android Studio.
-
-Allow Gradle to synchronize and download the required dependencies.
+Open the cloned project using Android Studio and allow Gradle to synchronize and download the required dependencies.
 
 ## 3. Configure Firebase
 
-Create or configure a Firebase project and enable:
-
-```text
-Firebase Authentication
-Cloud Firestore
-Realtime Database
-Firebase Storage
-```
-
-Add the appropriate:
-
-```text
-google-services.json
-```
-
-to the Android project.
+Enable Firebase Authentication, Cloud Firestore, Realtime Database, and Firebase Storage, then add `google-services.json` to the Android project.
 
 ## 4. Configure Google Sign-In
 
-Configure Google Sign-In through Firebase Authentication.
-
-Make sure the required SHA-1 and SHA-256 fingerprints are configured for the Android application.
+Configure Google Sign-In through Firebase Authentication and ensure the required SHA-1/SHA-256 fingerprints are set for the app.
 
 ## 5. Configure Supabase
 
-Create a Supabase project and configure:
-
-* Supabase Auth
-* Email/password authentication
-* PostgreSQL security functions
-* Required storage
-
-Run the SQL scripts from the `sql/` directory in the **Supabase SQL Editor**.
+Create a Supabase project and configure Supabase Auth, email/password authentication, PostgreSQL security functions, and required storage. Run the SQL scripts from the `sql/` directory in the **Supabase SQL Editor**.
 
 ## 6. Configure OneSignal
 
-Create a OneSignal application.
+Create a OneSignal application, configure Android push notifications, connect FCM credentials through OneSignal, and add the OneSignal App ID to the app.
 
-Configure Android push notifications and connect the required FCM credentials through OneSignal.
-
-Add the OneSignal App ID to the Android application.
-
-Documentation:
-
-https://documentation.onesignal.com/docs/en/android-sdk-setup
+Documentation: https://documentation.onesignal.com/docs/en/android-sdk-setup
 
 ## 7. Build the Application
 
-In Android Studio:
-
 ```text
 File → Sync Project with Gradle Files
-
 Build → Make Project
 ```
 
 ## 8. Run the Application
 
-Connect an Android device or start an emulator.
-
-Then select:
-
 ```text
 Run → Run 'app'
 ```
+
+> ⚠️ **Note:** The trade/resource feature set was added in a large single commit (5,036 additions, 567 deletions) touching many Kotlin files and layouts. Run a full Gradle build and manually test the trade, resource-upload, and reminder flows after pulling these changes.
 
 ---
 
 # 🔐 Security
 
-Skill Swap implements several password and account-security controls.
-
 ## ✅ Implemented Security Controls
 
-| Requirement                               | Implementation                                                       |
-| ----------------------------------------- | -------------------------------------------------------------------- |
-| **No Password Reuse**                     | Enforced during password change                                      |
-| **Password Complexity**                   | Uppercase + lowercase + number + special character                   |
-| **Account Lockout / Throttling**          | 5 failed attempts → 15-minute lock; second lockout → 24-hour lock    |
-| **No Clear-Text Password Storage**        | Supabase Auth stores password hashes rather than plaintext passwords |
-| **Random Salt**                           | Bcrypt generates a unique salt for stored password hashes            |
-| **Dictionary / Weak Password Protection** | Common and weak password patterns are rejected                       |
-
-### Password Complexity
-
-Password validation requires:
-
-```text
-Uppercase
-Lowercase
-Number
-Special Character
-```
+| Requirement                               | Implementation                                                        |
+| ------------------------------------------ | ---------------------------------------------------------------------- |
+| **No Password Reuse**                     | Enforced during password change                                       |
+| **Password Complexity**                   | Uppercase + lowercase + number + special character                    |
+| **Account Lockout / Throttling**          | 5 failed attempts → 15-minute lock; second lockout → 24-hour lock     |
+| **No Clear-Text Password Storage**        | Supabase Auth stores password hashes rather than plaintext passwords  |
+| **Random Salt**                           | Bcrypt generates a unique salt for stored password hashes             |
+| **Dictionary / Weak Password Protection** | Common and weak password patterns are rejected                        |
 
 ### Account Lockout
 
 ```text
-5 Failed Attempts
-        ↓
-15-Minute Lock
-        ↓
-Repeated Lockout
-        ↓
-24-Hour Lock
+5 Failed Attempts → 15-Minute Lock → Repeated Lockout → 24-Hour Lock
 ```
 
 ### Weak Password Protection
 
-The password protection system checks for patterns such as:
-
-```text
-aaaaaa
-abab
-123123
-qwerty
-asdf
-zxcv
-P@ssw0rd
-```
+Rejects patterns such as: `aaaaaa`, `abab`, `123123`, `qwerty`, `asdf`, `zxcv`, `P@ssw0rd`
 
 ---
 
 # 🗂️ SQL Security Files
 
-Supabase security logic is maintained through:
-
 ```text
 sql/
-│
 ├── login_lockout.sql
 ├── common_passwords.sql
 ├── password_reset_otps.sql
 └── verification_queries.sql
 ```
 
-### Purpose
-
 | SQL File                   | Purpose                                   |
-| -------------------------- | ----------------------------------------- |
+| --------------------------- | ------------------------------------------ |
 | `login_lockout.sql`        | Account lockout and failed-login tracking |
 | `common_passwords.sql`     | Weak/dictionary password detection        |
 | `password_reset_otps.sql`  | Password-reset OTP functionality          |
@@ -698,15 +731,7 @@ sql/
 
 # 🧪 Testing
 
-The project includes Android testing configuration.
-
-Testing technologies include:
-
-* JUnit
-* AndroidX JUnit
-* Espresso
-
-Testing can be performed using Android Studio's built-in unit and instrumentation testing tools.
+The project includes Android testing configuration using JUnit, AndroidX JUnit, and Espresso, run through Android Studio's built-in unit and instrumentation testing tools.
 
 ---
 
@@ -732,14 +757,33 @@ AddSkillActivity.kt
 ExploreActivity.kt
 ```
 
+## Resources
+
+```text
+AddResourceActivity.kt
+SelectResourceActivity.kt
+LiveSessionInfo.kt
+```
+
 ## Trades
 
 ```text
 Trade.kt
-CreateTradeActivity.kt
+TradeStatus.kt
+TradeValidator.kt
+TradeManager.kt
+TradeRequestActivity.kt
+TradeDetailActivity.kt
 MyTradesActivity.kt
 ActiveTradesFragment.kt
 CompletedTradesFragment.kt
+```
+
+## Reminders & Notifications
+
+```text
+MeetingReminderScheduler.kt
+MeetingReminderWorker.kt
 ```
 
 ## Chat
@@ -796,182 +840,58 @@ password_reset_otps.sql
 verification_queries.sql
 ```
 
----
-
 # 🔮 Future Improvements
 
 ## 🔴 High Priority
 
-1. **Chat Encryption & Warning System** – Encrypt chats and detect inappropriate or unnecessary messages. After 5 warnings, temporarily block chatting for 24 hours.
+1. **Chat Encryption & Warning System** – Implement secure chat encryption, detect unnecessary or inappropriate messages, and issue warnings. After 5 warnings, temporarily restrict the user from chatting for 24 hours.
 
-2. **Teaching Limit** – Limit each user to teaching a maximum of 10 users simultaneously.
+2. **Teaching Limit** – Limit each user to teaching a maximum of 10 other users simultaneously.
 
-3. **Complete UI Redesign** – Redesign the user-side UI to make it modern, attractive, responsive, and user-friendly.
+3. **Complete UI Redesign** – Redesign the entire user-side interface to make the application modern, attractive, responsive, intuitive, and user-friendly.
 
-4. **Payment Module** – Implement a secure in-app payment system with:
+4. **Payment Module**
 
-   * **Payment Gateway Integration** – Enable direct in-app payments.
-   * **Multiple Payment Options** – Support multiple payment methods.
-   * **Payment Confirmation** – Confirm successful payments.
-   * **Transaction History** – Allow users to view previous transactions.
-   * **Payment Status** – Show Successful, Failed, or Pending status.
-   * **48-Hour Payment/Service Window** – Manage payment/service processing within 48 hours.
-   * **Admin Payment Section** – Allow admins to monitor and manage payments and transactions.
-   * **Minimum Offer Amount** – All payment offers must start from **₹50**.
+   * **Payment Gateway Integration** – Allow users to make payments directly through the app.
+   * **Multiple Payment Options** – Support multiple payment methods for user convenience.
+   * **Payment Confirmation** – Provide confirmation after successful payments.
+   * **Transaction History** – Allow users to view their previous payment transactions.
+   * **Payment Status** – Display transactions as **Successful, Failed, or Pending**.
+   * **48-Hour Payment/Service Window** – Manage the payment and associated service process within a 48-hour period.
+   * **Admin Payment Section** – Allow administrators to monitor and manage payments, transactions, and payment statuses from the Admin Panel.
+   * **Minimum Offer Amount** – Require all payment offers to start from a minimum of **₹50**.
 
-5. **Dark Mode** – Add Dark Mode support for the user-side application.
+5. **Points Transaction History** – Maintain a complete log of point credits and deductions, including the reason and timestamp, so users can review how their points were earned or spent.
 
-6. **Continue Where You Left Off** – Resume videos, playlists, courses, and learning activities from the user's previous progress.
+6. **Trade/Swap from Demo Video** – Add a **Trade/Swap** option directly to individual demo videos, allowing users to send a trade request along with their preferred schedule.
 
-7. **Certificate System** – Generate certificates after successfully completing a skill, course, or playlist.
+7. **Playlist Completion Reward** – After successfully completing **2 entire playlists**, award the user a **500-point reward/discount** that can be used for future learning or trade activities.
 
-8. **Complete Trade/Swap System** – Fix and improve the complete trade/swap workflow for smooth and reliable operation.
+8. **Notifications**
 
-9. **Trade/Swap from Demo Video** – Allow users to initiate a trade directly from a demo video with their preferred schedule.
+   * **New Trade Requests** – Notify users when they receive a new trade request.
+   * **Meeting Reminders** – Send scheduled trade/meeting reminders to both users before the meeting.
 
-10. **Trade Request & Counter-Schedule** – Allow recipients to accept the proposed schedule or submit one counter-schedule. Both users must finalize a mutually agreed date and time.
+9. **Admin Users Page Improvements** – Fix the login verification flow for verified users and display reported-user information clearly when a user has been reported.
 
-11. **Different Trade Options** – Support exchanging:
-
-    * Notes
-    * Videos
-    * Live Teaching Sessions
-    * Documents/PDFs
-    * Courses
-    * Other Learning Resources
-
-12. **Playlist Completion Reward** – Award **500 points** after successfully completing 2 complete playlists, usable for future learning or trade activities.
-
-13. **Notifications & Reminders** – Send notifications for:
-
-    * 🔄 New Trade Requests
-    * ✅ Trade Status Updates
-    * 📑 Playlist Purchases & Completion
-    * ⭐ Feedback & Rating Events
-    * 🔔 Scheduled Trade/Meeting Reminders
-
----
+10. **Hamburger Menu Improvements** – Complete the remaining pages accessible through the hamburger menu and remove the **Notifications** section from the hamburger menu.
 
 ## 🟡 Low Priority
 
-1. Playlist Purchase Expiry
-2. Points Transaction History
-3. Playlist Sharing Across Platforms
-4. Low-Points Warning
-5. Playlist Discounts
-6. Advanced Chat & User Channels
+1. **Playlist Purchase Time Limit** – After a defined period, prevent users from purchasing playlists that are no longer available for purchase.
 
----
+2. **Playlist Sharing Across Platforms** – Allow users to share playlist links with others, with an option to make the shared playlist **public or private**.
 
-# 🌐 Multi-Language Support
+3. **Low-Points Warning** – Notify users when their point balance is insufficient to access a playlist and provide suggestions for earning more points.
 
-Skill Swap supports multiple languages to make the application accessible and easy to use for users from different regions.
-
-## 🗣️ Available Languages
-
-| Language                    | Code | Status      |
-| --------------------------- | ---- | ----------- |
-| 🇬🇧 **English**            | `en` | ✅ Supported |
-| 🇮🇳 **Hindi (हिन्दी)**     | `hi` | ✅ Supported |
-| 🇮🇳 **Gujarati (ગુજરાતી)** | `gu` | ✅ Supported |
-
-### 🇬🇧 English
-
-English is the default language of the Skill Swap application and is used throughout the main user interface.
-
-### 🇮🇳 Hindi (हिन्दी)
-
-Hindi support allows users to use the application interface in Hindi, making Skill Swap more accessible to Hindi-speaking users.
-
-### 🇮🇳 Gujarati (ગુજરાતી)
-
-Gujarati support provides a localized interface for Gujarati-speaking users and improves accessibility for users in Gujarat and other Gujarati-speaking communities.
-
-## ⚙️ Language Selection
-
-Users can select their preferred language from **two locations**:
-
-### 🔐 Login Page
-
-When a user opens the Skill Swap application and reaches the Login page, the application asks the user to select their preferred language:
-
-**English | हिन्दी | ગુજરાતી**
-
-The selected language is applied to the application interface.
-
-### 👤 Profile Page
-
-After logging in, users can change their preferred language from their Profile page:
-
-**Profile → Language**
-
-Users can switch between English, Hindi, and Gujarati at any time. The selected language is saved and automatically applied across the application.
-
-### 🔧 Implementation
-
-Language management is handled through:
-
-```text
-LocaleHelper.kt
-```
-
-Android localization resources are organized using language-specific resource directories:
-
-```text
-res/
-├── values/
-│   └── strings.xml          # English
-│
-├── values-hi/
-│   └── strings.xml          # Hindi
-│
-└── values-gu/
-    └── strings.xml          # Gujarati
-```
-
-This structure allows the application UI to display translated text based on the user's selected language.
-
-## 🔄 Language Flow
-
-```text
-Open Skill Swap
-       ↓
-    Login Page
-       ↓
-Select Language
-       ↓
-English / Hindi / Gujarati
-       ↓
-Login / Continue
-       ↓
-Application Opens
-       ↓
-Profile → Language
-       ↓
-Change Language Anytime
-```
+4. **Certificate System** – Provide users with a certificate after successfully completing a skill, course, or playlist.
 
 
 # 📸 Screenshots
 
 Add screenshots of the application inside the `screenshots/` directory.
 
-Recommended screenshots:
-
-* Login
-* Home
-* Explore Skills
-* Skill Details
-* Create Trade
-* My Trades
-* Chat
-* Profile
-* Videos
-* Settings
-* Language Selection
-* Dark Mode
-
-Example:
+Recommended screenshots: Login, Home, Explore Skills, Skill Details, Add Resource, Create Trade, My Trades (5 tabs), Trade Detail, Chat, Profile, Videos, Settings, Language Selection, Dark Mode.
 
 ```markdown
 ## 📸 Screenshots
@@ -997,9 +917,10 @@ Example:
 
 # 🌐 Repository
 
-**GitHub Repository:**
+**GitHub Repository:** https://github.com/pandyaomsanjay/skill-swap
 
-https://github.com/pandyaomsanjay/skill-swap
+**Latest major commit (Sep 26, 2026 — Trade & Resource System):**
+https://github.com/pandyaomsanjay/skill-swap/commit/0d611ae2a28c767f558c5a0f8fbcbbde5359967c
 
 ---
 
@@ -1015,9 +936,7 @@ Skill Swap is designed to make knowledge exchange easier by connecting people wh
 
 # 📄 License
 
-No explicit open-source license is currently included in the repository.
-
-If this project is intended for public distribution or open-source use, add an appropriate `LICENSE` file.
+No explicit open-source license is currently included in the repository. If this project is intended for public distribution or open-source use, add an appropriate `LICENSE` file.
 
 ---
 
