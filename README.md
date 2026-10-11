@@ -248,6 +248,136 @@ chats
 
 ---
 
+## 🛡️ Chat Moderation, Encryption & Supabase Gateway
+
+Skill Swap now uses a Supabase Edge Function named `chat-gateway` for chat moderation, warning enforcement, and message encryption. Firestore remains the chat message store, while moderation state lives in Supabase Postgres.
+
+### What Changed
+
+* The merged `firestore.rules` file keeps the existing rules and changes only the `CHATS` section.
+* Messages can no longer be created directly from the Android app; only the `chat-gateway` edge function can write them.
+* Clients also cannot write the last-message preview.
+* Delete-for-everyone now clears `ciphertext` and `iv`.
+* Garbled characters in existing comments were cleaned up.
+* The Firestore rules file should be pasted into **Firebase Console → Firestore → Rules** and published **last** during rollout.
+
+### How It Works on Supabase
+
+* Chat messages stay in **Firestore**.
+* The warning counter and 24-hour block live in **Supabase Postgres**, so one row lock makes the warning counter atomic.
+* The `chat-gateway` function:
+
+  1. Checks the Firebase login token.
+  2. Applies warnings and the 24-hour block.
+  3. Encrypts the message.
+  4. Writes the message to Firestore using a Firebase service account.
+
+* Appeals and reports work through a database table plus a resolve request from an admin account.
+* The flow uses the existing `userType == "admin"` rule. There is no in-app review screen.
+
+### Setup Summary
+
+Full setup commands are in `SETUP_SUPABASE.md`.
+
+1. Run `001_chat_moderation.sql` in the Supabase SQL Editor.
+2. Enable `pg_cron` and schedule the daily job.
+3. Download a Firebase service-account key from **Firebase Console → Project settings → Service accounts**.
+4. Set three Supabase secrets:
+
+   * `CHAT_MASTER_KEY` — generate and back it up first.
+   * `FIREBASE_PROJECT_ID`
+   * `FIREBASE_SERVICE_ACCOUNT`
+
+5. Deploy the function:
+
+   ```bash
+   supabase functions deploy chat-gateway --no-verify-jwt
+   ```
+
+   The `--no-verify-jwt` flag is required because the app sends Firebase tokens.
+
+6. If using the Supabase Dashboard instead of the CLI:
+
+   * Go to **Edge Functions → Deploy a new function → Via Editor**.
+   * Name it exactly `chat-gateway`.
+   * Paste `index.ts` into the main file.
+   * Add the other 5 files with exact names: `auth.ts`, `crypto.ts`, `firestore.ts`, `moderation.ts`, `policy.ts`.
+   * Click **Deploy**.
+   * Open the function’s **Settings / Details** and turn **OFF** “Verify JWT”.
+   * Save the 3 secrets.
+
+7. Rollout order:
+
+   * Deploy the backend first.
+   * Release the new app and force-update it.
+   * Publish the new Firestore rules last.
+   * Publishing the rules earlier breaks sending for everyone on an old app version.
+
+### Files Added and Replaced
+
+| Type | Files | Count |
+|---|---|---|
+| New Android files | `ChatCrypto.kt`, `ModerationClient.kt`, `ModerationMessages.kt` | 3 |
+| New Supabase edge function files | `index.ts`, `auth.ts`, `crypto.ts`, `firestore.ts`, `moderation.ts`, `policy.ts` | 6 |
+| New SQL file | `001_chat_moderation.sql` | 1 |
+| Existing Android files replaced | `Chatmessage.kt`, `ChatActivity.kt`, `ChatListActivity.kt`, `NewChatActivity.kt` | 4 |
+| Existing Android XML replaced | `data_extraction_rules.xml`, `backup_rules.xml` | 2 |
+| Existing Firestore rules replaced | `firestore.rules` | 1 |
+
+Optional tests: `ChatCryptoTest.kt`, `ModerationMessagesTest.kt`, `KeystoreKeyWrapperTest.kt`, `sql.test.mjs`, `crypto-interop.test.ts`. These can be skipped; the app works without them. The `_alternative_firebase_functions` folder is the old Firebase version and is not used.
+
+### Test Status
+
+Passed:
+
+* SQL ran in an in-process Postgres.
+* Checks covered warnings 1 to 5, the 24-hour block, retries counting once, the block applying across chats, expiry, spam repeats, appeals, and overturns.
+* The abuse, threat, sexual, and spam word-filter rules passed 35 test cases.
+* Edge function encryption matches the earlier Node implementation in both directions.
+
+Not tested:
+
+* The edge function itself.
+* The Firestore rules in the emulator; only bracket balance was checked.
+* The Kotlin code is uncompiled. Send build errors if any appear.
+
+### Deployment Check
+
+Before deploying:
+
+* All 6 function files are present.
+* The function name is exactly `chat-gateway`.
+* No file is empty.
+* Each file ends with a closing `}` or `);`.
+* Do not add a 7th file.
+
+After deploying, test the function is alive by opening:
+
+```text
+https://ghrxltlstncjcizyyqfo.supabase.co/functions/v1/chat-gateway/status
+```
+
+A browser sends `GET`, so the expected response is similar to:
+
+```json
+{"error":"method-not-allowed", ...}
+```
+
+That proves the function is running. If you see `Invalid JWT` or `404`, check the Verify JWT setting and the function URL.
+
+Then replace the Android files, run the app, and test:
+
+1. Send `hello`.
+2. Send `you are an idiot`.
+
+Leave the Firestore rules for last.
+
+### Behavior Note
+
+The restriction banner now refreshes when you open a chat and after each send. It is not live like the earlier Firestore-listener version.
+
+---
+
 # 🎥 Skill Videos
 
 Users can share videos related to their skills.
@@ -885,7 +1015,6 @@ verification_queries.sql
 3. **Low-Points Warning** – Notify users when their point balance is insufficient to access a playlist and provide suggestions for earning more points.
 
 4. **Certificate System** – Provide users with a certificate after successfully completing a skill, course, or playlist.
-
 
 # 📸 Screenshots
 
