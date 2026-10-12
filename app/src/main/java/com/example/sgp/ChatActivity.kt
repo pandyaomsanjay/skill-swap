@@ -2,10 +2,14 @@ package com.example.sgp
 
 import android.content.Context
 import android.content.SharedPreferences
+import android.content.res.ColorStateList
 import android.graphics.Color
 import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
+import android.text.InputFilter
 import android.text.TextUtils
 import android.util.Log
 import android.view.Gravity
@@ -13,6 +17,7 @@ import android.view.HapticFeedbackConstants
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.EditText
 import android.widget.ImageButton
 import android.widget.LinearLayout
 import android.widget.TextView
@@ -25,6 +30,7 @@ import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.textfield.TextInputEditText
+import com.google.android.material.textfield.TextInputLayout
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
@@ -51,6 +57,9 @@ sealed class ChatListItem {
     data class MessageItem(val message: ChatMessage) : ChatListItem()
 }
 
+/** What the adapter should show for a message (decrypted, placeholder, or deleted notice). */
+data class MessageDisplay(val text: String, val italic: Boolean = false)
+
 class ChatActivity : BaseActivity() {
 
     companion object {
@@ -58,17 +67,22 @@ class ChatActivity : BaseActivity() {
         private const val NOTIFY_FUNCTION_URL =
             "https://ghrxltlstncjcizyyqfo.supabase.co/functions/v1/send-chat-notification"
         private const val DELETE_FOR_EVERYONE_WINDOW_MS = 60 * 60 * 1000L // 1 hour
+        private const val MAX_MESSAGE_LENGTH = 2000 // keep in sync with policy.maxMessageLength
     }
 
     private lateinit var db: FirebaseFirestore
     private lateinit var recyclerView: RecyclerView
     private lateinit var etMessage: TextInputEditText
+    private lateinit var tilMessage: TextInputLayout
     private lateinit var btnSend: ImageButton
     private lateinit var adapter: MessageAdapter
 
     private val messages = mutableListOf<ChatMessage>()
     private val chatItems = mutableListOf<ChatListItem>()
     private var messagesListener: ListenerRegistration? = null
+
+    /** Messages shown immediately but not yet confirmed by the server (they now arrive via Cloud Function). */
+    private val pendingOutgoing = LinkedHashMap<String, ChatMessage>()
 
     private lateinit var conversationId: String
     private lateinit var myEmail: String
@@ -77,6 +91,17 @@ class ChatActivity : BaseActivity() {
     private var skillId: String? = null
     private var skillTitle: String? = null
     private var myDisplayName: String = ""
+
+    // ---------------------------------------------------------------------
+    // ENCRYPTION + MODERATION STATE
+    // ---------------------------------------------------------------------
+    private var conversationKey: ByteArray? = null
+    private var keyLoading = false
+
+    private var moderationState = ModerationState()
+    private var restrictionNoticeShown = false
+    private val tickHandler = Handler(Looper.getMainLooper())
+    private val tickRunnable = Runnable { updateRestrictionUi() }
 
     // ---------------------------------------------------------------------
     // THEME
@@ -201,10 +226,15 @@ class ChatActivity : BaseActivity() {
         val layoutManager = LinearLayoutManager(this)
         layoutManager.stackFromEnd = true
         recyclerView.layoutManager = layoutManager
-        adapter = MessageAdapter(chatItems, myEmail, isDarkModeEnabled) { message -> showMessageOptionsDialog(message) }
+        adapter = MessageAdapter(
+            chatItems, myEmail, isDarkModeEnabled,
+            { message -> resolveDisplay(message) },
+            { message -> showMessageOptionsDialog(message) }
+        )
         recyclerView.adapter = adapter
 
         etMessage = findViewById(R.id.etMessage)
+        tilMessage = findViewById(R.id.tilMessageInput)
         btnSend = findViewById(R.id.btnSend)
         btnSend.setOnClickListener { sendMessage() }
 
@@ -218,6 +248,8 @@ class ChatActivity : BaseActivity() {
     override fun onStart() {
         super.onStart()
         listenForMessages()
+        refreshModerationStatus()
+        loadConversationKey()
         markAsRead()
     }
 
@@ -235,6 +267,7 @@ class ChatActivity : BaseActivity() {
         super.onStop()
         messagesListener?.remove()
         messagesListener = null
+        tickHandler.removeCallbacks(tickRunnable)
     }
 
     override fun onDestroy() {
@@ -269,14 +302,15 @@ class ChatActivity : BaseActivity() {
         recyclerView.setBackgroundColor(screenBg)
         findViewById<View>(R.id.layoutInputBar)?.setBackgroundColor(inputBarBg)
 
-        findViewById<com.google.android.material.textfield.TextInputLayout>(R.id.tilMessageInput)?.apply {
+        findViewById<TextInputLayout>(R.id.tilMessageInput)?.apply {
             boxBackgroundColor = inputBoxBg
             boxStrokeColor = inputStroke
+            setHelperTextColor(ColorStateList.valueOf(textSecondary))
         }
         etMessage.setTextColor(textPrimary)
         etMessage.setHintTextColor(textSecondary)
 
-        btnSend.backgroundTintList = android.content.res.ColorStateList.valueOf(sendBg)
+        btnSend.backgroundTintList = ColorStateList.valueOf(sendBg)
     }
 
     // ---------------------------------------------------------------------
@@ -294,6 +328,7 @@ class ChatActivity : BaseActivity() {
     private fun currentSecondaryBtnText(): Int = if (isDarkModeEnabled) darkTextPrimary else lightTextSecondary
     private fun currentDangerBg(): Int = if (isDarkModeEnabled) dialogDangerDark else dialogDangerLight
     private fun currentDangerText(): Int = if (isDarkModeEnabled) dialogDangerTextDark else dialogDangerTextLight
+    private fun currentPrimaryBtnBg(): Int = if (isDarkModeEnabled) darkSendBtnBg else lightSendBtnBg
 
     private fun dp(value: Int): Int = (value * resources.displayMetrics.density).toInt()
 
@@ -322,6 +357,210 @@ class ChatActivity : BaseActivity() {
             }
             isClickable = true
             isFocusable = true
+        }
+    }
+
+    private fun matchWrap(bottom: Int = 0, top: Int = 0) = LinearLayout.LayoutParams(
+        LinearLayout.LayoutParams.MATCH_PARENT,
+        LinearLayout.LayoutParams.WRAP_CONTENT
+    ).apply { bottomMargin = bottom; topMargin = top }
+
+    // ---------------------------------------------------------------------
+    // MODERATION / WARNING DIALOGS (same visual language as the delete dialogs)
+    // ---------------------------------------------------------------------
+    private fun showInfoDialog(
+        title: String,
+        body: String,
+        secondaryLabel: String? = null,
+        onSecondary: (() -> Unit)? = null
+    ) {
+        val root = dialogCard()
+        root.addView(TextView(this).apply {
+            text = title
+            setTextColor(currentTextPrimary())
+            textSize = 17f
+            setTypeface(typeface, Typeface.BOLD)
+            layoutParams = matchWrap(bottom = dp(8))
+        })
+        root.addView(TextView(this).apply {
+            text = body
+            setTextColor(currentTextSecondary())
+            textSize = 14f
+            layoutParams = matchWrap(bottom = dp(18))
+        })
+
+        val dialog = AlertDialog.Builder(this).setView(root).create()
+        dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
+
+        root.addView(pillButton("OK", currentPrimaryBtnBg(), Color.WHITE).apply {
+            setOnClickListener { dialog.dismiss() }
+            layoutParams = matchWrap(bottom = dp(8))
+        })
+        if (secondaryLabel != null && onSecondary != null) {
+            root.addView(pillButton(secondaryLabel, currentSecondaryBtnBg(), currentSecondaryBtnText()).apply {
+                setOnClickListener {
+                    dialog.dismiss()
+                    onSecondary()
+                }
+            })
+        }
+        dialog.show()
+    }
+
+    /** Small form dialog (one optional text field) used for appeals and reports. */
+    private fun showFormDialog(
+        title: String,
+        description: String,
+        hint: String,
+        confirmLabel: String,
+        onConfirm: (String) -> Unit
+    ) {
+        val root = dialogCard()
+        root.addView(TextView(this).apply {
+            text = title
+            setTextColor(currentTextPrimary())
+            textSize = 17f
+            setTypeface(typeface, Typeface.BOLD)
+            layoutParams = matchWrap(bottom = dp(8))
+        })
+        root.addView(TextView(this).apply {
+            text = description
+            setTextColor(currentTextSecondary())
+            textSize = 13f
+            layoutParams = matchWrap(bottom = dp(12))
+        })
+        val input = EditText(this).apply {
+            this.hint = hint
+            setTextColor(currentTextPrimary())
+            setHintTextColor(currentTextSecondary())
+            filters = arrayOf(InputFilter.LengthFilter(500))
+            minLines = 2
+            maxLines = 4
+            layoutParams = matchWrap(bottom = dp(16))
+        }
+        root.addView(input)
+
+        val dialog = AlertDialog.Builder(this).setView(root).create()
+        dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
+
+        val row = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+        row.addView(
+            pillButton("Cancel", currentSecondaryBtnBg(), currentSecondaryBtnText()).apply {
+                setOnClickListener { dialog.dismiss() }
+            },
+            LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply { marginEnd = dp(8) }
+        )
+        row.addView(
+            pillButton(confirmLabel, currentPrimaryBtnBg(), Color.WHITE).apply {
+                setOnClickListener {
+                    dialog.dismiss()
+                    onConfirm(input.text?.toString()?.trim().orEmpty())
+                }
+            },
+            LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+        )
+        root.addView(row)
+        dialog.show()
+    }
+
+    private fun showViolationDialog(outcome: SendOutcome.Rejected, rejectedText: String) {
+        val now = ModerationClient.now()
+        val reason = "Detected: ${ModerationMessages.categoryLabel(outcome.category)}. This is an automatic check, " +
+                "so it can be wrong. You can appeal."
+        showInfoDialog(
+            title = ModerationMessages.warningTitle(outcome.warningCount),
+            body = ModerationMessages.warningBody(outcome.warningCount, outcome.blockedUntilMillis, now) + "\n\n" + reason,
+            secondaryLabel = if (outcome.eventId.isNotEmpty()) "Appeal this decision" else null,
+            onSecondary = { showAppealDialog(outcome.eventId, rejectedText) }
+        )
+    }
+
+    private fun showAppealDialog(eventId: String, rejectedText: String) {
+        showFormDialog(
+            title = "Appeal this decision",
+            description = "A reviewer will see your note and the message you tried to send. " +
+                    "If we got it wrong, the warning will be removed.",
+            hint = "Why does this message follow the guidelines? (optional)",
+            confirmLabel = "Submit appeal"
+        ) { note ->
+            lifecycleScope.launch {
+                val ok = ModerationClient.appeal(eventId, note, rejectedText)
+                Toast.makeText(
+                    this@ChatActivity,
+                    if (ok) "Appeal submitted. Thank you." else "Couldn't submit the appeal. Please try again later.",
+                    Toast.LENGTH_LONG
+                ).show()
+            }
+        }
+    }
+
+    private fun showRestrictionDialog(state: ModerationState) {
+        val until = state.blockedUntilMillis ?: return
+        val fmt = SimpleDateFormat("d MMM yyyy, h:mm a", Locale.getDefault())
+        val started = state.blockStartedMillis?.let { "Started: ${fmt.format(Date(it))}\n" } ?: ""
+        val reason = state.blockReason?.let { "Reason: $it\n" } ?: ""
+        val remaining = ModerationMessages.formatRemaining(until - ModerationClient.now())
+        showInfoDialog(
+            title = "Chat sending restricted",
+            body = ModerationMessages.BLOCKED_BODY + "\n\n" + reason + started +
+                    "Ends: ${fmt.format(Date(until))}\nTime left: $remaining\n\n" +
+                    "You can still read your conversations."
+        )
+    }
+
+    private fun confirmReport(message: ChatMessage) {
+        showFormDialog(
+            title = "Report this message?",
+            description = "Reviewers will see this message to decide if it breaks the community guidelines. " +
+                    "The sender is not told who reported it.",
+            hint = "What's wrong with it? (optional)",
+            confirmLabel = "Report"
+        ) { reason ->
+            lifecycleScope.launch {
+                val ok = ModerationClient.report(conversationId, message.id, reason)
+                Toast.makeText(
+                    this@ChatActivity,
+                    if (ok) "Thanks. We'll review this message." else "Couldn't send the report. Please try again.",
+                    Toast.LENGTH_LONG
+                ).show()
+            }
+        }
+    }
+
+    // ---------------------------------------------------------------------
+    // RESTRICTION UI (display only; the server is the authority)
+    // ---------------------------------------------------------------------
+    /** Asks the server for warnings/restriction (display only; the server enforces on every send). */
+    private fun refreshModerationStatus() {
+        lifecycleScope.launch {
+            val state = ModerationClient.fetchStatus() ?: return@launch
+            moderationState = state
+            updateRestrictionUi()
+            if (!restrictionNoticeShown && state.isBlockedAt(ModerationClient.now())) {
+                restrictionNoticeShown = true
+                showRestrictionDialog(state)
+            }
+        }
+    }
+
+    private fun updateRestrictionUi() {
+        tickHandler.removeCallbacks(tickRunnable)
+        val now = ModerationClient.now()
+        val until = moderationState.blockedUntilMillis
+        if (until != null && until > now) {
+            etMessage.isEnabled = false
+            btnSend.isEnabled = false
+            btnSend.alpha = 0.5f
+            tilMessage.isHelperTextEnabled = true
+            tilMessage.helperText = "Sending restricted · ${ModerationMessages.formatRemaining(until - now)} left"
+            tickHandler.postDelayed(tickRunnable, 1000)
+        } else {
+            etMessage.isEnabled = true
+            btnSend.isEnabled = true
+            btnSend.alpha = 1f
+            val w = moderationState.warningCount
+            tilMessage.isHelperTextEnabled = w > 0
+            tilMessage.helperText = if (w > 0) "Warnings: $w of ${ModerationMessages.WARNINGS_BEFORE_BLOCK}" else null
         }
     }
 
@@ -358,9 +597,21 @@ class ChatActivity : BaseActivity() {
             "skillTitle" to skillTitle
         )
         convoRef.set(data, com.google.firebase.firestore.SetOptions.merge())
+            .addOnSuccessListener { loadConversationKey() }
             .addOnFailureListener { e ->
                 Toast.makeText(this, "Failed to open chat: ${e.message}", Toast.LENGTH_SHORT).show()
             }
+    }
+
+    /** Fetches (or reads from the Keystore-wrapped cache) this conversation's decryption key. */
+    private fun loadConversationKey() {
+        if (keyLoading || conversationKey != null) return
+        keyLoading = true
+        lifecycleScope.launch {
+            conversationKey = ChatKeys.provider(applicationContext).getKey(conversationId)
+            keyLoading = false
+            if (conversationKey != null) adapter.notifyDataSetChanged()
+        }
     }
 
     private fun markAsRead() {
@@ -382,31 +633,72 @@ class ChatActivity : BaseActivity() {
                 if (snapshot != null) {
                     val freshMessages = mutableListOf<ChatMessage>()
                     for (doc in snapshot.documents) {
-                        doc.toObject(ChatMessage::class.java)?.let { freshMessages.add(it) }
+                        try {
+                            doc.toObject(ChatMessage::class.java)?.let { freshMessages.add(it) }
+                        } catch (e: Exception) {
+                            // One malformed document must never take the whole chat down.
+                            Log.w(TAG, "skipping unreadable message document")
+                        }
                     }
 
                     messages.clear()
                     messages.addAll(freshMessages)
+                    // Server copy has arrived: drop the optimistic placeholder.
+                    freshMessages.forEach { pendingOutgoing.remove(it.id) }
 
                     rebuildDisplayList()
                     adapter.notifyDataSetChanged()
                     if (chatItems.isNotEmpty()) {
                         recyclerView.scrollToPosition(chatItems.size - 1)
                     }
+                    if (conversationKey == null) loadConversationKey()
                 }
             }
     }
 
+    // ---------------------------------------------------------------------
+    // DECRYPTION FOR DISPLAY
+    // ---------------------------------------------------------------------
+    private fun resolveDisplay(message: ChatMessage): MessageDisplay {
+        if (message.deleted) return MessageDisplay("This message was deleted", true)
+        // Legacy (pre-encryption) messages and local optimistic messages are plaintext by construction.
+        // Encrypted messages are identified ONLY by encVersion, never by looking at the text.
+        if (!message.isEncrypted) return MessageDisplay(message.text)
+
+        val aad = MessageCipher.messageAad(conversationId, message.id, message.senderId)
+        return when (val r = MessageCipher.decrypt(conversationKey, message.encVersion, message.ciphertext, message.iv, aad)) {
+            is DecryptResult.Success -> MessageDisplay(r.text)
+            DecryptResult.MissingKey ->
+                MessageDisplay(if (keyLoading) "🔒 Unlocking…" else "🔒 Message locked. Check your connection.", true)
+            DecryptResult.Tampered, DecryptResult.Corrupt ->
+                MessageDisplay("⚠️ This message could not be verified.", true)
+            DecryptResult.Unsupported ->
+                MessageDisplay("🔒 Update SkillSwap to read this message.", true)
+        }
+    }
+
+    // ---------------------------------------------------------------------
+    // SENDING (goes through the trusted sendMessage Cloud Function)
+    // ---------------------------------------------------------------------
     private fun sendMessage() {
         val text = etMessage.text?.toString()?.trim().orEmpty()
         if (TextUtils.isEmpty(text)) return
+        if (text.length > MAX_MESSAGE_LENGTH) {
+            Toast.makeText(this, "Message is too long.", Toast.LENGTH_SHORT).show()
+            return
+        }
+        // UX shortcut only. The server re-checks the restriction on every message.
+        if (moderationState.isBlockedAt(ModerationClient.now())) {
+            showRestrictionDialog(moderationState)
+            return
+        }
 
-        val messagesRef = db.collection("chats").document(conversationId).collection("messages")
-        val docRef = messagesRef.document()
+        // Client-generated id is the idempotency key for retries.
+        val messageId = db.collection("chats").document(conversationId).collection("messages").document().id
         val clientTimestamp = System.currentTimeMillis()
 
-        val optimisticMessage = ChatMessage(
-            id = docRef.id,
+        pendingOutgoing[messageId] = ChatMessage(
+            id = messageId,
             senderId = myEmail,
             senderName = myDisplayName,
             receiverId = otherEmail,
@@ -414,52 +706,64 @@ class ChatActivity : BaseActivity() {
             timestamp = clientTimestamp,
             serverTimestamp = null
         )
-
         etMessage.setText("")
-
-        messages.add(optimisticMessage)
         rebuildDisplayList()
         adapter.notifyDataSetChanged()
-        if (chatItems.isNotEmpty()) {
-            recyclerView.scrollToPosition(chatItems.size - 1)
+        if (chatItems.isNotEmpty()) recyclerView.scrollToPosition(chatItems.size - 1)
+
+        lifecycleScope.launch {
+            handleOutcome(messageId, text, ModerationClient.sendMessage(conversationId, messageId, text, clientTimestamp))
         }
-
-        val messageData = hashMapOf(
-            "id" to docRef.id,
-            "senderId" to myEmail,
-            "senderName" to myDisplayName,
-            "receiverId" to otherEmail,
-            "text" to text,
-            "timestamp" to clientTimestamp,
-            "serverTimestamp" to FieldValue.serverTimestamp()
-        )
-
-        docRef.set(messageData)
-            .addOnSuccessListener {
-                db.collection("chats").document(conversationId)
-                    .set(
-                        mapOf(
-                            "lastMessage" to text,
-                            "lastTimestamp" to clientTimestamp,
-                            "lastSenderId" to myEmail,
-                            "unreadFor" to listOf(otherEmail)
-                        ),
-                        com.google.firebase.firestore.SetOptions.merge()
-                    )
-                sendPushNotification(text)
-            }
-            .addOnFailureListener { e ->
-                val idx = messages.indexOfFirst { it.id == optimisticMessage.id }
-                if (idx != -1) {
-                    messages.removeAt(idx)
-                    rebuildDisplayList()
-                    adapter.notifyDataSetChanged()
-                }
-                Toast.makeText(this, "Failed to send: ${e.message}", Toast.LENGTH_SHORT).show()
-            }
     }
 
-    private fun sendPushNotification(text: String) {
+    private fun handleOutcome(messageId: String, text: String, outcome: SendOutcome) {
+        when (outcome) {
+            is SendOutcome.Sent -> {
+                // Placeholder is removed when the real document arrives in the snapshot listener.
+                if (!outcome.duplicate) sendPushNotification()
+            }
+            is SendOutcome.Rejected -> {
+                dropPending(messageId)
+                moderationState = moderationState.copy(
+                    warningCount = outcome.warningCount,
+                    blockedUntilMillis = outcome.blockedUntilMillis ?: moderationState.blockedUntilMillis
+                )
+                updateRestrictionUi()
+                showViolationDialog(outcome, text)
+            }
+            is SendOutcome.Blocked -> {
+                dropPending(messageId)
+                restoreDraft(text)
+                moderationState = ModerationState(
+                    outcome.warningCount, outcome.blockedUntilMillis, outcome.blockStartedMillis, outcome.reason
+                )
+                updateRestrictionUi()
+                showRestrictionDialog(moderationState)
+            }
+            is SendOutcome.Failed -> {
+                dropPending(messageId)
+                restoreDraft(text)
+                Toast.makeText(this, outcome.message, Toast.LENGTH_LONG).show()
+            }
+        }
+    }
+
+    private fun dropPending(messageId: String) {
+        if (pendingOutgoing.remove(messageId) != null) {
+            rebuildDisplayList()
+            adapter.notifyDataSetChanged()
+        }
+    }
+
+    private fun restoreDraft(text: String) {
+        if (etMessage.text.isNullOrEmpty()) {
+            etMessage.setText(text)
+            etMessage.setSelection(text.length)
+        }
+    }
+
+    /** The push body is deliberately generic: message plaintext must not leave the app for third parties. */
+    private fun sendPushNotification() {
         lifecycleScope.launch {
             try {
                 val response = httpClient.post(NOTIFY_FUNCTION_URL) {
@@ -469,14 +773,14 @@ class ChatActivity : BaseActivity() {
                             senderId = myEmail,
                             senderName = myDisplayName,
                             receiverId = otherEmail,
-                            text = text,
+                            text = "Sent you a message",
                             conversationId = conversationId
                         )
                     )
                 }
                 Log.d(TAG, "Push notification response: ${response.status}")
             } catch (e: Exception) {
-                Log.e(TAG, "Failed to send push notification: ${e.message}", e)
+                Log.e(TAG, "Failed to send push notification: ${e.javaClass.simpleName}")
             }
         }
     }
@@ -491,7 +795,7 @@ class ChatActivity : BaseActivity() {
         chatItems.clear()
         var lastDateLabel: String? = null
 
-        val sortedList = messages
+        val sortedList = (messages + pendingOutgoing.values)
             .filter { !it.deletedFor.contains(myEmail) }
             .sortedWith(
                 compareBy<ChatMessage> { effectiveMillis(it) }
@@ -523,10 +827,11 @@ class ChatActivity : BaseActivity() {
         }
     }
 
-    // ---------------- Delete Message (themed dialogs) ----------------
+    // ---------------- Message options (delete / report) ----------------
 
     private fun showMessageOptionsDialog(message: ChatMessage) {
         if (message.deleted) return
+        if (pendingOutgoing.containsKey(message.id)) return // not on the server yet
 
         val isMine = message.senderId == myEmail
         val withinDeleteForEveryoneWindow =
@@ -535,14 +840,11 @@ class ChatActivity : BaseActivity() {
         val root = dialogCard()
 
         root.addView(TextView(this).apply {
-            text = "Delete message?"
+            text = "Message options"
             setTextColor(currentTextPrimary())
             textSize = 17f
             setTypeface(typeface, Typeface.BOLD)
-            layoutParams = LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT
-            ).apply { bottomMargin = dp(16) }
+            layoutParams = matchWrap(bottom = dp(16))
         })
 
         val dialog = AlertDialog.Builder(this).setView(root).create()
@@ -554,10 +856,7 @@ class ChatActivity : BaseActivity() {
                     dialog.dismiss()
                     deleteForMe(message)
                 }
-                layoutParams = LinearLayout.LayoutParams(
-                    LinearLayout.LayoutParams.MATCH_PARENT,
-                    LinearLayout.LayoutParams.WRAP_CONTENT
-                ).apply { bottomMargin = dp(8) }
+                layoutParams = matchWrap(bottom = dp(8))
             }
         )
 
@@ -568,10 +867,19 @@ class ChatActivity : BaseActivity() {
                         dialog.dismiss()
                         confirmDeleteForEveryone(message)
                     }
-                    layoutParams = LinearLayout.LayoutParams(
-                        LinearLayout.LayoutParams.MATCH_PARENT,
-                        LinearLayout.LayoutParams.WRAP_CONTENT
-                    ).apply { bottomMargin = dp(8) }
+                    layoutParams = matchWrap(bottom = dp(8))
+                }
+            )
+        }
+
+        if (!isMine) {
+            root.addView(
+                pillButton("Report message", currentSecondaryBtnBg(), currentDangerText()).apply {
+                    setOnClickListener {
+                        dialog.dismiss()
+                        confirmReport(message)
+                    }
+                    layoutParams = matchWrap(bottom = dp(8))
                 }
             )
         }
@@ -592,10 +900,7 @@ class ChatActivity : BaseActivity() {
             text = "⚠️"
             textSize = 30f
             gravity = Gravity.CENTER
-            layoutParams = LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT
-            ).apply { bottomMargin = dp(8) }
+            layoutParams = matchWrap(bottom = dp(8))
         })
 
         root.addView(TextView(this).apply {
@@ -611,13 +916,7 @@ class ChatActivity : BaseActivity() {
             setTextColor(currentTextSecondary())
             textSize = 13f
             gravity = Gravity.CENTER
-            layoutParams = LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT
-            ).apply {
-                topMargin = dp(8)
-                bottomMargin = dp(18)
-            }
+            layoutParams = matchWrap(top = dp(8), bottom = dp(18))
         })
 
         val dialog = AlertDialog.Builder(this).setView(root).create()
@@ -658,12 +957,15 @@ class ChatActivity : BaseActivity() {
     }
 
     private fun deleteForEveryone(message: ChatMessage) {
+        // Wipes the ciphertext as well as the text. Firestore rules allow exactly these four fields.
         db.collection("chats").document(conversationId)
             .collection("messages").document(message.id)
             .update(
                 mapOf(
                     "deleted" to true,
-                    "text" to "This message was deleted"
+                    "text" to "This message was deleted",
+                    "ciphertext" to "",
+                    "iv" to ""
                 )
             )
             .addOnFailureListener { e ->
@@ -677,6 +979,7 @@ class ChatActivity : BaseActivity() {
         private val items: List<ChatListItem>,
         private val myEmail: String,
         private var isDarkMode: Boolean,
+        private val displayResolver: (ChatMessage) -> MessageDisplay,
         private val onMessageLongClick: (ChatMessage) -> Unit
     ) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
 
@@ -735,7 +1038,7 @@ class ChatActivity : BaseActivity() {
                 is ChatListItem.DateHeader -> {
                     val h = holder as DateHeaderViewHolder
                     h.tvDateHeader.text = item.label
-                    h.tvDateHeader.backgroundTintList = android.content.res.ColorStateList.valueOf(
+                    h.tvDateHeader.backgroundTintList = ColorStateList.valueOf(
                         if (isDarkMode) Color.parseColor("#2A3B48") else Color.parseColor("#1B3C53")
                     )
                     h.tvDateHeader.setTextColor(
@@ -746,8 +1049,12 @@ class ChatActivity : BaseActivity() {
                     val message = item.message
                     val displayTimestamp = message.serverTimestamp?.toDate()?.time ?: message.timestamp
                     val timeStr = android.text.format.DateFormat.format("h:mm a", displayTimestamp).toString()
-                    val displayText = if (message.deleted) "This message was deleted" else message.text
-                    val style = if (message.deleted) Typeface.ITALIC else Typeface.NORMAL
+                    val display = try {
+                        displayResolver(message)
+                    } catch (e: Exception) {
+                        MessageDisplay("⚠️ This message could not be shown.", true)
+                    }
+                    val style = if (display.italic) Typeface.ITALIC else Typeface.NORMAL
                     val timeColor = if (isDarkMode) Color.parseColor("#8FA6B8") else Color.parseColor("#456882")
 
                     val longClickListener = View.OnLongClickListener {
@@ -766,7 +1073,7 @@ class ChatActivity : BaseActivity() {
                             holder.tvText.setTextColor(
                                 if (isDarkMode) Color.parseColor("#F5F7F8") else Color.parseColor("#F9F3EF")
                             )
-                            holder.tvText.text = displayText
+                            holder.tvText.text = display.text
                             holder.tvText.setTypeface(holder.tvText.typeface, style)
                             holder.tvTime.text = timeStr
                             holder.tvTime.setTextColor(timeColor)
@@ -781,7 +1088,7 @@ class ChatActivity : BaseActivity() {
                             holder.tvText.setTextColor(
                                 if (isDarkMode) Color.parseColor("#F5F7F8") else Color.parseColor("#1B3C53")
                             )
-                            holder.tvText.text = displayText
+                            holder.tvText.text = display.text
                             holder.tvText.setTypeface(holder.tvText.typeface, style)
                             holder.tvTime.text = timeStr
                             holder.tvTime.setTextColor(timeColor)

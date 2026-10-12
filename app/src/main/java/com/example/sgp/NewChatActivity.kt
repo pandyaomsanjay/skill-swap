@@ -12,7 +12,9 @@ import android.view.ViewOutlineProvider
 import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.TextView
+import android.widget.Toast
 import androidx.appcompat.widget.Toolbar
+import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.DividerItemDecoration
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -20,6 +22,7 @@ import com.bumptech.glide.Glide
 import com.google.android.material.textfield.TextInputEditText
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
+import kotlinx.coroutines.launch
 
 data class SimpleUser(
     val uid: String,
@@ -119,7 +122,28 @@ class NewChatActivity : BaseActivity() {
         recyclerView.visibility = if (showEmpty) View.GONE else View.VISIBLE
     }
 
+    /**
+     * Starting a chat never bypasses the restriction: the block is enforced per USER on the server
+     * (sendMessage Cloud Function), not per conversation. Here we only tell restricted users up front.
+     * The restriction status comes from the Supabase gateway. The conversation key is fetched by ChatActivity once the conversation document exists.
+     */
     private fun startChatWith(user: SimpleUser) {
+        lifecycleScope.launch {
+            val state = ModerationClient.fetchStatus()
+            val now = ModerationClient.now()
+            if (state != null && state.isBlockedAt(now)) {
+                val left = ModerationMessages.formatRemaining((state.blockedUntilMillis ?: now) - now)
+                Toast.makeText(
+                    this@NewChatActivity,
+                    "Chat sending is restricted for $left. You can open chats but not send messages.",
+                    Toast.LENGTH_LONG
+                ).show()
+            }
+            openChat(user)
+        }
+    }
+
+    private fun openChat(user: SimpleUser) {
         val intent = Intent(this, ChatActivity::class.java)
         intent.putExtra("otherUserEmail", user.email)
         intent.putExtra("otherUserName", user.name)

@@ -6,6 +6,7 @@ import android.content.SharedPreferences
 import android.graphics.Color
 import android.graphics.Typeface
 import android.os.Bundle
+import android.os.SystemClock
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -14,6 +15,7 @@ import android.widget.TextView
 import androidx.appcompat.widget.Toolbar
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
+import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
@@ -21,6 +23,8 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ListenerRegistration
 import com.google.firebase.firestore.Query
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.launch
 
 class ChatListActivity : BaseActivity() {
 
@@ -76,7 +80,10 @@ class ChatListActivity : BaseActivity() {
 
         recyclerView = findViewById(R.id.recyclerViewChatList)
         recyclerView.layoutManager = LinearLayoutManager(this)
-        adapter = ConversationAdapter(conversations, myEmail, db, isDarkModeEnabled) { convo -> openConversation(convo) }
+        adapter = ConversationAdapter(
+            conversations, myEmail, db, isDarkModeEnabled,
+            lifecycleScope, ChatKeys.provider(applicationContext)
+        ) { convo -> openConversation(convo) }
         recyclerView.adapter = adapter
 
         val recyclerBasePaddingBottom = recyclerView.paddingBottom
@@ -137,8 +144,12 @@ class ChatListActivity : BaseActivity() {
                 if (error != null) return@addSnapshotListener
                 conversations.clear()
                 snapshot?.documents?.forEach { doc ->
-                    doc.toObject(Conversation::class.java)?.let {
-                        conversations.add(it.copy(id = doc.id))
+                    try {
+                        doc.toObject(Conversation::class.java)?.let {
+                            conversations.add(it.copy(id = doc.id))
+                        }
+                    } catch (e: Exception) {
+                        // A malformed conversation document must not crash the list.
                     }
                 }
                 adapter.notifyDataSetChanged()
@@ -169,10 +180,16 @@ class ChatListActivity : BaseActivity() {
         private val myEmail: String,
         private val db: FirebaseFirestore,
         private var isDarkMode: Boolean,
+        private val scope: CoroutineScope,
+        private val keys: ConversationKeyProvider,
         private val onClick: (Conversation) -> Unit
     ) : RecyclerView.Adapter<ConversationAdapter.ViewHolder>() {
 
         private val photoCache = HashMap<String, String>()
+
+        // Key fetches that are running, and a cool-down after failures (offline) so rebinding doesn't hammer the backend.
+        private val keyFetchInFlight = HashSet<String>()
+        private val keyFetchFailedAt = HashMap<String, Long>()
 
         fun setDarkMode(dark: Boolean) {
             if (dark != isDarkMode) {
@@ -205,6 +222,51 @@ class ChatListActivity : BaseActivity() {
             return ViewHolder(view)
         }
 
+        /**
+         * Preview text for the list. Never throws. Never shows ciphertext. If the key isn't cached yet it shows a
+         * neutral placeholder, fetches the key in the background, and refreshes just that row.
+         */
+        private fun previewText(convo: Conversation): String {
+            if (convo.lastEncVersion == 0) return convo.lastMessage // legacy plaintext preview
+            if (convo.lastEncVersion != ENC_VERSION_AES_GCM_V1) return "🔒 Update SkillSwap to read this message"
+
+            val version = convo.lastKeyVersion.coerceAtLeast(1)
+            val key = try {
+                keys.peek(convo.id, version)
+            } catch (e: Exception) {
+                null
+            }
+            if (key == null) {
+                prefetchKey(convo, version)
+                return "🔒 Encrypted message"
+            }
+            return when (
+                val r = MessageCipher.decrypt(
+                    key, convo.lastEncVersion, convo.lastMessageCt, convo.lastMessageIv,
+                    MessageCipher.previewAad(convo.id, convo.lastTimestamp)
+                )
+            ) {
+                is DecryptResult.Success -> r.text
+                else -> "🔒 Message unavailable"
+            }
+        }
+
+        private fun prefetchKey(convo: Conversation, version: Int) {
+            val failedAt = keyFetchFailedAt[convo.id]
+            if (failedAt != null && SystemClock.elapsedRealtime() - failedAt < 30_000) return
+            if (!keyFetchInFlight.add(convo.id)) return
+            scope.launch {
+                val key = keys.getKey(convo.id, version)
+                keyFetchInFlight.remove(convo.id)
+                if (key == null) {
+                    keyFetchFailedAt[convo.id] = SystemClock.elapsedRealtime()
+                } else {
+                    val idx = items.indexOfFirst { it.id == convo.id }
+                    if (idx >= 0) notifyItemChanged(idx)
+                }
+            }
+        }
+
         override fun onBindViewHolder(holder: ViewHolder, position: Int) {
             val convo = items[position]
             val otherEmail = convo.participants.firstOrNull { it != myEmail } ?: ""
@@ -233,7 +295,7 @@ class ChatListActivity : BaseActivity() {
 
             holder.tvName.text = otherName
             holder.tvName.setTextColor(textPrimary)
-            holder.tvLastMessage.text = convo.lastMessage
+            holder.tvLastMessage.text = previewText(convo)
             holder.tvLastMessage.setTextColor(textSecondary)
             holder.tvTime.setTextColor(textSecondary)
             holder.tvTime.text = if (convo.lastTimestamp > 0)

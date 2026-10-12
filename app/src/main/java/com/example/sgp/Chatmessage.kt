@@ -1,8 +1,15 @@
 package com.example.sgp
 
 import com.google.firebase.Timestamp
+import com.google.firebase.firestore.Exclude
 import com.google.firebase.firestore.ServerTimestamp
 
+/**
+ * Message document. Messages written before encryption existed have encVersion == 0 and keep
+ * their plaintext in [text]. New messages have encVersion >= 1, an empty [text], and the
+ * content in [ciphertext]/[iv] (AES-256-GCM, written by the sendMessage Cloud Function).
+ * No key material ever lives in this object.
+ */
 data class ChatMessage(
     val id: String = "",
     val senderId: String = "",
@@ -13,8 +20,16 @@ data class ChatMessage(
     @ServerTimestamp
     val serverTimestamp: Timestamp? = null,
     val deleted: Boolean = false,
-    val deletedFor: List<String> = emptyList()
-)
+    val deletedFor: List<String> = emptyList(),
+    // --- encryption metadata (all default to "legacy plaintext") ---
+    val ciphertext: String = "",
+    val iv: String = "",
+    val encVersion: Int = 0,
+    val keyVersion: Int = 0
+) {
+    @get:Exclude
+    val isEncrypted: Boolean get() = encVersion > 0
+}
 
 data class Conversation(
     val id: String = "",
@@ -25,7 +40,12 @@ data class Conversation(
     val lastMessage: String = "",
     val lastTimestamp: Long = 0L,
     val lastSenderId: String = "",
-    val unreadFor: List<String> = emptyList()
+    val unreadFor: List<String> = emptyList(),
+    // --- encrypted preview (0 == legacy plaintext in lastMessage) ---
+    val lastMessageCt: String = "",
+    val lastMessageIv: String = "",
+    val lastEncVersion: Int = 0,
+    val lastKeyVersion: Int = 0
 )
 
 fun buildConversationId(emailA: String, emailB: String, skillId: String? = null): String {
