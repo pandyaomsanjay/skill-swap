@@ -27,12 +27,10 @@
         </intent>
         <intent>
             <action android:name="android.intent.action.VIEW" />
-
             <data android:scheme="http" />
         </intent>
         <intent>
             <action android:name="android.intent.action.VIEW" />
-
             <data android:scheme="https" />
         </intent>
     </queries>
@@ -94,6 +92,13 @@
             android:name=".AdminDashboardActivity"
             android:exported="false"
             android:theme="@style/Theme.SGP.Admin" />
+
+        <!-- NEW: Banned users admin screen. -->
+        <activity
+            android:name=".AdminBannedUsersActivity"
+            android:exported="false"
+            android:theme="@style/Theme.SGP.Admin" />
+
         <activity
             android:name=".SettingsActivity"
             android:exported="false" />

@@ -13,10 +13,10 @@ import io.ktor.http.contentType
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.tasks.await
+import org.json.JSONArray
 import org.json.JSONObject
 
 object GatewayConfig {
-    /** Same project as your existing send-chat-notification function. */
     const val BASE_URL = "https://ghrxltlstncjcizyyqfo.supabase.co/functions/v1/chat-gateway"
 }
 
@@ -25,7 +25,6 @@ class GatewayResponse(val httpStatus: Int, val json: JSONObject?) {
     val errorCode: String get() = json?.optString("error").orEmpty()
 }
 
-/** Thin HTTP client for the chat-gateway edge function. Sends the Firebase ID token; the server verifies it. */
 object ChatGateway {
     private const val TAG = "ChatGateway"
     private val client by lazy { HttpClient(Android) }
@@ -42,44 +41,74 @@ object ChatGateway {
         }
         val body = res.bodyAsText()
         val json = try { JSONObject(body) } catch (e: Exception) { null }
-        Log.d(TAG, "$route -> ${res.status.value}") // status only; never bodies (they can contain keys/messages)
+        Log.d(TAG, "$route -> ${res.status.value}")
         return GatewayResponse(res.status.value, json)
     }
 }
 
 sealed class SendOutcome {
     data class Sent(val duplicate: Boolean) : SendOutcome()
-    /** Message was NOT delivered: automatic detection flagged a potential violation. */
+
     data class Rejected(
         val eventId: String,
         val category: String,
         val warningCount: Int,
+        val stageWarnings: Int,
+        val banLevel: Int,
+        val isPermanent: Boolean,
         val blocked: Boolean,
         val blockedUntilMillis: Long?
     ) : SendOutcome()
+
     data class Blocked(
         val warningCount: Int,
-        val blockedUntilMillis: Long,
+        val stageWarnings: Int,
+        val banLevel: Int,
+        val isPermanent: Boolean,
+        val blockedUntilMillis: Long?,
         val blockStartedMillis: Long?,
         val reason: String?
     ) : SendOutcome()
+
     data class Failed(val message: String, val retryable: Boolean) : SendOutcome()
 }
 
-/** Read-only mirror of the server's moderation row. Used for display; the server is the only enforcer. */
+/** Read-only mirror of the server's moderation row. The server is the only enforcer. */
 data class ModerationState(
     val warningCount: Int = 0,
+    val stageWarnings: Int = 0,
+    val banLevel: Int = 0,
+    val isPermanent: Boolean = false,
     val blockedUntilMillis: Long? = null,
     val blockStartedMillis: Long? = null,
     val blockReason: String? = null
 ) {
-    fun isBlockedAt(nowMillis: Long): Boolean = blockedUntilMillis != null && blockedUntilMillis > nowMillis
+    fun isBlockedAt(nowMillis: Long): Boolean =
+        isPermanent || (blockedUntilMillis != null && blockedUntilMillis > nowMillis)
+
+    /** UI stage number 1..3 (banLevel+1 clamped). */
+    fun stage(): Int = (banLevel + 1).coerceIn(1, 3)
+}
+
+/** One entry in the admin "Banned users" list. */
+data class BannedUser(
+    val uid: String,
+    val username: String,
+    val email: String,
+    val warningCount: Int,
+    val stageWarnings: Int,
+    val banLevel: Int,
+    val isPermanent: Boolean,
+    val blockedUntilMillis: Long?,
+    val blockStartedMillis: Long?,
+    val reason: String?
+) {
+    fun stage(): Int = (banLevel + 1).coerceIn(1, 3)
 }
 
 object ModerationClient {
     private const val TAG = "ModerationClient"
 
-    /** serverNow - localNow, learned from server responses. Display-only clock correction. */
     @Volatile var serverClockOffsetMs: Long = 0L
         private set
 
@@ -91,7 +120,6 @@ object ModerationClient {
         j.longOrNull("serverNowMillis")?.let { serverClockOffsetMs = it - System.currentTimeMillis() }
     }
 
-    /** Current warnings/restriction from the server, or null if it couldn't be fetched. */
     suspend fun fetchStatus(): ModerationState? = try {
         val r = ChatGateway.call("status")
         val j = r.json
@@ -99,6 +127,9 @@ object ModerationClient {
             learnClock(j)
             ModerationState(
                 warningCount = j.optInt("warningCount", 0),
+                stageWarnings = j.optInt("stageWarnings", 0),
+                banLevel = j.optInt("banLevel", 0),
+                isPermanent = j.optBoolean("isPermanent", false),
                 blockedUntilMillis = j.longOrNull("blockedUntilMillis"),
                 blockStartedMillis = j.longOrNull("blockStartedMillis"),
                 blockReason = if (j.isNull("reason")) null else j.optString("reason")
@@ -111,10 +142,6 @@ object ModerationClient {
         null
     }
 
-    /**
-     * The same [messageId] is reused on every retry. The server treats it as an idempotency key,
-     * so a retry can never deliver twice or add a second warning.
-     */
     suspend fun sendMessage(conversationId: String, messageId: String, text: String, clientTimestamp: Long): SendOutcome {
         val payload = JSONObject()
             .put("conversationId", conversationId)
@@ -136,7 +163,6 @@ object ModerationClient {
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                // Network errors (offline, timeout, DNS ...)
                 Log.w(TAG, "send failed: ${e.javaClass.simpleName}")
                 if (attempt < 2) {
                     attempt++
@@ -165,6 +191,52 @@ object ModerationClient {
         false
     }
 
+    // ---------------- Admin API ----------------
+
+    suspend fun fetchBannedUsers(includeTemporary: Boolean): List<BannedUser>? = try {
+        val r = ChatGateway.call("admin/list-banned", JSONObject().put("includeTemporary", includeTemporary))
+        val j = r.json
+        if (!r.ok || j == null) null else {
+            learnClock(j)
+            val arr: JSONArray = j.optJSONArray("users") ?: JSONArray()
+            val out = ArrayList<BannedUser>(arr.length())
+            for (i in 0 until arr.length()) {
+                val o = arr.optJSONObject(i) ?: continue
+                out.add(
+                    BannedUser(
+                        uid = o.optString("uid"),
+                        username = o.optString("username"),
+                        email = o.optString("email"),
+                        warningCount = o.optInt("warningCount", 0),
+                        stageWarnings = o.optInt("stageWarnings", 0),
+                        banLevel = o.optInt("banLevel", 0),
+                        isPermanent = o.optBoolean("isPermanent", false),
+                        blockedUntilMillis = o.longOrNull("blockedUntilMillis"),
+                        blockStartedMillis = o.longOrNull("blockStartedMillis"),
+                        reason = if (o.isNull("reason")) null else o.optString("reason")
+                    )
+                )
+            }
+            out
+        }
+    } catch (e: CancellationException) {
+        throw e
+    } catch (e: Exception) {
+        Log.w(TAG, "admin/list-banned failed: ${e.javaClass.simpleName}")
+        null
+    }
+
+    /** @return true on success (including idempotent repeat). */
+    suspend fun unbanUser(uid: String, reason: String): Boolean = try {
+        val r = ChatGateway.call("admin/unban", JSONObject().put("uid", uid).put("reason", reason))
+        r.ok
+    } catch (e: CancellationException) {
+        throw e
+    } catch (e: Exception) {
+        Log.w(TAG, "admin/unban failed: ${e.javaClass.simpleName}")
+        false
+    }
+
     private fun parse(j: JSONObject): SendOutcome {
         learnClock(j)
         return when (j.optString("status")) {
@@ -173,12 +245,18 @@ object ModerationClient {
                 eventId = j.optString("eventId"),
                 category = j.optString("category"),
                 warningCount = j.optInt("warningCount", 0),
+                stageWarnings = j.optInt("stageWarnings", 0),
+                banLevel = j.optInt("banLevel", 0),
+                isPermanent = j.optBoolean("isPermanent", false),
                 blocked = j.optBoolean("blocked", false),
                 blockedUntilMillis = j.longOrNull("blockedUntilMillis")
             )
             "blocked" -> SendOutcome.Blocked(
                 warningCount = j.optInt("warningCount", 0),
-                blockedUntilMillis = j.longOrNull("blockedUntilMillis") ?: 0L,
+                stageWarnings = j.optInt("stageWarnings", 0),
+                banLevel = j.optInt("banLevel", 0),
+                isPermanent = j.optBoolean("isPermanent", false),
+                blockedUntilMillis = j.longOrNull("blockedUntilMillis"),
                 blockStartedMillis = j.longOrNull("blockStartedMillis"),
                 reason = if (j.isNull("reason")) null else j.optString("reason")
             )

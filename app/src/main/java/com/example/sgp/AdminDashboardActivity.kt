@@ -125,7 +125,6 @@ class AdminDashboardActivity : BaseActivity() {
             return
         }
 
-        // Bind admin's email or UID to OneSignal for targeted pushes & alerts
         val adminEmail = prefs.getString("user_email", "") ?: ""
         if (adminEmail.isNotBlank()) {
             OneSignal.login(adminEmail.trim().lowercase())
@@ -197,6 +196,12 @@ class AdminDashboardActivity : BaseActivity() {
 
         findViewById<View>(R.id.btnVideos).setOnClickListener {
             startActivity(Intent(this, AdminVideosActivity::class.java))
+            overridePendingTransition(R.anim.nav_enter, R.anim.nav_exit)
+        }
+
+        // NEW: open the Banned Users admin screen.
+        findViewById<View>(R.id.btnBannedUsers).setOnClickListener {
+            startActivity(Intent(this, AdminBannedUsersActivity::class.java))
             overridePendingTransition(R.anim.nav_enter, R.anim.nav_exit)
         }
     }
@@ -616,7 +621,6 @@ class AdminDashboardActivity : BaseActivity() {
     }
 
     private fun performLogout() {
-        // Disassociate device from the admin user in OneSignal
         OneSignal.logout()
 
         FirebaseAuth.getInstance().signOut()

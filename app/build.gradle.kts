@@ -56,6 +56,9 @@ dependencies {
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.kotlinx.coroutines.play.services)
 
+    // SwipeRefreshLayout — used by AdminBannedUsersActivity for pull-to-refresh
+    implementation("androidx.swiperefreshlayout:swiperefreshlayout:1.1.0")
+
     // Firebase
     implementation(libs.firebase.auth)
     implementation(libs.firebase.database)

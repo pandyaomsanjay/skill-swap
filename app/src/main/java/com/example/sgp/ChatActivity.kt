@@ -100,6 +100,7 @@ class ChatActivity : BaseActivity() {
 
     private var moderationState = ModerationState()
     private var restrictionNoticeShown = false
+    private var permanentNoticeShown = false
     private val tickHandler = Handler(Looper.getMainLooper())
     private val tickRunnable = Runnable { updateRestrictionUi() }
 
@@ -366,7 +367,7 @@ class ChatActivity : BaseActivity() {
     ).apply { bottomMargin = bottom; topMargin = top }
 
     // ---------------------------------------------------------------------
-    // MODERATION / WARNING DIALOGS (same visual language as the delete dialogs)
+    // MODERATION / WARNING DIALOGS
     // ---------------------------------------------------------------------
     private fun showInfoDialog(
         title: String,
@@ -407,7 +408,6 @@ class ChatActivity : BaseActivity() {
         dialog.show()
     }
 
-    /** Small form dialog (one optional text field) used for appeals and reports. */
     private fun showFormDialog(
         title: String,
         description: String,
@@ -465,11 +465,14 @@ class ChatActivity : BaseActivity() {
 
     private fun showViolationDialog(outcome: SendOutcome.Rejected, rejectedText: String) {
         val now = ModerationClient.now()
+        val stage = (outcome.banLevel + 1).coerceIn(1, 3)
         val reason = "Detected: ${ModerationMessages.categoryLabel(outcome.category)}. This is an automatic check, " +
                 "so it can be wrong. You can appeal."
         showInfoDialog(
-            title = ModerationMessages.warningTitle(outcome.warningCount),
-            body = ModerationMessages.warningBody(outcome.warningCount, outcome.blockedUntilMillis, now) + "\n\n" + reason,
+            title = ModerationMessages.warningTitle(outcome.stageWarnings, stage),
+            body = ModerationMessages.warningBody(
+                outcome.stageWarnings, stage, outcome.banLevel, outcome.isPermanent, outcome.blockedUntilMillis, now
+            ) + "\n\n" + reason,
             secondaryLabel = if (outcome.eventId.isNotEmpty()) "Appeal this decision" else null,
             onSecondary = { showAppealDialog(outcome.eventId, rejectedText) }
         )
@@ -495,10 +498,19 @@ class ChatActivity : BaseActivity() {
     }
 
     private fun showRestrictionDialog(state: ModerationState) {
+        // Permanent ban: no countdown, no end time.
+        if (state.isPermanent || state.banLevel >= 3) {
+            showInfoDialog(
+                title = "Permanently banned from chat",
+                body = ModerationMessages.PERMANENT_BAN_BODY
+            )
+            return
+        }
         val until = state.blockedUntilMillis ?: return
         val fmt = SimpleDateFormat("d MMM yyyy, h:mm a", Locale.getDefault())
         val started = state.blockStartedMillis?.let { "Started: ${fmt.format(Date(it))}\n" } ?: ""
-        val reason = state.blockReason?.let { "Reason: $it\n" } ?: ""
+        val reason = ModerationMessages.cleanBanReason(state.blockReason)
+            ?.let { "Reason: $it\n" } ?: ""
         val remaining = ModerationMessages.formatRemaining(until - ModerationClient.now())
         showInfoDialog(
             title = "Chat sending restricted",
@@ -507,6 +519,7 @@ class ChatActivity : BaseActivity() {
                     "You can still read your conversations."
         )
     }
+
 
     private fun confirmReport(message: ChatMessage) {
         showFormDialog(
@@ -530,13 +543,18 @@ class ChatActivity : BaseActivity() {
     // ---------------------------------------------------------------------
     // RESTRICTION UI (display only; the server is the authority)
     // ---------------------------------------------------------------------
-    /** Asks the server for warnings/restriction (display only; the server enforces on every send). */
     private fun refreshModerationStatus() {
         lifecycleScope.launch {
             val state = ModerationClient.fetchStatus() ?: return@launch
             moderationState = state
             updateRestrictionUi()
-            if (!restrictionNoticeShown && state.isBlockedAt(ModerationClient.now())) {
+
+            if (state.isPermanent || state.banLevel >= 3) {
+                if (!permanentNoticeShown) {
+                    permanentNoticeShown = true
+                    showRestrictionDialog(state)
+                }
+            } else if (!restrictionNoticeShown && state.isBlockedAt(ModerationClient.now())) {
                 restrictionNoticeShown = true
                 showRestrictionDialog(state)
             }
@@ -547,6 +565,17 @@ class ChatActivity : BaseActivity() {
         tickHandler.removeCallbacks(tickRunnable)
         val now = ModerationClient.now()
         val until = moderationState.blockedUntilMillis
+
+        // Permanent ban: hide input & send, no countdown, static helper text.
+        if (moderationState.isPermanent || moderationState.banLevel >= 3) {
+            etMessage.isEnabled = false
+            btnSend.isEnabled = false
+            btnSend.alpha = 0.5f
+            tilMessage.isHelperTextEnabled = true
+            tilMessage.helperText = "Permanently banned from chat · contact an administrator"
+            return
+        }
+
         if (until != null && until > now) {
             etMessage.isEnabled = false
             btnSend.isEnabled = false
@@ -558,9 +587,11 @@ class ChatActivity : BaseActivity() {
             etMessage.isEnabled = true
             btnSend.isEnabled = true
             btnSend.alpha = 1f
-            val w = moderationState.warningCount
+            val stage = moderationState.stage()
+            val w = moderationState.stageWarnings
+            val threshold = ModerationMessages.thresholdForStage(stage)
             tilMessage.isHelperTextEnabled = w > 0
-            tilMessage.helperText = if (w > 0) "Warnings: $w of ${ModerationMessages.WARNINGS_BEFORE_BLOCK}" else null
+            tilMessage.helperText = if (w > 0) "Stage $stage · warnings: $w of $threshold" else null
         }
     }
 
@@ -603,7 +634,6 @@ class ChatActivity : BaseActivity() {
             }
     }
 
-    /** Fetches (or reads from the Keystore-wrapped cache) this conversation's decryption key. */
     private fun loadConversationKey() {
         if (keyLoading || conversationKey != null) return
         keyLoading = true
@@ -636,14 +666,12 @@ class ChatActivity : BaseActivity() {
                         try {
                             doc.toObject(ChatMessage::class.java)?.let { freshMessages.add(it) }
                         } catch (e: Exception) {
-                            // One malformed document must never take the whole chat down.
                             Log.w(TAG, "skipping unreadable message document")
                         }
                     }
 
                     messages.clear()
                     messages.addAll(freshMessages)
-                    // Server copy has arrived: drop the optimistic placeholder.
                     freshMessages.forEach { pendingOutgoing.remove(it.id) }
 
                     rebuildDisplayList()
@@ -661,8 +689,6 @@ class ChatActivity : BaseActivity() {
     // ---------------------------------------------------------------------
     private fun resolveDisplay(message: ChatMessage): MessageDisplay {
         if (message.deleted) return MessageDisplay("This message was deleted", true)
-        // Legacy (pre-encryption) messages and local optimistic messages are plaintext by construction.
-        // Encrypted messages are identified ONLY by encVersion, never by looking at the text.
         if (!message.isEncrypted) return MessageDisplay(message.text)
 
         val aad = MessageCipher.messageAad(conversationId, message.id, message.senderId)
@@ -678,7 +704,7 @@ class ChatActivity : BaseActivity() {
     }
 
     // ---------------------------------------------------------------------
-    // SENDING (goes through the trusted sendMessage Cloud Function)
+    // SENDING
     // ---------------------------------------------------------------------
     private fun sendMessage() {
         val text = etMessage.text?.toString()?.trim().orEmpty()
@@ -693,7 +719,6 @@ class ChatActivity : BaseActivity() {
             return
         }
 
-        // Client-generated id is the idempotency key for retries.
         val messageId = db.collection("chats").document(conversationId).collection("messages").document().id
         val clientTimestamp = System.currentTimeMillis()
 
@@ -719,13 +744,15 @@ class ChatActivity : BaseActivity() {
     private fun handleOutcome(messageId: String, text: String, outcome: SendOutcome) {
         when (outcome) {
             is SendOutcome.Sent -> {
-                // Placeholder is removed when the real document arrives in the snapshot listener.
                 if (!outcome.duplicate) sendPushNotification()
             }
             is SendOutcome.Rejected -> {
                 dropPending(messageId)
                 moderationState = moderationState.copy(
                     warningCount = outcome.warningCount,
+                    stageWarnings = outcome.stageWarnings,
+                    banLevel = outcome.banLevel,
+                    isPermanent = outcome.isPermanent,
                     blockedUntilMillis = outcome.blockedUntilMillis ?: moderationState.blockedUntilMillis
                 )
                 updateRestrictionUi()
@@ -735,7 +762,13 @@ class ChatActivity : BaseActivity() {
                 dropPending(messageId)
                 restoreDraft(text)
                 moderationState = ModerationState(
-                    outcome.warningCount, outcome.blockedUntilMillis, outcome.blockStartedMillis, outcome.reason
+                    warningCount = outcome.warningCount,
+                    stageWarnings = outcome.stageWarnings,
+                    banLevel = outcome.banLevel,
+                    isPermanent = outcome.isPermanent,
+                    blockedUntilMillis = outcome.blockedUntilMillis,
+                    blockStartedMillis = outcome.blockStartedMillis,
+                    blockReason = outcome.reason
                 )
                 updateRestrictionUi()
                 showRestrictionDialog(moderationState)
@@ -762,7 +795,10 @@ class ChatActivity : BaseActivity() {
         }
     }
 
-    /** The push body is deliberately generic: message plaintext must not leave the app for third parties. */
+    /**
+     * Push body deliberately generic: message plaintext must not leave the app for third parties.
+     * If you ever want a preview, do it on the SERVER.
+     */
     private fun sendPushNotification() {
         lifecycleScope.launch {
             try {
@@ -831,7 +867,7 @@ class ChatActivity : BaseActivity() {
 
     private fun showMessageOptionsDialog(message: ChatMessage) {
         if (message.deleted) return
-        if (pendingOutgoing.containsKey(message.id)) return // not on the server yet
+        if (pendingOutgoing.containsKey(message.id)) return
 
         val isMine = message.senderId == myEmail
         val withinDeleteForEveryoneWindow =
@@ -957,7 +993,6 @@ class ChatActivity : BaseActivity() {
     }
 
     private fun deleteForEveryone(message: ChatMessage) {
-        // Wipes the ciphertext as well as the text. Firestore rules allow exactly these four fields.
         db.collection("chats").document(conversationId)
             .collection("messages").document(message.id)
             .update(
