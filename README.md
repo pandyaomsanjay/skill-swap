@@ -18,6 +18,7 @@ Users can create profiles, add skills, upload learning resources, discover other
 * 🗂️ 5-Tab Trade Dashboard (Incoming, Sent, Active, Completed, Closed)
 * ⏰ Meeting Reminders & Notifications (WorkManager)
 * 💬 Real-Time Chat
+* 🛡️ Encrypted Chat with 3-Stage Ban Escalation (24h → 48h → Permanent) & Admin Unban
 * 🎥 Skill Video Sharing
 * 📑 Skill Playlists
 * ⭐ Ratings & Feedback
@@ -248,133 +249,143 @@ chats
 
 ---
 
-## 🛡️ Chat Moderation, Encryption & Supabase Gateway
+## 🛡️ Chat Moderation, Encryption & Ban Escalation
 
-Skill Swap now uses a Supabase Edge Function named `chat-gateway` for chat moderation, warning enforcement, and message encryption. Firestore remains the chat message store, while moderation state lives in Supabase Postgres.
+Chat abuse is handled by a Supabase Edge Function, `chat-gateway`. Messages stay in **Firestore**; moderation state lives in **Supabase Postgres**. Enforcement is **server-side** — the Android app only displays state, so a tampered client cannot bypass a ban.
 
-### What Changed
+### Escalation Ladder
 
-* The merged `firestore.rules` file keeps the existing rules and changes only the `CHATS` section.
-* Messages can no longer be created directly from the Android app; only the `chat-gateway` edge function can write them.
-* Clients also cannot write the last-message preview.
-* Delete-for-everyone now clears `ciphertext` and `iv`.
-* Garbled characters in existing comments were cleaned up.
-* The Firestore rules file should be pasted into **Firebase Console → Firestore → Rules** and published **last** during rollout.
+| Stage | Warnings in stage | Ban | Duration |
+| ----- | ----------------- | --- | -------- |
+| 1 | 5 | 24-hour temporary | 24h |
+| 2 | 3 | 48-hour temporary | 48h |
+| 3 | 2 | **Permanent** | Never |
 
-### How It Works on Supabase
+* Each stage's counter restarts at **0** after the previous temporary ban expires.
+* Warnings received while already banned are **not counted**.
+* Permanent bans can only be removed by an admin.
+* Thresholds and durations are configurable in `chat_config`. The legacy 90-day warning expiry is disabled.
 
-* Chat messages stay in **Firestore**.
-* The warning counter and 24-hour block live in **Supabase Postgres**, so one row lock makes the warning counter atomic.
-* The `chat-gateway` function:
+### User-Side Behaviour
 
-  1. Checks the Firebase login token.
-  2. Applies warnings and the 24-hour block.
-  3. Encrypts the message.
-  4. Writes the message to Firestore using a Firebase service account.
+| Situation | What the user sees |
+| --------- | ------------------ |
+| Warnings 1–4 (Stage 1) | "Warning N of 5" dialog + **Appeal this decision** |
+| 5th warning (Stage 1) | Input disabled, live countdown, "24h left" |
+| 3rd warning (Stage 2) | Input disabled, live countdown, "48h left" |
+| 2nd warning (Stage 3) | Permanent ban dialog, no countdown, "contact an administrator" |
+| Banned (any type) | Can still **read** conversations; cannot send in any chat |
 
-* Appeals and reports work through a database table plus a resolve request from an admin account.
-* The flow uses the existing `userType == "admin"` rule. There is no in-app review screen.
+**Report** on another user's message queues it for admin review (recipient only).
+
+### Admin Side
+
+**Admin Dashboard → 🚫 → Banned users** (`AdminBannedUsersActivity.kt`). Each row shows username/uid, total warnings and stage, ban type (None / 24h / 48h / Permanent), ban start, expiry, reason, and an **Unban user** button (any stage). Filter: **Permanent bans** (default) or **+ temporary bans**.
+
+**Unban effect:** user can chat immediately, ladder restarts at Stage 1, ban history is preserved, one audit row is written. Admin status is verified server-side from `users/{uid}.userType` in Firestore, never trusted from the client; unban is idempotent (no second audit row).
+
+### How Enforcement Works
+
+`chat-gateway` → `chat_apply_send` (Postgres):
+
+1. Verifies the Firebase ID token.
+2. Applies the escalation rule inside a row lock (`FOR UPDATE`) — parallel messages cannot skip a stage.
+3. Encrypts the message (AES-256-GCM) only if allowed.
+4. Writes to Firestore with a service account.
+
+The client `message_id` is the idempotency key, so retries never add a second warning. Appeals and reports use database tables plus a resolve request from an admin account (`userType == "admin"`).
+
+### Supabase Database
+
+| Table | Purpose |
+| ----- | ------- |
+| `chat_config` | Policy row (id=1): stage thresholds and durations |
+| `chat_moderation` | Per-uid warnings, stage, ban level, blocked-until, reason |
+| `chat_events` | One row per violation (`pending` / `appealed` / `overturned` / `confirmed`) |
+| `chat_review_queue` | Appeals and reports awaiting admin review |
+| `chat_ban_history` | One row per ban, closed on expiry or unban |
+| `chat_admin_audit` | One row per admin action (unban) |
+
+| Function | Role |
+| -------- | ---- |
+| `chat_apply_send` | Escalation engine (row-locked, idempotent) |
+| `chat_submit_appeal` | Marks event appealed, queues for review |
+| `chat_resolve_case` | Admin overturns/confirms (cannot remove a permanent ban) |
+| `chat_admin_unban` | Resets ladder to Stage 1, writes audit row |
+| `chat_list_banned` | Feeds the Banned-users screen |
+| `chat_maintenance` | Closes expired temporary bans on schedule |
+
+**Security:** RLS on with no client policies; `REVOKE ALL` on all chat functions from `anon` and `authenticated`. Firestore rules block direct message creation (`allow create: if false`), so the edge function is the only way to send. Clients also cannot write the last-message preview, and delete-for-everyone clears `ciphertext` and `iv`.
 
 ### Setup Summary
 
-Full setup commands are in `SETUP_SUPABASE.md`.
+Full commands are in `SETUP_SUPABASE.md`.
 
 1. Run `001_chat_moderation.sql` in the Supabase SQL Editor.
-2. Enable `pg_cron` and schedule the daily job.
-3. Download a Firebase service-account key from **Firebase Console → Project settings → Service accounts**.
-4. Set three Supabase secrets:
+2. Run `002_chat_bans.sql`.
+3. Run the fix-up SQL (adds `event_id` unique constraint on `chat_events`).
+4. Enable `pg_cron` and schedule the daily `chat_maintenance` job.
+5. Download a Firebase service-account key (**Firebase Console → Project settings → Service accounts**).
+6. Set three Supabase secrets:
 
    * `CHAT_MASTER_KEY` — generate and back it up first.
    * `FIREBASE_PROJECT_ID`
    * `FIREBASE_SERVICE_ACCOUNT`
 
-5. Deploy the function:
+7. Deploy the function:
 
    ```bash
    supabase functions deploy chat-gateway --no-verify-jwt
    ```
 
-   The `--no-verify-jwt` flag is required because the app sends Firebase tokens.
+   `--no-verify-jwt` is required because the app sends Firebase tokens.
 
-6. If using the Supabase Dashboard instead of the CLI:
+8. If using the Supabase Dashboard instead of the CLI:
 
-   * Go to **Edge Functions → Deploy a new function → Via Editor**.
+   * **Edge Functions → Deploy a new function → Via Editor**.
    * Name it exactly `chat-gateway`.
    * Paste `index.ts` into the main file.
    * Add the other 5 files with exact names: `auth.ts`, `crypto.ts`, `firestore.ts`, `moderation.ts`, `policy.ts`.
-   * Click **Deploy**.
-   * Open the function’s **Settings / Details** and turn **OFF** “Verify JWT”.
+   * Click **Deploy**, then turn **OFF** “Verify JWT” in Settings / Details.
    * Save the 3 secrets.
 
-7. Rollout order:
+9. Rollout order:
 
    * Deploy the backend first.
    * Release the new app and force-update it.
-   * Publish the new Firestore rules last.
-   * Publishing the rules earlier breaks sending for everyone on an old app version.
+   * Publish the new Firestore rules **last** (**Firebase Console → Firestore → Rules**). Publishing earlier breaks sending for everyone on an old app version.
 
-### Files Added and Replaced
+### Files
 
-| Type | Files | Count |
-|---|---|---|
-| New Android files | `ChatCrypto.kt`, `ModerationClient.kt`, `ModerationMessages.kt` | 3 |
-| New Supabase edge function files | `index.ts`, `auth.ts`, `crypto.ts`, `firestore.ts`, `moderation.ts`, `policy.ts` | 6 |
-| New SQL file | `001_chat_moderation.sql` | 1 |
-| Existing Android files replaced | `Chatmessage.kt`, `ChatActivity.kt`, `ChatListActivity.kt`, `NewChatActivity.kt` | 4 |
-| Existing Android XML replaced | `data_extraction_rules.xml`, `backup_rules.xml` | 2 |
-| Existing Firestore rules replaced | `firestore.rules` | 1 |
+| Type | Files |
+|---|---|
+| Edge function (`supabase/functions/chat-gateway/`) | `index.ts`, `auth.ts`, `crypto.ts`, `firestore.ts`, `moderation.ts`, `policy.ts` (6 files — do not add a 7th) |
+| SQL | `supabase/migrations/001_chat_moderation.sql`, `002_chat_bans.sql` |
+| New Android | `ChatCrypto.kt`, `ModerationClient.kt`, `ModerationMessages.kt`, `AdminBannedUsersActivity.kt`, `activity_admin_banned_users.xml`, `item_banned_user.xml` |
+| Replaced Android | `Chatmessage.kt`, `ChatActivity.kt`, `ChatListActivity.kt`, `NewChatActivity.kt`, `data_extraction_rules.xml`, `backup_rules.xml` |
+| Updated Android (admin entry) | `AdminDashboardActivity.kt` (🚫 entry), `activity_admin_dashboard.xml` (🚫 button), `AndroidManifest.xml` (new activity) |
+| Firestore rules | `firestore.rules` (only the `CHATS` section changed; ban state lives entirely in Postgres) |
 
-Optional tests: `ChatCryptoTest.kt`, `ModerationMessagesTest.kt`, `KeystoreKeyWrapperTest.kt`, `sql.test.mjs`, `crypto-interop.test.ts`. These can be skipped; the app works without them. The `_alternative_firebase_functions` folder is the old Firebase version and is not used.
-
-### Test Status
-
-Passed:
-
-* SQL ran in an in-process Postgres.
-* Checks covered warnings 1 to 5, the 24-hour block, retries counting once, the block applying across chats, expiry, spam repeats, appeals, and overturns.
-* The abuse, threat, sexual, and spam word-filter rules passed 35 test cases.
-* Edge function encryption matches the earlier Node implementation in both directions.
-
-Not tested:
-
-* The edge function itself.
-* The Firestore rules in the emulator; only bracket balance was checked.
-* The Kotlin code is uncompiled. Send build errors if any appear.
+Optional tests (can be skipped): `ChatCryptoTest.kt`, `ModerationMessagesTest.kt`, `KeystoreKeyWrapperTest.kt`, `sql.test.mjs`, `crypto-interop.test.ts`. The `_alternative_firebase_functions` folder is the old Firebase version and is unused.
 
 ### Deployment Check
 
-Before deploying:
+* All 6 function files present, none empty, each ending with `}` or `);`.
+* Function name is exactly `chat-gateway`.
+* Open `https://ghrxltlstncjcizyyqfo.supabase.co/functions/v1/chat-gateway/status` — a browser `GET` should return `{"error":"method-not-allowed", ...}`, proving the function is running. `Invalid JWT` or `404` means check the Verify JWT setting and URL.
+* Build and release the Android app; leave Firestore rules for last.
 
-* All 6 function files are present.
-* The function name is exactly `chat-gateway`.
-* No file is empty.
-* Each file ends with a closing `}` or `);`.
-* Do not add a 7th file.
+### Test Recipe
 
-After deploying, test the function is alive by opening:
+1. Send `hello` → delivered.
+2. Send abusive messages (e.g. `you are an idiot`) to reach 5 warnings → 24-hour ban.
+3. After expiry (or advancing the clock), send 3 more → 48-hour ban.
+4. After expiry, send 2 more → permanent ban.
+5. As admin: **🚫 → Banned users → Unban** → confirm a row in `chat_admin_audit`.
 
-```text
-https://ghrxltlstncjcizyyqfo.supabase.co/functions/v1/chat-gateway/status
-```
+**Test status:** SQL (warnings, bans, retries, cross-chat blocks, expiry, spam, appeals, overturns), the 35 word-filter cases, and edge-function encryption interop passed. **Not tested:** the edge function itself, Firestore rules in the emulator (bracket balance only), and the uncompiled Kotlin — send build errors if any appear.
 
-A browser sends `GET`, so the expected response is similar to:
-
-```json
-{"error":"method-not-allowed", ...}
-```
-
-That proves the function is running. If you see `Invalid JWT` or `404`, check the Verify JWT setting and the function URL.
-
-Then replace the Android files, run the app, and test:
-
-1. Send `hello`.
-2. Send `you are an idiot`.
-
-Leave the Firestore rules for last.
-
-### Behavior Note
-
-The restriction banner now refreshes when you open a chat and after each send. It is not live like the earlier Firestore-listener version.
+**Behavior note:** the restriction banner refreshes when a chat opens and after each send; it is not live like the earlier Firestore-listener version.
 
 ---
 
@@ -588,6 +599,7 @@ BaseActivity.kt
 | **Google Sign-In**             | Google authentication                                  |
 | **Google Places**              | Location functionality                                 |
 | **Supabase**                   | Authentication, PostgreSQL backend & security features |
+| **Supabase Edge Functions**    | `chat-gateway`: chat moderation, bans & encryption     |
 | **Ktor**                       | Networking                                             |
 | **Kotlin Serialization**       | JSON serialization                                     |
 | **Glide**                      | Image loading                                          |
@@ -607,12 +619,14 @@ Skill Swap
 │   ├── Cloud Firestore
 │   ├── Realtime Database
 │   ├── Storage
-│   └── Chat
+│   └── Chat (message store)
 │
 ├── Supabase
 │   ├── Authentication
 │   ├── PostgreSQL
 │   ├── Security Functions
+│   ├── Chat Moderation (bans, warnings, audit)
+│   ├── Edge Function: chat-gateway
 │   └── Storage
 │
 └── OneSignal
@@ -621,15 +635,16 @@ Skill Swap
 
 ## 🔥 Firebase
 
-Firebase is used for Authentication, Cloud Firestore, Realtime Database, Firebase Storage, and real-time chat.
+Firebase is used for Authentication, Cloud Firestore, Realtime Database, Firebase Storage, and real-time chat message storage.
 
 ## 🟢 Supabase
 
-Supabase Auth handles email/password authentication, while PostgreSQL hosts custom security functions.
+Supabase Auth handles email/password authentication, while PostgreSQL hosts custom security functions and chat moderation state. The `chat-gateway` edge function is the only path for sending chat messages.
 
 ```text
 SupabaseClient.kt
 SupabaseImageUploader.kt
+ModerationClient.kt
 ```
 
 ## 🔔 OneSignal
@@ -654,6 +669,7 @@ skill-swap/
 │   │       │   ├── Resources/
 │   │       │   ├── Trades/
 │   │       │   ├── Chat/
+│   │       │   ├── Admin/
 │   │       │   ├── Videos/
 │   │       │   ├── Feedback/
 │   │       │   ├── Notifications/
@@ -665,6 +681,13 @@ skill-swap/
 │   │
 │   ├── build.gradle.kts
 │   └── google-services.json
+│
+├── supabase/
+│   ├── migrations/
+│   │   ├── 001_chat_moderation.sql
+│   │   └── 002_chat_bans.sql
+│   └── functions/
+│       └── chat-gateway/
 │
 ├── gradle/
 ├── build.gradle.kts
@@ -697,6 +720,8 @@ chats
         └── {messageId}
 ```
 
+Moderation data (warnings, stages, bans, audit) lives in Supabase Postgres — see **Chat Moderation** above.
+
 ---
 
 # 🔄 Complete Application Workflow
@@ -718,7 +743,7 @@ Accepted / Rejected / Counter-Scheduled
       │
       └── Accepted → Schedule Finalized
             ↓
-          Chat
+          Chat (moderated: warnings → 24h → 48h → permanent ban)
             ↓
       Meeting Reminders (24h / 1h)
             ↓
@@ -778,7 +803,7 @@ Configure Google Sign-In through Firebase Authentication and ensure the required
 
 ## 5. Configure Supabase
 
-Create a Supabase project and configure Supabase Auth, email/password authentication, PostgreSQL security functions, and required storage. Run the SQL scripts from the `sql/` directory in the **Supabase SQL Editor**.
+Create a Supabase project and configure Supabase Auth, email/password authentication, PostgreSQL security functions, and required storage. Run the SQL scripts from the `sql/` directory in the **Supabase SQL Editor**. For chat moderation, also run `supabase/migrations/001_chat_moderation.sql` and `002_chat_bans.sql`, then deploy `chat-gateway` (see **Setup Summary** under Chat Moderation).
 
 ## 6. Configure OneSignal
 
@@ -815,6 +840,9 @@ Run → Run 'app'
 | **No Clear-Text Password Storage**        | Supabase Auth stores password hashes rather than plaintext passwords  |
 | **Random Salt**                           | Bcrypt generates a unique salt for stored password hashes             |
 | **Dictionary / Weak Password Protection** | Common and weak password patterns are rejected                        |
+| **Server-Side Chat Ban Enforcement**      | Row-locked, idempotent escalation in Postgres; clients cannot bypass  |
+| **Chat Message Encryption**               | AES-256-GCM via `chat-gateway`; direct Firestore message creation blocked |
+| **Admin Action Validation & Audit**       | `userType` verified server-side; every unban logged in `chat_admin_audit` |
 
 ### Account Lockout
 
@@ -836,6 +864,10 @@ sql/
 ├── common_passwords.sql
 ├── password_reset_otps.sql
 └── verification_queries.sql
+
+supabase/migrations/
+├── 001_chat_moderation.sql
+└── 002_chat_bans.sql
 ```
 
 | SQL File                   | Purpose                                   |
@@ -844,6 +876,8 @@ sql/
 | `common_passwords.sql`     | Weak/dictionary password detection        |
 | `password_reset_otps.sql`  | Password-reset OTP functionality          |
 | `verification_queries.sql` | Security verification queries             |
+| `001_chat_moderation.sql`  | Chat warnings, events, review queue       |
+| `002_chat_bans.sql`        | 3-stage ban escalation, ban history, admin unban & audit |
 
 ---
 
@@ -853,7 +887,7 @@ sql/
 * Do not commit service-account credentials.
 * Configure proper Firebase Security Rules.
 * Configure appropriate Supabase Row Level Security (RLS).
-* Keep production secrets outside the Git repository.
+* Keep production secrets (including `CHAT_MASTER_KEY`) outside the Git repository.
 * Never place OneSignal REST/API keys inside the Android application.
 * Do not store passwords in plaintext.
 
@@ -861,7 +895,7 @@ sql/
 
 # 🧪 Testing
 
-The project includes Android testing configuration using JUnit, AndroidX JUnit, and Espresso, run through Android Studio's built-in unit and instrumentation testing tools.
+The project includes Android testing configuration using JUnit, AndroidX JUnit, and Espresso, run through Android Studio's built-in unit and instrumentation testing tools. See **Test Recipe** under Chat Moderation for the ban-escalation walkthrough.
 
 ---
 
@@ -916,13 +950,25 @@ MeetingReminderScheduler.kt
 MeetingReminderWorker.kt
 ```
 
-## Chat
+## Chat & Moderation
 
 ```text
 ChatActivity.kt
 ChatListActivity.kt
 NewChatActivity.kt
 Chatmessage.kt
+ChatCrypto.kt
+ModerationClient.kt
+ModerationMessages.kt
+```
+
+## Admin
+
+```text
+AdminDashboardActivity.kt
+AdminBannedUsersActivity.kt
+activity_admin_banned_users.xml
+item_banned_user.xml
 ```
 
 ## Videos & Playlists
@@ -959,6 +1005,7 @@ SettingsActivity.kt
 ```text
 SupabaseClient.kt
 SupabaseImageUploader.kt
+supabase/functions/chat-gateway/ (index.ts, auth.ts, crypto.ts, firestore.ts, moderation.ts, policy.ts)
 ```
 
 ## SQL
@@ -968,19 +1015,17 @@ login_lockout.sql
 common_passwords.sql
 password_reset_otps.sql
 verification_queries.sql
+001_chat_moderation.sql
+002_chat_bans.sql
 ```
 
 # 🔮 Future Improvements
 
 ## 🔴 High Priority
 
-1. **Chat Encryption & Warning System** – Implement secure chat encryption, detect unnecessary or inappropriate messages, and issue warnings. After 5 warnings, temporarily restrict the user from chatting for 24 hours.
+1. **Teaching Limit** – Limit each user to teaching a maximum of 10 other users simultaneously.
 
-2. **Teaching Limit** – Limit each user to teaching a maximum of 10 other users simultaneously.
-
-3. **Complete UI Redesign** – Redesign the entire user-side interface to make the application modern, attractive, responsive, intuitive, and user-friendly.
-
-4. **Payment Module**
+2. **Payment Module**
 
    * **Payment Gateway Integration** – Allow users to make payments directly through the app.
    * **Multiple Payment Options** – Support multiple payment methods for user convenience.
@@ -991,20 +1036,18 @@ verification_queries.sql
    * **Admin Payment Section** – Allow administrators to monitor and manage payments, transactions, and payment statuses from the Admin Panel.
    * **Minimum Offer Amount** – Require all payment offers to start from a minimum of **₹50**.
 
-5. **Points Transaction History** – Maintain a complete log of point credits and deductions, including the reason and timestamp, so users can review how their points were earned or spent.
+3. **Points Transaction History** – Maintain a complete log of point credits and deductions, including the reason and timestamp, so users can review how their points were earned or spent.
 
-6. **Trade/Swap from Demo Video** – Add a **Trade/Swap** option directly to individual demo videos, allowing users to send a trade request along with their preferred schedule.
+4. **Trade/Swap from Demo Video** – Add a **Trade/Swap** option directly to individual demo videos, allowing users to send a trade request along with their preferred schedule.
 
-7. **Playlist Completion Reward** – After successfully completing **2 entire playlists**, award the user a **500-point reward/discount** that can be used for future learning or trade activities.
+5. **Playlist Completion Reward** – After successfully completing **2 entire playlists**, award the user a **500-point reward/discount** that can be used for future learning or trade activities.
 
-8. **Notifications**
+6. **Notifications**
 
    * **New Trade Requests** – Notify users when they receive a new trade request.
    * **Meeting Reminders** – Send scheduled trade/meeting reminders to both users before the meeting.
 
-9. **Admin Users Page Improvements** – Fix the login verification flow for verified users and display reported-user information clearly when a user has been reported.
-
-10. **Hamburger Menu Improvements** – Complete the remaining pages accessible through the hamburger menu and remove the **Notifications** section from the hamburger menu.
+7. **Hamburger Menu Improvements** – Complete the remaining pages accessible through the hamburger menu and remove the **Notifications** section from the hamburger menu.
 
 ## 🟡 Low Priority
 
@@ -1020,7 +1063,7 @@ verification_queries.sql
 
 Add screenshots of the application inside the `screenshots/` directory.
 
-Recommended screenshots: Login, Home, Explore Skills, Skill Details, Add Resource, Create Trade, My Trades (5 tabs), Trade Detail, Chat, Profile, Videos, Settings, Language Selection, Dark Mode.
+Recommended screenshots: Login, Home, Explore Skills, Skill Details, Add Resource, Create Trade, My Trades (5 tabs), Trade Detail, Chat, Chat Ban Dialog, Admin Banned Users, Profile, Videos, Settings, Language Selection, Dark Mode.
 
 ```markdown
 ## 📸 Screenshots
