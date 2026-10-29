@@ -249,6 +249,21 @@ chats
 
 ---
 
+---
+
+## 🛟 Chat Recovery (Consent-Based)
+
+Skill Swap includes a chat recovery feature that allows users to request administrative assistance with a specific conversation.
+
+- **Recovery Request:** Users can submit a chat recovery request with an optional screenshot.
+- **Admin Dashboard:** Administrators can access recovery requests through a dedicated recovery icon.
+- **Request Review:** Admins can view submitted requests and review the associated conversation.
+- **User Consent:** Temporary chat access is granted only with the user's explicit consent.
+- **Temporary Access:** Administrators can access only the specific conversation authorized for recovery.
+- **End Chat:** Administrators can end the recovery session to revoke temporary access.
+
+---
+
 ## 🛡️ Chat Moderation, Encryption & Ban Escalation
 
 Chat abuse is handled by a Supabase Edge Function, `chat-gateway`. Messages stay in **Firestore**; moderation state lives in **Supabase Postgres**. Enforcement is **server-side** — the Android app only displays state, so a tampered client cannot bypass a ban.
