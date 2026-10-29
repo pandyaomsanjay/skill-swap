@@ -358,7 +358,6 @@ class AdminUsersActivity : BaseActivity() {
         }
 
         addRow("👁️", "View Profile") { viewProfile(user) }
-        addRow("✏️", "Edit User") { editUser(user) }
         addRow(
             if (user.isEmailVerified) "❎" else "✅",
             if (user.isEmailVerified) "Unverify" else "Verify"

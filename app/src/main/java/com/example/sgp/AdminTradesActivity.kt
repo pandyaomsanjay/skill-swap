@@ -230,6 +230,10 @@ class AdminTradesActivity : BaseActivity() {
                         allTrades.add(it.copy(id = doc.id))
                     }
                 }
+
+                // Sort by timestamp in descending order so the latest swaps appear first
+                allTrades.sortByDescending { it.timestamp }
+
                 applyFilters()
             }
     }
@@ -354,8 +358,6 @@ class AdminTradesActivity : BaseActivity() {
         if (isPending || isAccepted) {
             addRow("🚫", "Cancel Swap") { updateTradeStatus(trade, "cancelled") }
         }
-        addRow("💬", "View Chat") { viewChat(trade) }
-        addRow("⚠️", "Report Issue") { reportIssue(trade) }
         addRow("🗑️", "Delete Record", sheetDestructive) { confirmDeleteTrade(trade) }
 
         dialog.setContentView(root)

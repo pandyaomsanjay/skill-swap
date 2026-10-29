@@ -8,6 +8,24 @@
     <string name="send">Send</string>
     <string name="search">Search</string>
     <string name="close">Close</string>
+    <string name="recovery_menu_title">Recover chat</string>
+    <string name="recovery_title">Chat recovery request</string>
+    <string name="recovery_intro">Tell us what went wrong with this chat. An administrator will review your request.</string>
+    <string name="recovery_hint">Describe the problem</string>
+    <string name="recovery_add_screenshot">Add screenshot (optional)</string>
+    <string name="recovery_change_screenshot">Change screenshot</string>
+    <string name="recovery_consent">I allow an administrator to temporarily view this entire conversation to resolve my request. Access ends when the admin taps End Chat, when I revoke it, or after 24 hours.</string>
+    <string name="recovery_submit">Submit request</string>
+    <string name="recovery_confirm_title">Allow admin access?</string>
+    <string name="recovery_confirm_body">The administrator will be able to read this whole chat, including the other person\'s messages, until the session ends.</string>
+    <string name="recovery_allow">Allow</string>
+    <string name="recovery_submitted">Request submitted.</string>
+    <string name="recovery_failed">Couldn\'t complete this. Please try again.</string>
+    <string name="recovery_need_details">Describe the problem and tick the consent box.</string>
+    <string name="recovery_status_pending">Your request is waiting for an administrator.</string>
+    <string name="recovery_status_active">An administrator currently has access to this chat.</string>
+    <string name="recovery_revoke">Revoke access</string>
+    <string name="recovery_revoked">Access revoked.</string>
 
     <!-- Language Selection -->
     <string name="select_language">Select Language</string>

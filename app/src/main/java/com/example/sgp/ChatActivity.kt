@@ -51,7 +51,7 @@ import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
 import java.util.Locale
-
+import android.content.Intent
 sealed class ChatListItem {
     data class DateHeader(val label: String) : ChatListItem()
     data class MessageItem(val message: ChatMessage) : ChatListItem()
@@ -196,6 +196,7 @@ class ChatActivity : BaseActivity() {
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
         supportActionBar?.setDisplayShowTitleEnabled(false)
         toolbar.navigationIcon?.setTint(Color.WHITE)
+        toolbar.overflowIcon?.setTint(Color.WHITE)
 
         val toolbarBasePaddingTop = toolbar.paddingTop
         val toolbarBasePaddingBottom = toolbar.paddingBottom
@@ -276,8 +277,28 @@ class ChatActivity : BaseActivity() {
         httpClient.close()
     }
 
+    override fun onCreateOptionsMenu(menu: android.view.Menu): Boolean {
+        menu.add(0, 1001, 0, getString(R.string.recovery_menu_title))
+            .setShowAsAction(android.view.MenuItem.SHOW_AS_ACTION_NEVER)
+        return true
+    }
+
     override fun onOptionsItemSelected(item: android.view.MenuItem): Boolean {
-        if (item.itemId == android.R.id.home) finish()
+        when (item.itemId) {
+            android.R.id.home -> {
+                finish()
+                return true
+            }
+            1001 -> {
+                startActivity(
+                    Intent(this, ChatRecoveryActivity::class.java)
+                        .putExtra("conversationId", conversationId)
+                        .putExtra("otherUserEmail", otherEmail)
+                        .putExtra("otherUserName", otherName)
+                )
+                return true
+            }
+        }
         return super.onOptionsItemSelected(item)
     }
 

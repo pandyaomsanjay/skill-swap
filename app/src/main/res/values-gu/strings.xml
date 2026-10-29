@@ -9,6 +9,26 @@
     <string name="search">શોધો</string>
     <string name="close">બંધ કરો</string>
 
+
+    <string name="recovery_menu_title">ચેટ રિકવર કરો</string>
+    <string name="recovery_title">ચેટ રિકવરી વિનંતી</string>
+    <string name="recovery_intro">આ ચેટમાં શું સમસ્યા છે તે જણાવો. એડમિન તમારી વિનંતીની સમીક્ષા કરશે.</string>
+    <string name="recovery_hint">સમસ્યા વર્ણવો</string>
+    <string name="recovery_add_screenshot">સ્ક્રીનશોટ ઉમેરો (વૈકલ્પિક)</string>
+    <string name="recovery_change_screenshot">સ્ક્રીનશોટ બદલો</string>
+    <string name="recovery_consent">હું એડમિનને મારી વિનંતી ઉકેલવા માટે આ સમગ્ર વાતચીત અસ્થાયી રૂપે જોવાની મંજૂરી આપું છું. એડમિન End Chat દબાવે, હું એક્સેસ રદ કરું અથવા 24 કલાક પછી એક્સેસ સમાપ્ત થશે.</string>
+    <string name="recovery_submit">વિનંતી મોકલો</string>
+    <string name="recovery_confirm_title">એડમિનને એક્સેસ આપવો?</string>
+    <string name="recovery_confirm_body">સત્ર પૂરું થાય ત્યાં સુધી એડમિન સમગ્ર ચેટ વાંચી શકશે, જેમાં બીજી વ્યક્તિના સંદેશા પણ સામેલ છે.</string>
+    <string name="recovery_allow">મંજૂરી આપો</string>
+    <string name="recovery_submitted">વિનંતી મોકલાઈ ગઈ.</string>
+    <string name="recovery_failed">આ પૂર્ણ થઈ શક્યું નથી. ફરી પ્રયત્ન કરો.</string>
+    <string name="recovery_need_details">સમસ્યા લખો અને સંમતિ બોક્સ પસંદ કરો.</string>
+    <string name="recovery_status_pending">તમારી વિનંતી એડમિનની રાહ જોઈ રહી છે.</string>
+    <string name="recovery_status_active">એડમિન પાસે હાલમાં આ ચેટનો એક્સેસ છે.</string>
+    <string name="recovery_revoke">એક્સેસ રદ કરો</string>
+    <string name="recovery_revoked">એક્સેસ રદ કરાયો.</string>
+
     <!-- Language Selection -->
     <string name="select_language">ભાષા પસંદ કરો</string>
     <string name="choose_preferred_language">તમારી પસંદગીની એપ્લિકેશન ભાષા પસંદ કરો</string>

@@ -134,6 +134,7 @@
                             android:textColor="#F9F3EF"
                             android:textSize="18sp"/>
                     </com.google.android.material.card.MaterialCardView>
+
                 </LinearLayout>
 
             </LinearLayout>

@@ -7,6 +7,7 @@ import android.os.Bundle
 import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
+import android.content.Intent
 import android.view.ViewGroup
 import android.widget.LinearLayout
 import android.widget.TextView
@@ -49,6 +50,10 @@ class AdminBannedUsersActivity : BaseActivity() {
 
         findViewById<View>(R.id.ivBack).setOnClickListener { finish() }
         findViewById<View>(R.id.btnRefresh).setOnClickListener { load() }
+        findViewById<View>(R.id.btnRecovery).setOnClickListener {
+            startActivity(Intent(this, AdminRecoveryRequestsActivity::class.java))
+            overridePendingTransition(R.anim.nav_enter, R.anim.nav_exit)
+        }
 
         tabPermanent = findViewById(R.id.tabPermanent)
         tabIncludeTemp = findViewById(R.id.tabIncludeTemp)

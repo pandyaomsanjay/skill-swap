@@ -216,6 +216,20 @@
             android:name=".AddResourceActivity"
             android:exported="false"
             android:windowSoftInputMode="adjustResize" />
+
+        <activity
+            android:name=".ChatRecoveryActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".AdminRecoveryRequestsActivity"
+            android:exported="false"
+            android:theme="@style/Theme.SGP.Admin" />
+        <activity
+            android:name=".AdminRecoveryChatActivity"
+            android:exported="false"
+            android:theme="@style/Theme.SGP.Admin" />
+
     </application>
 
 </manifest>

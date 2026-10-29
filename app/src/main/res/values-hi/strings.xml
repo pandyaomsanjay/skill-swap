@@ -9,6 +9,25 @@
     <string name="search">खोजें</string>
     <string name="close">बंद करें</string>
 
+    <string name="recovery_menu_title">चैट रिकवर करें</string>
+    <string name="recovery_title">चैट रिकवरी अनुरोध</string>
+    <string name="recovery_intro">बताएं कि इस चैट में क्या समस्या है। एक एडमिन आपके अनुरोध की समीक्षा करेगा।</string>
+    <string name="recovery_hint">समस्या का वर्णन करें</string>
+    <string name="recovery_add_screenshot">स्क्रीनशॉट जोड़ें (वैकल्पिक)</string>
+    <string name="recovery_change_screenshot">स्क्रीनशॉट बदलें</string>
+    <string name="recovery_consent">मैं एडमिन को अपना अनुरोध हल करने के लिए इस पूरी बातचीत को अस्थायी रूप से देखने की अनुमति देता/देती हूँ। एडमिन के End Chat दबाने, मेरे एक्सेस रद्द करने, या 24 घंटे बाद एक्सेस समाप्त हो जाएगा।</string>
+    <string name="recovery_submit">अनुरोध भेजें</string>
+    <string name="recovery_confirm_title">एडमिन को एक्सेस दें?</string>
+    <string name="recovery_confirm_body">सत्र समाप्त होने तक एडमिन पूरी चैट पढ़ सकेगा, जिसमें दूसरे व्यक्ति के संदेश भी शामिल हैं।</string>
+    <string name="recovery_allow">अनुमति दें</string>
+    <string name="recovery_submitted">अनुरोध भेज दिया गया।</string>
+    <string name="recovery_failed">यह पूरा नहीं हो सका। कृपया फिर प्रयास करें।</string>
+    <string name="recovery_need_details">समस्या लिखें और सहमति बॉक्स चुनें।</string>
+    <string name="recovery_status_pending">आपका अनुरोध एडमिन की प्रतीक्षा में है।</string>
+    <string name="recovery_status_active">एडमिन के पास अभी इस चैट का एक्सेस है।</string>
+    <string name="recovery_revoke">एक्सेस रद्द करें</string>
+    <string name="recovery_revoked">एक्सेस रद्द कर दिया गया।</string>
+
     <!-- Language Selection -->
     <string name="select_language">भाषा चुनें</string>
     <string name="choose_preferred_language">अपनी पसंदीदा ऐप भाषा चुनें</string>

@@ -204,6 +204,8 @@ class AdminDashboardActivity : BaseActivity() {
             startActivity(Intent(this, AdminBannedUsersActivity::class.java))
             overridePendingTransition(R.anim.nav_enter, R.anim.nav_exit)
         }
+
+
     }
 
     private fun setupNavigation() {
