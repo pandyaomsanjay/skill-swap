@@ -507,6 +507,19 @@ class Home : BaseActivity(), NavigationView.OnNavigationItemSelectedListener {
         findViewById<TextView>(R.id.tvViewAllTrades).setOnClickListener {
             startActivity(Intent(this, MyTradesActivity::class.java))
         }
+
+        // ── Credit Store entry point ──────────────────────────────────────────
+        // Tapping the credits display on the Home card opens the Credit Store.
+        val openCreditStore: (View) -> Unit = {
+            startActivity(Intent(this, CreditStoreActivity::class.java))
+        }
+        findViewById<TextView>(R.id.tvPoints)?.setOnClickListener(openCreditStore)
+        findViewById<TextView>(R.id.tvPointsLabel)?.setOnClickListener(openCreditStore)
+        // Make the entire right-side column (points + label) clickable
+        // by wrapping in the cardProfilePoints click area
+        findViewById<MaterialCardView>(R.id.cardProfilePoints)?.let { card ->
+            card.isClickable = false // don't override; let individual views handle it
+        }
     }
 
     private fun listenForPopularSkillCategories() {
@@ -904,13 +917,20 @@ class Home : BaseActivity(), NavigationView.OnNavigationItemSelectedListener {
         menu.removeItem(R.id.action_notifications)
 
         for (i in 0 until menu.size()) {
-            menu.getItem(i)?.icon?.setTint(Color.parseColor(THEME_CREAM))
+            val item = menu.getItem(i)
+            if (item.itemId != R.id.action_credits) {
+                item?.icon?.setTint(Color.parseColor(THEME_CREAM))
+            }
         }
         return true
     }
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         return when (item.itemId) {
+            R.id.action_credits -> {
+                CreditStoreActivity.start(this)
+                true
+            }
             R.id.action_search -> {
                 showMessage("Search")
                 true

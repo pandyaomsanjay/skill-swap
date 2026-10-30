@@ -1,0 +1,343 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/successRootLayout"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="#EAF1F5"
+    android:fitsSystemWindows="true">
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:scrollbars="none"
+        android:fillViewport="true">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:gravity="center_horizontal"
+            android:paddingHorizontal="24dp"
+            android:paddingTop="36dp"
+            android:paddingBottom="24dp">
+
+            <!-- 1. SUCCESS HEADER -->
+            <FrameLayout
+                android:id="@+id/layoutSuccessIcon"
+                android:layout_width="92dp"
+                android:layout_height="92dp"
+                android:background="@drawable/bg_success_icon_circle"
+                android:layout_marginBottom="16dp">
+
+                <ImageView
+                    android:id="@+id/ivSuccessCheck"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:layout_gravity="center"
+                    android:src="@drawable/outline_check_24"
+                    app:tint="#2E7D32"
+                    android:contentDescription="Purchase Success Icon" />
+            </FrameLayout>
+
+            <TextView
+                android:id="@+id/tvSuccessTitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Purchase Successful!"
+                android:textColor="#1B3C53"
+                android:textSize="24sp"
+                android:textStyle="bold"
+                android:letterSpacing="-0.01"
+                android:gravity="center"
+                android:layout_marginBottom="4dp" />
+
+            <TextView
+                android:id="@+id/tvSuccessSubtitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Your credits are ready to use!"
+                android:textColor="#456882"
+                android:textSize="14sp"
+                android:gravity="center"
+                android:layout_marginBottom="12dp" />
+
+            <!-- Distinct attractive Demo Badge -->
+            <TextView
+                android:id="@+id/tvSuccessDemoNotice"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="DEMO TRANSACTION · NO REAL PAYMENT"
+                android:textColor="#E65100"
+                android:textSize="11sp"
+                android:textStyle="bold"
+                android:letterSpacing="0.04"
+                android:paddingHorizontal="14dp"
+                android:paddingVertical="5dp"
+                android:background="@drawable/bg_demo_badge_pill"
+                android:layout_marginBottom="24dp" />
+
+            <!-- 2. CREDIT SUMMARY CARD -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/cardReceipt"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                app:cardCornerRadius="16dp"
+                app:cardElevation="2dp"
+                app:strokeWidth="1.5dp"
+                app:strokeColor="#D2C1B6"
+                app:cardBackgroundColor="#FFFFFF"
+                android:layout_marginBottom="16dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="20dp">
+
+                    <!-- Package Tag & Name Header Row -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
+                        android:layout_marginBottom="14dp">
+
+                        <FrameLayout
+                            android:id="@+id/layoutCoinCircle"
+                            android:layout_width="40dp"
+                            android:layout_height="40dp"
+                            android:background="@drawable/bg_coin_circle"
+                            android:layout_marginEnd="12dp">
+
+                            <ImageView
+                                android:layout_width="22dp"
+                                android:layout_height="22dp"
+                                android:layout_gravity="center"
+                                android:src="@drawable/ic_coin_credits"
+                                app:tint="#1B3C53"
+                                android:contentDescription="Credits Coin" />
+                        </FrameLayout>
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:orientation="vertical">
+
+                            <TextView
+                                android:id="@+id/tvPackageCategoryLabel"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="CREDIT PACKAGE"
+                                android:textColor="#456882"
+                                android:textSize="10sp"
+                                android:textStyle="bold"
+                                android:letterSpacing="0.06"
+                                android:layout_marginBottom="1dp" />
+
+                            <TextView
+                                android:id="@+id/tvSuccessPackageName"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                tools:text="Popular Pack"
+                                android:textColor="#1B3C53"
+                                android:textSize="17sp"
+                                android:textStyle="bold" />
+                        </LinearLayout>
+                    </LinearLayout>
+
+                    <!-- Credits Added Highlight Box -->
+                    <LinearLayout
+                        android:id="@+id/layoutCreditsAddedPill"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:background="@drawable/bg_credits_badge_pill"
+                        android:orientation="vertical"
+                        android:gravity="center"
+                        android:paddingVertical="14dp"
+                        android:paddingHorizontal="16dp"
+                        android:layout_marginBottom="16dp">
+
+                        <TextView
+                            android:id="@+id/tvCreditsAddedCaption"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="CREDITS ADDED"
+                            android:textColor="#2E7D32"
+                            android:textSize="10sp"
+                            android:textStyle="bold"
+                            android:letterSpacing="0.08"
+                            android:layout_marginBottom="2dp" />
+
+                        <TextView
+                            android:id="@+id/tvSuccessCreditsAdded"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            tools:text="+220 Credits"
+                            android:textColor="#2E7D32"
+                            android:textSize="26sp"
+                            android:textStyle="bold"
+                            android:gravity="center" />
+                    </LinearLayout>
+
+                    <!-- Divider -->
+                    <View
+                        android:id="@+id/dividerReceipt"
+                        android:layout_width="match_parent"
+                        android:layout_height="1dp"
+                        android:background="#E8EEF2"
+                        android:layout_marginBottom="14dp" />
+
+                    <!-- Updated Balance Row -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical">
+
+                        <TextView
+                            android:id="@+id/tvBalanceLabel"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="Updated Balance"
+                            android:textColor="#456882"
+                            android:textSize="14sp" />
+
+                        <TextView
+                            android:id="@+id/tvSuccessUpdatedBalance"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            tools:text="1,470 Credits"
+                            android:textColor="#1B3C53"
+                            android:textSize="16sp"
+                            android:textStyle="bold" />
+                    </LinearLayout>
+
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- 3. TRANSACTION DETAILS SECTION -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/cardTransactionDetails"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                app:cardCornerRadius="12dp"
+                app:cardElevation="0dp"
+                app:strokeWidth="1dp"
+                app:strokeColor="#D2C1B6"
+                app:cardBackgroundColor="#F4F8FA"
+                android:layout_marginBottom="24dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:paddingHorizontal="16dp"
+                    android:paddingVertical="12dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
+                        android:layout_marginBottom="6dp">
+
+                        <ImageView
+                            android:id="@+id/ivTxInfoIcon"
+                            android:layout_width="16dp"
+                            android:layout_height="16dp"
+                            android:src="@drawable/outline_info_24"
+                            app:tint="#456882"
+                            android:contentDescription="Transaction Info"
+                            android:layout_marginEnd="6dp" />
+
+                        <TextView
+                            android:id="@+id/tvTxSectionTitle"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="Simulated Transaction Details"
+                            android:textColor="#456882"
+                            android:textSize="12sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:id="@+id/tvTxStatusPill"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="SIMULATED"
+                            android:textColor="#2E7D32"
+                            android:textSize="10sp"
+                            android:textStyle="bold"
+                            android:background="@drawable/bg_credits_badge_pill"
+                            android:paddingHorizontal="6dp"
+                            android:paddingVertical="2dp" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:id="@+id/layoutTxIdRow"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:id="@+id/tvTxIdLabel"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Reference ID:"
+                            android:textColor="#456882"
+                            android:textSize="11sp"
+                            android:layout_marginBottom="2dp" />
+
+                        <TextView
+                            android:id="@+id/tvSuccessTransactionId"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            tools:text="demo_user_123_tx_456"
+                            android:textColor="#456882"
+                            android:textSize="11sp"
+                            android:typeface="monospace"
+                            android:breakStrategy="high_quality" />
+                    </LinearLayout>
+
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- 4. ACTION BUTTONS -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnBackToCreditStore"
+                android:layout_width="match_parent"
+                android:layout_height="52dp"
+                android:text="Back to Credit Store"
+                android:textAllCaps="false"
+                android:textColor="#F9F3EF"
+                android:textSize="15sp"
+                android:textStyle="bold"
+                style="@style/Widget.Material3.Button.TonalButton"
+                app:backgroundTint="#1B3C53"
+                app:cornerRadius="26dp"
+                android:layout_marginBottom="10dp" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnContinueLearning"
+                android:layout_width="match_parent"
+                android:layout_height="52dp"
+                android:text="Continue Learning"
+                android:textAllCaps="false"
+                android:textColor="#1B3C53"
+                android:textSize="15sp"
+                android:textStyle="bold"
+                style="@style/Widget.Material3.Button.OutlinedButton"
+                app:strokeColor="#1B3C53"
+                app:strokeWidth="1.5dp"
+                app:cornerRadius="26dp" />
+
+        </LinearLayout>
+    </ScrollView>
+
+</LinearLayout>

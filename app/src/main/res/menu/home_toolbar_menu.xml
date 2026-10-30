@@ -3,6 +3,12 @@
     xmlns:app="http://schemas.android.com/apk/res-auto">
 
     <item
+        android:id="@+id/action_credits"
+        android:icon="@drawable/ic_coin_credits"
+        android:title="Credits"
+        app:showAsAction="always" />
+
+    <item
         android:id="@+id/action_search"
         android:icon="@drawable/outline_search_24"
         android:title="Search"

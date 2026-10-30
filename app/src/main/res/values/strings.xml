@@ -248,4 +248,16 @@
     <string name="no_trades_found" translatable="false">No trades found</string>
     <string name="default_web_client_id">YOUR_DEFAULT_WEB_CLIENT_ID</string>
     <string name="places_api_key">YOUR_PLACES_API_KEY</string>
+
+    <!-- Credit Store / Payment Module -->
+    <string name="credit_store">Credit Store</string>
+    <string name="current_balance">Current Balance</string>
+    <string name="buy_credits">Buy Credits</string>
+    <string name="credits_label">credits</string>
+    <string name="no_packages_available">No packages available at this time.</string>
+    <string name="payment_successful">Payment Successful</string>
+    <string name="payment_cancelled">Payment cancelled.</string>
+    <string name="payment_failed">Payment failed. Please try again.</string>
+    <string name="not_enough_credits_buy">Not enough credits — Buy Credits</string>
+
 </resources>

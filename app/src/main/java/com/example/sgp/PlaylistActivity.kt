@@ -449,8 +449,12 @@ open class PlaylistActivity : BaseActivity() {
             btnAccessPlaylist.setOnClickListener { showPurchaseConfirmDialog() }
             btnAccessPlaylist.isEnabled = true
         } else {
-            btnAccessPlaylist.text = "Not enough credits (need ${playlist.credits})"
-            btnAccessPlaylist.isEnabled = false
+            // Insufficient credits — guide user to Credit Store
+            btnAccessPlaylist.text = "Not enough credits — Buy Credits"
+            btnAccessPlaylist.isEnabled = true
+            btnAccessPlaylist.setOnClickListener {
+                startActivity(android.content.Intent(this, CreditStoreActivity::class.java))
+            }
         }
     }
 

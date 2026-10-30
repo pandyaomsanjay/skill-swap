@@ -285,6 +285,12 @@ class Profile : BaseActivity() {
         findViewById<ImageView>(R.id.btnProfileSettings).setOnClickListener {
             startActivity(Intent(this, SettingsActivity::class.java))
         }
+
+        // ── Credit Store entry point ──────────────────────────────────────────
+        // Tapping the credits stat in the profile header opens the Credit Store.
+        tvCredits.setOnClickListener {
+            startActivity(Intent(this, CreditStoreActivity::class.java))
+        }
     }
 
     private fun getUserFromPrefs() {

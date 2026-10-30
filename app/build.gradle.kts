@@ -104,8 +104,9 @@ dependencies {
     // OkHttp
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
 
-
-    implementation("androidx.work:work-runtime-ktx:2.9.1")
-
+    // Razorpay Android SDK
+    // Only the public key_id is used on the client.
+    // The key_secret remains exclusively in Firebase Cloud Functions server-side config.
+    implementation("com.razorpay:checkout:1.6.40")
 
 }

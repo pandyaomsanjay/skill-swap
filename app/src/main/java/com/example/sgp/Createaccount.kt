@@ -18,7 +18,10 @@ import com.google.android.material.textfield.TextInputEditText
 import com.google.android.material.textfield.TextInputLayout
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.GoogleAuthProvider
+import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.SetOptions
+import com.onesignal.OneSignal
 import com.example.sgp.api.AuthRepository
 import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.auth.providers.builtin.OTP
@@ -353,11 +356,23 @@ class Createaccount : BaseActivity() {
         db.collection("users").whereEqualTo("email", email).get()
             .addOnSuccessListener { snapshot ->
                 if (!snapshot.isEmpty) {
-                    auth.signOut()
-                    googleSignInClient.signOut()
-                    Toast.makeText(this, "This account already exists. Please sign in instead.", Toast.LENGTH_LONG).show()
-                    startActivity(Intent(this, Login::class.java))
-                    finish()
+                    // Account already exists: complete Google sign-in and link profile instead of kicking user back to Login
+                    val existingDoc = snapshot.documents.first()
+                    val credential = GoogleAuthProvider.getCredential(idToken, null)
+                    auth.signInWithCredential(credential)
+                        .addOnCompleteListener { task ->
+                            if (task.isSuccessful) {
+                                val user = auth.currentUser
+                                if (user != null) {
+                                    linkExistingGoogleUserAndNavigate(user.uid, email, existingDoc)
+                                } else {
+                                    Toast.makeText(this@Createaccount, "Google sign-in succeeded but user is null", Toast.LENGTH_SHORT).show()
+                                }
+                            } else {
+                                Log.e("GoogleSignIn", "Firebase auth failed: ${task.exception?.message}", task.exception)
+                                Toast.makeText(this@Createaccount, "Firebase auth with Google failed: ${task.exception?.message}", Toast.LENGTH_SHORT).show()
+                            }
+                        }
                 } else {
                     firebaseAuthWithGoogle(idToken, email, name)
                 }
@@ -365,6 +380,76 @@ class Createaccount : BaseActivity() {
             .addOnFailureListener { e ->
                 Log.e("GoogleSignIn", "Firestore existence check failed", e)
                 Toast.makeText(this, "Database error: ${e.message}", Toast.LENGTH_SHORT).show()
+            }
+    }
+
+    private fun linkExistingGoogleUserAndNavigate(
+        googleUid: String,
+        email: String,
+        existingDoc: DocumentSnapshot
+    ) {
+        val existingData = existingDoc.data?.toMutableMap() ?: mutableMapOf<String, Any>()
+        val currentProvider = existingData["loginProvider"]?.toString().orEmpty()
+        existingData["loginProvider"] = if (currentProvider.contains("google")) {
+            currentProvider
+        } else if (currentProvider.isNotEmpty()) {
+            "$currentProvider,google"
+        } else {
+            "google"
+        }
+        existingData["firebaseUid"] = googleUid
+
+        // Preserve exact credits balance (or default to 1250 if missing)
+        if (!existingData.containsKey("credits")) {
+            existingData["credits"] = 1250
+        }
+
+        db.collection("users").document(googleUid).set(existingData, SetOptions.merge())
+            .addOnSuccessListener {
+                Log.d("Createaccount", "Successfully linked existing profile to users/$googleUid")
+                if (existingDoc.id != googleUid) {
+                    db.collection("users").document(existingDoc.id).update("firebaseUid", googleUid)
+                }
+
+                val userName = existingData["name"]?.toString() ?: (if (email.contains("@")) email.split("@")[0] else "User")
+                val userLocation = existingData["location"]?.toString().orEmpty()
+                val userType = existingData["userType"]?.toString() ?: "standard"
+                val credits = (existingData["credits"] as? Number)?.toInt() ?: 1250
+                val language = existingData["language"]?.toString().orEmpty()
+
+                if (language.isNotBlank()) {
+                    val standardLang = LocaleHelper.normalizeLanguageKey(language)
+                    LocaleHelper.saveLanguage(this, standardLang)
+                }
+
+                val prefs = getSharedPreferences(SettingsActivity.PREFS_NAME, MODE_PRIVATE)
+                prefs.edit()
+                    .putString("user_name", userName)
+                    .putString("user_email", email)
+                    .putString("user_location", userLocation)
+                    .putString("user_type", userType)
+                    .putInt("user_points", credits)
+                    .apply()
+
+                try {
+                    OneSignal.login(email)
+                } catch (e: Exception) {
+                    Log.w("Createaccount", "OneSignal login failed: ${e.message}")
+                }
+
+                Toast.makeText(this, "Signed in successfully!", Toast.LENGTH_SHORT).show()
+                val intent = if (userType == "admin") {
+                    Intent(this, AdminDashboardActivity::class.java)
+                } else {
+                    Intent(this, Home::class.java)
+                }
+                intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                startActivity(intent)
+                finish()
+            }
+            .addOnFailureListener { e ->
+                Log.e("Createaccount", "Failed to link existing profile to users/$googleUid", e)
+                Toast.makeText(this, "Failed to complete sign-in: ${e.message}", Toast.LENGTH_SHORT).show()
             }
     }
 

@@ -27,10 +27,12 @@
         </intent>
         <intent>
             <action android:name="android.intent.action.VIEW" />
+
             <data android:scheme="http" />
         </intent>
         <intent>
             <action android:name="android.intent.action.VIEW" />
+
             <data android:scheme="https" />
         </intent>
     </queries>
@@ -92,16 +94,10 @@
             android:name=".AdminDashboardActivity"
             android:exported="false"
             android:theme="@style/Theme.SGP.Admin" />
-
-        <!-- NEW: Banned users admin screen. -->
-        <activity
-            android:name=".AdminBannedUsersActivity"
-            android:exported="false"
-            android:theme="@style/Theme.SGP.Admin" />
-
         <activity
             android:name=".SettingsActivity"
-            android:exported="false" />
+            android:exported="false"
+            android:configChanges="uiMode|orientation|screenSize" />
         <activity
             android:name=".MyTradesActivity"
             android:exported="false" />
@@ -169,7 +165,8 @@
         <activity android:name=".SubmitFeedbackActivity" />
         <activity
             android:name=".ChatActivity"
-            android:exported="false" />
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
         <activity
             android:name=".ChatListActivity"
             android:exported="false" />
@@ -218,20 +215,24 @@
         <activity
             android:name=".AddResourceActivity"
             android:exported="false"
-            android:windowSoftInputMode="adjustResize" />
+            android:windowSoftInputMode="adjustResize"
+            android:configChanges="uiMode" />
+
+        <!-- Payment Module -->
+        <activity
+            android:name=".CreditStoreActivity"
+            android:exported="false"
+            android:configChanges="orientation|screenSize|keyboardHidden" />
 
         <activity
-            android:name=".ChatRecoveryActivity"
-            android:exported="false" />
+            android:name=".CheckoutActivity"
+            android:exported="false"
+            android:configChanges="orientation|screenSize|keyboardHidden" />
 
         <activity
-            android:name=".AdminRecoveryRequestsActivity"
+            android:name=".CheckoutSuccessActivity"
             android:exported="false"
-            android:theme="@style/Theme.SGP.Admin" />
-        <activity
-            android:name=".AdminRecoveryChatActivity"
-            android:exported="false"
-            android:theme="@style/Theme.SGP.Admin" />
+            android:configChanges="orientation|screenSize|keyboardHidden" />
 
         <activity android:name=".AdminAppealsActivity" android:exported="false" android:theme="@style/Theme.SGP.Admin" />
         <activity android:name=".AdminAppealDetailActivity" android:exported="false" android:theme="@style/Theme.SGP.Admin" />
