@@ -27,12 +27,10 @@
         </intent>
         <intent>
             <action android:name="android.intent.action.VIEW" />
-
             <data android:scheme="http" />
         </intent>
         <intent>
             <action android:name="android.intent.action.VIEW" />
-
             <data android:scheme="https" />
         </intent>
     </queries>
@@ -58,10 +56,10 @@
             android:exported="false" />
         <activity
             android:name=".DemoVideoActivity"
-            android:exported="false" /> <!-- Meta-data for Google Places API -->
+            android:exported="false" />
         <meta-data
             android:name="com.google.android.geo.API_KEY"
-            android:value="YOUR_API_KEY_HERE" /> <!-- Activities (all exported as appropriate) -->
+            android:value="YOUR_API_KEY_HERE" />
         <activity
             android:name=".NotificationsActivity"
             android:exported="false" />
@@ -95,6 +93,10 @@
             android:exported="false"
             android:theme="@style/Theme.SGP.Admin" />
         <activity
+            android:name=".AdminBannedUsersActivity"
+            android:exported="false"
+            android:theme="@style/Theme.SGP.Admin" />
+        <activity
             android:name=".SettingsActivity"
             android:exported="false"
             android:configChanges="uiMode|orientation|screenSize" />
@@ -125,7 +127,6 @@
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
@@ -218,27 +219,47 @@
             android:windowSoftInputMode="adjustResize"
             android:configChanges="uiMode" />
 
+        <!-- Recovery Module -->
+        <activity
+            android:name=".ChatRecoveryActivity"
+            android:exported="false" />
+        <activity
+            android:name=".AdminRecoveryRequestsActivity"
+            android:exported="false"
+            android:theme="@style/Theme.SGP.Admin" />
+        <activity
+            android:name=".AdminRecoveryChatActivity"
+            android:exported="false"
+            android:theme="@style/Theme.SGP.Admin" />
+
         <!-- Payment Module -->
         <activity
             android:name=".CreditStoreActivity"
             android:exported="false"
             android:configChanges="orientation|screenSize|keyboardHidden" />
-
         <activity
             android:name=".CheckoutActivity"
             android:exported="false"
             android:configChanges="orientation|screenSize|keyboardHidden" />
-
         <activity
             android:name=".CheckoutSuccessActivity"
             android:exported="false"
             android:configChanges="orientation|screenSize|keyboardHidden" />
 
-        <activity android:name=".AdminAppealsActivity" android:exported="false" android:theme="@style/Theme.SGP.Admin" />
-        <activity android:name=".AdminAppealDetailActivity" android:exported="false" android:theme="@style/Theme.SGP.Admin" />
-        <activity android:name=".UserAppealsActivity" android:exported="false" />
-        <activity android:name=".HistoryActivity" android:exported="false" />
-
+        <activity
+            android:name=".AdminAppealsActivity"
+            android:exported="false"
+            android:theme="@style/Theme.SGP.Admin" />
+        <activity
+            android:name=".AdminAppealDetailActivity"
+            android:exported="false"
+            android:theme="@style/Theme.SGP.Admin" />
+        <activity
+            android:name=".UserAppealsActivity"
+            android:exported="false" />
+        <activity
+            android:name=".HistoryActivity"
+            android:exported="false" />
     </application>
 
 </manifest>
