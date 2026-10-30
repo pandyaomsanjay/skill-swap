@@ -27,7 +27,7 @@ Users can create profiles, add skills, upload learning resources, discover other
 * 🔎 Skill Discovery
 * 🌐 Multi-Language Support
 * 🌙 Dark Mode
-
+* 💳 Credit Purchase System
 ---
 
 # 📱 User Features
@@ -596,6 +596,88 @@ BaseActivity.kt
 `BaseActivity` is used to apply theme preferences consistently across application screens.
 
 ---
+## 💳 Credit Purchase System
+
+SkillSwap includes a simulated credit purchase system that allows users to increase their credit balance by selecting a credit package and completing a demo checkout.
+
+### Features
+
+- **Credit Packages:** Multiple packages with different prices and credit amounts.
+- **Custom Checkout:** A dedicated checkout screen displaying the selected package, price, and credits.
+- **Simulated Payment Methods:** Users can choose between UPI Simulation and Card Simulation.
+- **Instant Credit Updates:** After a successful simulated purchase, the purchased credits are added to the user's existing Firestore balance.
+- **Transaction Records:** Purchase details are recorded in Firestore for tracking and administrative review.
+- **Purchase Confirmation:** A success screen displays the purchased package, credits added, and updated balance.
+- **Idempotent Transactions:** Repeated requests for the same transaction are handled to prevent duplicate credit awards.
+
+> **Note:** Payments are simulated for demonstration purposes only. No real money is charged or transferred.
+
+### Credit Packages
+
+| Package | Price | Credits |
+|---|---:|---:|
+| Starter | ₹50 | 100 |
+| Popular | ₹100 | 220 |
+| Value | ₹200 | 500 |
+| Pro | ₹500 | 1,400 |
+
+Package information is retrieved from the existing Firestore `creditPackages` collection.
+
+### Payment Workflow
+
+1. The user opens the Credit Store.
+2. The user selects a credit package.
+3. The app opens the checkout screen.
+4. The user selects UPI Simulation or Card Simulation.
+5. The app sends the purchase request to the Supabase Edge Function.
+6. The backend validates the authenticated user and the selected package.
+7. The backend updates the user's existing Firestore credit balance and records the simulated transaction.
+8. The app displays the purchase confirmation and updated balance.
+
+### Technology Used
+
+- **Android:** Kotlin and XML
+- **Authentication:** Existing SkillSwap authentication system
+- **Backend:** Supabase Edge Functions
+- **Database:** Firebase Cloud Firestore
+- **Payment Processing:** Custom simulated payment flow
+
+### Transaction Records
+
+Simulated purchases are recorded in the Firestore `demoTransactions` collection. These records support purchase tracking and can be used by the Admin Panel to review transaction activity.
+
+Purchase records may include:
+
+- Transaction ID
+- User ID and email
+- Package ID
+- Purchase price
+- Credits purchased
+- Payment method
+- Transaction status
+- Purchase timestamp
+- Demo transaction indicator
+
+The actual fields depend on the current backend implementation.
+
+### Admin Purchase History
+
+The Admin Panel can provide a centralized view of simulated credit purchases, helping administrators identify who purchased a package, which package was selected, how many credits were awarded, and when the transaction occurred.
+
+Access to purchase records must be restricted to authorized administrators.
+
+### Security and Data Integrity
+
+- Package prices and credit amounts are validated on the backend.
+- The backend uses the authenticated user's identity rather than trusting a user ID supplied by the client.
+- Existing credit balances are updated instead of creating a separate balance for purchased credits.
+- Transaction IDs support idempotent processing to prevent duplicate credit awards.
+- Simulated payment processing is controlled by a server-side configuration flag.
+- The demo payment gateway is intended for development and demonstration, not real financial transactions.
+
+### Future Enhancement
+
+Integration with a real payment gateway, such as Razorpay, may be considered in a future version. The current simulated checkout remains separate from the existing Razorpay implementation.
 
 # 🏗️ Technology Stack
 
