@@ -107,6 +107,9 @@
             android:exported="false" />
         <activity android:name=".ForgotPasswordEmailActivity" />
         <activity
+            android:name=".MySkillsActivity"
+            android:exported="false" />
+        <activity
             android:name=".Profile"
             android:exported="false" />
         <activity
@@ -229,6 +232,11 @@
             android:name=".AdminRecoveryChatActivity"
             android:exported="false"
             android:theme="@style/Theme.SGP.Admin" />
+
+        <activity android:name=".AdminAppealsActivity" android:exported="false" android:theme="@style/Theme.SGP.Admin" />
+        <activity android:name=".AdminAppealDetailActivity" android:exported="false" android:theme="@style/Theme.SGP.Admin" />
+        <activity android:name=".UserAppealsActivity" android:exported="false" />
+        <activity android:name=".HistoryActivity" android:exported="false" />
 
     </application>
 

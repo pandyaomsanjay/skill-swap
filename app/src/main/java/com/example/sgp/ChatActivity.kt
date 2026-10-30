@@ -280,6 +280,8 @@ class ChatActivity : BaseActivity() {
     override fun onCreateOptionsMenu(menu: android.view.Menu): Boolean {
         menu.add(0, 1001, 0, getString(R.string.recovery_menu_title))
             .setShowAsAction(android.view.MenuItem.SHOW_AS_ACTION_NEVER)
+        menu.add(0, 1002, 1, getString(R.string.appeals_menu_title))
+            .setShowAsAction(android.view.MenuItem.SHOW_AS_ACTION_NEVER)
         return true
     }
 
@@ -298,6 +300,7 @@ class ChatActivity : BaseActivity() {
                 )
                 return true
             }
+            1002 -> startActivity(Intent(this, UserAppealsActivity::class.java))
         }
         return super.onOptionsItemSelected(item)
     }

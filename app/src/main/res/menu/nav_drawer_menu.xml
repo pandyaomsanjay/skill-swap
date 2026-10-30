@@ -1,7 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
 
+    <!-- Main Navigation -->
     <group android:checkableBehavior="single">
+
         <item
             android:id="@+id/nav_home"
             android:icon="@drawable/baseline_home_24"
@@ -22,25 +24,31 @@
             android:icon="@drawable/baseline_message_24"
             android:title="@string/nav_messages" />
 
-        <item
-            android:id="@+id/nav_notifications"
-            android:icon="@drawable/outline_notifications_24"
-            android:title="@string/nav_notifications" />
     </group>
 
+    <!-- User Features -->
     <group android:checkableBehavior="none">
+
         <item
             android:id="@+id/nav_favorites"
             android:icon="@drawable/baseline_favorite_24"
             android:title="@string/nav_favorites" />
 
         <item
+            android:id="@+id/nav_points"
+            android:icon="@drawable/outline_toll_24"
+            android:title="@string/nav_points" />
+
+        <item
             android:id="@+id/nav_history"
             android:icon="@drawable/outline_history_24"
             android:title="@string/nav_history" />
+
     </group>
 
+    <!-- App Settings -->
     <group android:checkableBehavior="none">
+
         <item
             android:id="@+id/nav_settings"
             android:icon="@drawable/outline_settings_24"
@@ -56,10 +64,16 @@
             android:icon="@drawable/outline_info_24"
             android:title="@string/nav_about" />
 
+    </group>
+
+    <!-- Logout (own group → divider line appears above it) -->
+    <group android:checkableBehavior="none">
+
         <item
             android:id="@+id/nav_logout"
             android:icon="@drawable/outline_logout_24"
             android:title="@string/nav_logout" />
+
     </group>
 
 </menu>

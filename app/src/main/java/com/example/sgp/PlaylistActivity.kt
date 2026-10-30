@@ -538,6 +538,15 @@ open class PlaylistActivity : BaseActivity() {
                     onSuccess = {
                         hasAccess = true
                         currentUserCredits -= price
+
+                        // Save this purchase to the points history
+                        PointsLedger.recordSpent(
+                            userId = currentUserEmail ?: FirebaseAuth.getInstance().currentUser?.email ?: "",
+                            points = price,
+                            title = "Bought playlist: ${playlist.title}",
+                            refId = playlist.id
+                        )
+
                         Toast.makeText(this, "Playlist unlocked!", Toast.LENGTH_SHORT).show()
                         btnAccessPlaylist.text = "Access Granted"
                         btnAccessPlaylist.isEnabled = false

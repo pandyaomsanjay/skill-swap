@@ -28,6 +28,21 @@
     <string name="recovery_revoke">एक्सेस रद्द करें</string>
     <string name="recovery_revoked">एक्सेस रद्द कर दिया गया।</string>
 
+    <string name="appeals_menu_title">मेरी अपील</string>
+    <string name="appeals_title">मेरी चैट अपील</string>
+    <string name="appeals_empty">आपने किसी चैट चेतावनी पर अपील नहीं की है।</string>
+    <string name="appeals_load_failed">आपकी अपील लोड नहीं हो सकीं।</string>
+    <string name="appeals_restriction_none">आप पर कोई सक्रिय चैट प्रतिबंध नहीं है।</string>
+    <string name="appeals_restriction_temp">चैट भेजना प्रतिबंधित है · %1$s बाकी</string>
+    <string name="appeals_restriction_perm">आप चैट से स्थायी रूप से प्रतिबंधित हैं। कृपया एडमिन से संपर्क करें।</string>
+    <string name="appeal_status_pending">समीक्षाधीन</string>
+    <string name="appeal_status_approved">स्वीकृत</string>
+    <string name="appeal_status_rejected">अस्वीकृत</string>
+    <string name="appeal_category_label">कारण: %1$s</string>
+    <string name="appeal_reason_label">एडमिन का निर्णय: %1$s</string>
+    <string name="appeal_submitted_label">भेजा गया: %1$s</string>
+    <string name="appeal_decided_label">निर्णय: %1$s</string>
+
     <!-- Language Selection -->
     <string name="select_language">भाषा चुनें</string>
     <string name="choose_preferred_language">अपनी पसंदीदा ऐप भाषा चुनें</string>

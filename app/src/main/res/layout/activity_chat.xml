@@ -16,7 +16,8 @@
         android:paddingBottom="6dp"
         android:background="#1B3C53"
         app:navigationIcon="@drawable/baseline_arrow_back_24"
-        app:navigationIconTint="#F9F3EF">
+        app:navigationIconTint="#F9F3EF"
+        app:popupTheme="@style/CustomPopupMenu">  <!-- ADD THIS LINE HERE -->
 
         <LinearLayout
             android:layout_width="wrap_content"
@@ -44,7 +45,6 @@
                 android:visibility="gone" />
         </LinearLayout>
     </androidx.appcompat.widget.Toolbar>
-
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/recyclerViewMessages"
         android:layout_width="match_parent"

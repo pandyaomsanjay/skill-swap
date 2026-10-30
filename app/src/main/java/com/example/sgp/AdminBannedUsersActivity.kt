@@ -54,6 +54,10 @@ class AdminBannedUsersActivity : BaseActivity() {
             startActivity(Intent(this, AdminRecoveryRequestsActivity::class.java))
             overridePendingTransition(R.anim.nav_enter, R.anim.nav_exit)
         }
+        findViewById<View>(R.id.btnAppeals).setOnClickListener {
+            startActivity(Intent(this, AdminAppealsActivity::class.java))
+            overridePendingTransition(R.anim.nav_enter, R.anim.nav_exit)
+        }
 
         tabPermanent = findViewById(R.id.tabPermanent)
         tabIncludeTemp = findViewById(R.id.tabIncludeTemp)
@@ -68,7 +72,14 @@ class AdminBannedUsersActivity : BaseActivity() {
         progressBar = findViewById(R.id.progressBar)
 
         recyclerView.layoutManager = LinearLayoutManager(this)
-        adapter = BannedUserAdapter(items) { user -> confirmUnban(user) }
+        adapter = BannedUserAdapter(
+            items,
+            { user -> confirmUnban(user) },
+            { user ->
+                startActivity(Intent(this, AdminAppealDetailActivity::class.java).putExtra("uid", user.uid))
+                overridePendingTransition(R.anim.nav_enter, R.anim.nav_exit)
+            }
+        )
         recyclerView.adapter = adapter
 
         setIncludeTemporary(false)
@@ -197,7 +208,8 @@ class AdminBannedUsersActivity : BaseActivity() {
     // ------------------------------------------------------------------
     class BannedUserAdapter(
         private val items: List<BannedUser>,
-        private val onUnbanClick: (BannedUser) -> Unit
+        private val onUnbanClick: (BannedUser) -> Unit,
+        private val onWarningsClick: (BannedUser) -> Unit
     ) : RecyclerView.Adapter<BannedUserAdapter.VH>() {
 
         class VH(itemView: View) : RecyclerView.ViewHolder(itemView) {
@@ -210,6 +222,7 @@ class AdminBannedUsersActivity : BaseActivity() {
             val tvBanStart: TextView = itemView.findViewById(R.id.tvBanStart)
             val tvBanEnds: TextView = itemView.findViewById(R.id.tvBanEnds)
             val tvReason: TextView = itemView.findViewById(R.id.tvReason)
+            val btnWarnings: View = itemView.findViewById(R.id.btnWarnings)
             val btnUnban: View = itemView.findViewById(R.id.btnUnban)
         }
 
@@ -259,6 +272,7 @@ class AdminBannedUsersActivity : BaseActivity() {
             holder.btnUnban.isEnabled = true
             holder.btnUnban.alpha = 1f
             holder.btnUnban.setOnClickListener { onUnbanClick(u) }
+            holder.btnWarnings.setOnClickListener { onWarningsClick(u) }
         }
 
         override fun getItemCount() = items.size

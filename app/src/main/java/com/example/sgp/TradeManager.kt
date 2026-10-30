@@ -417,12 +417,14 @@ object TradeManager {
             )
         }
 
-        // ── On completion, bump both users' completedTrades counters ──
+        // ── On completion, bump both users' completedTrades counters AND record Points Ledger ──
         if (isCompletion) {
             try {
                 val trade = db.collection("trades").document(tradeId).get().await()
                     .toObject(Trade::class.java)
                 if (trade != null) {
+
+                    // 1. Increment completed trades
                     listOf(trade.requesterId, trade.receiverId).forEach { email ->
                         db.collection("users")
                             .whereEqualTo("email", email)
@@ -434,9 +436,29 @@ object TradeManager {
                             ?.reference
                             ?.update("completedTrades", FieldValue.increment(1))
                     }
+
+                    // 2. Record Points to Ledger (New Feature)
+                    try {
+                        // The receiver taught the requested resource
+                        PointsLedger.record(
+                            trade.receiverId,
+                            +50,
+                            "Taught ${trade.requestedResourceTitle.ifBlank { "a skill" }} to ${trade.requesterName}",
+                            trade.id
+                        )
+                        // The requester learned the requested resource
+                        PointsLedger.record(
+                            trade.requesterId,
+                            -50,
+                            "Learned ${trade.requestedResourceTitle.ifBlank { "a skill" }} from ${trade.receiverName}",
+                            trade.id
+                        )
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Failed to record points ledger", e)
+                    }
                 }
             } catch (e: Exception) {
-                Log.e(TAG, "Failed to increment completedTrades", e)
+                Log.e(TAG, "Failed to process completion side-effects", e)
             }
         }
     }
@@ -503,7 +525,6 @@ object TradeManager {
                     onError(err)
                     return@addSnapshotListener
                 }
-                // @DocumentId was removed from Trade.kt, so id must be set manually here.
                 onUpdate(snap?.toObject(Trade::class.java)?.copy(id = tradeId))
             }
 
@@ -514,13 +535,10 @@ object TradeManager {
     /**
      * Schedules the 24h and 1h WorkManager reminders for a trade
      * whose schedule has just been finalized.
-     * Should be called from the Activity right after acceptTrade() or
-     * acceptCounterSchedule() succeeds.
      */
     suspend fun scheduleRemindersAfterFinalize(context: Context, tradeId: String) {
         try {
             val doc = db.collection("trades").document(tradeId).get().await()
-            // @DocumentId was removed from Trade.kt, so id must be set manually here.
             val trade = doc.toObject(Trade::class.java)?.copy(id = tradeId)
             if (trade == null) {
                 Log.w(TAG, "Cannot schedule reminders — trade not found: $tradeId")

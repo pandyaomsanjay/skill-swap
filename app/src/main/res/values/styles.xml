@@ -84,13 +84,47 @@
         <item name="android:textColor">#F5F7FF</item>
     </style>
 
-
     <style name="RuleText">
         <item name="android:textSize">13sp</item>
         <item name="android:textColor">#9E9E9E</item>
         <item name="android:paddingTop">2dp</item>
         <item name="android:paddingBottom">2dp</item>
     </style>
+
+    <!-- ========================================== -->
+    <!-- NEW POPUP MENU STYLES FOR CHAT 3-DOTS MENU -->
+    <!-- ========================================== -->
+
+    <style name="CustomPopupMenu" parent="Widget.MaterialComponents.PopupMenu">
+        <item name="android:popupBackground">@drawable/bg_popup_menu</item>
+        <item name="android:textColor">#1B3C53</item>
+        <item name="android:itemTextAppearance">@style/CustomPopupText</item>
+    </style>
+
+    <style name="CustomPopupText" parent="TextAppearance.AppCompat.Widget.PopupMenu.Large">
+        <item name="android:textColor">#1B3C53</item>
+        <item name="android:textSize">15sp</item>
+    </style>
+
+
+
+
+
+    <!-- Circular avatar in the drawer header -->
+    <style name="CircleImage">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">50%</item>
+    </style>
+
+    <!-- Drawer menu item text -->
+    <style name="DrawerItemText" parent="TextAppearance.Material3.TitleSmall">
+        <item name="android:textSize">15sp</item>
+    </style>
+
+
+
+
+
 
 
 </resources>

@@ -27,6 +27,24 @@
     <string name="recovery_revoke">Revoke access</string>
     <string name="recovery_revoked">Access revoked.</string>
 
+    <string name="nav_points">Points &amp; transactions</string>
+
+
+    <string name="appeals_menu_title">My appeals</string>
+    <string name="appeals_title">My chat appeals</string>
+    <string name="appeals_empty">You haven\'t appealed any chat warnings.</string>
+    <string name="appeals_load_failed">Couldn\'t load your appeals.</string>
+    <string name="appeals_restriction_none">You have no active chat restriction.</string>
+    <string name="appeals_restriction_temp">Chat sending is restricted · %1$s left</string>
+    <string name="appeals_restriction_perm">You are permanently banned from chat. Contact an administrator.</string>
+    <string name="appeal_status_pending">Under review</string>
+    <string name="appeal_status_approved">Approved</string>
+    <string name="appeal_status_rejected">Rejected</string>
+    <string name="appeal_category_label">Flagged for: %1$s</string>
+    <string name="appeal_reason_label">Admin decision: %1$s</string>
+    <string name="appeal_submitted_label">Submitted: %1$s</string>
+    <string name="appeal_decided_label">Decided: %1$s</string>
+
     <!-- Language Selection -->
     <string name="select_language">Select Language</string>
     <string name="choose_preferred_language">Choose your preferred application language</string>

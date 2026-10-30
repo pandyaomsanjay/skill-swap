@@ -29,6 +29,21 @@
     <string name="recovery_revoke">એક્સેસ રદ કરો</string>
     <string name="recovery_revoked">એક્સેસ રદ કરાયો.</string>
 
+    <string name="appeals_menu_title">મારી અપીલ</string>
+    <string name="appeals_title">મારી ચેટ અપીલ</string>
+    <string name="appeals_empty">તમે કોઈ ચેટ ચેતવણી પર અપીલ કરી નથી.</string>
+    <string name="appeals_load_failed">તમારી અપીલ લોડ થઈ શકી નથી.</string>
+    <string name="appeals_restriction_none">તમારા પર કોઈ સક્રિય ચેટ પ્રતિબંધ નથી.</string>
+    <string name="appeals_restriction_temp">ચેટ મોકલવા પર પ્રતિબંધ · %1$s બાકી</string>
+    <string name="appeals_restriction_perm">તમે ચેટમાંથી કાયમી રીતે પ્રતિબંધિત છો. કૃપા કરીને એડમિનનો સંપર્ક કરો.</string>
+    <string name="appeal_status_pending">સમીક્ષા હેઠળ</string>
+    <string name="appeal_status_approved">મંજૂર</string>
+    <string name="appeal_status_rejected">નામંજૂર</string>
+    <string name="appeal_category_label">કારણ: %1$s</string>
+    <string name="appeal_reason_label">એડમિનનો નિર્ણય: %1$s</string>
+    <string name="appeal_submitted_label">મોકલ્યું: %1$s</string>
+    <string name="appeal_decided_label">નિર્ણય: %1$s</string>
+
     <!-- Language Selection -->
     <string name="select_language">ભાષા પસંદ કરો</string>
     <string name="choose_preferred_language">તમારી પસંદગીની એપ્લિકેશન ભાષા પસંદ કરો</string>

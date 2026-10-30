@@ -390,7 +390,6 @@
                         android:paddingBottom="2dp"
                         android:scrollbars="none">
 
-                        <!-- Populated at runtime via Firestore realtime listener -->
                         <LinearLayout
                             android:id="@+id/popularSkillsLayout"
                             android:layout_width="wrap_content"
@@ -442,7 +441,6 @@
                             android:background="?attr/selectableItemBackgroundBorderless" />
                     </LinearLayout>
 
-                    <!-- Populated at runtime via Firestore realtime listener, current user's swaps only -->
                     <LinearLayout
                         android:id="@+id/recentSwapsContainer"
                         android:layout_width="match_parent"
@@ -472,18 +470,21 @@
             android:layout_gravity="bottom" />
     </LinearLayout>
 
-    <!-- UPDATED NavigationView with highlight removed -->
+    <!-- UPDATED NavigationView — no transparent itemBackground, styled items, wider drawer -->
     <com.google.android.material.navigation.NavigationView
         android:id="@+id/navigationView"
-        android:layout_width="280dp"
+        android:layout_width="300dp"
         android:layout_height="match_parent"
         android:layout_gravity="start"
         android:fitsSystemWindows="false"
         android:background="#EAF1F5"
         app:headerLayout="@layout/nav_header"
         app:menu="@menu/nav_drawer_menu"
-        app:itemIconTint="@color/drawer_icon_colors"
         app:itemTextColor="@color/drawer_text_colors"
-        app:itemBackground="@android:color/transparent"
-        android:scrollbars="vertical" />
+        app:itemIconTint="@color/drawer_icon_colors"
+        app:itemTextAppearance="@style/DrawerItemText"
+        app:itemHorizontalPadding="28dp"
+        app:itemIconPadding="16dp"
+        app:itemIconSize="22dp"
+        android:scrollbars="none" />
 </androidx.drawerlayout.widget.DrawerLayout>

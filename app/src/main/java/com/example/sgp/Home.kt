@@ -9,7 +9,13 @@ import android.graphics.Color
 import android.graphics.Typeface
 import android.graphics.drawable.ColorDrawable
 import android.graphics.drawable.GradientDrawable
+import android.graphics.drawable.InsetDrawable
+import android.graphics.drawable.RippleDrawable
+import android.graphics.drawable.StateListDrawable
 import android.os.Bundle
+import android.text.SpannableString
+import android.text.Spanned
+import android.text.style.ForegroundColorSpan
 import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.Menu
@@ -22,6 +28,7 @@ import android.widget.TextView
 import androidx.appcompat.app.ActionBarDrawerToggle
 import androidx.appcompat.app.AlertDialog
 import androidx.core.content.ContextCompat
+import androidx.core.graphics.ColorUtils
 import androidx.core.view.GravityCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
@@ -32,6 +39,9 @@ import com.bumptech.glide.Glide
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.card.MaterialCardView
 import com.google.android.material.navigation.NavigationView
+import com.google.android.material.shape.CornerFamily
+import com.google.android.material.shape.MaterialShapeDrawable
+import com.google.android.material.shape.ShapeAppearanceModel
 import com.google.android.material.snackbar.Snackbar
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
@@ -165,6 +175,7 @@ class Home : BaseActivity(), NavigationView.OnNavigationItemSelectedListener {
         })
 
         navigationView.setNavigationItemSelectedListener(this)
+        navigationView.setCheckedItem(R.id.nav_home)
 
         ivProfilePicture.setOnClickListener {
             startActivity(Intent(this, Profile::class.java))
@@ -192,6 +203,7 @@ class Home : BaseActivity(), NavigationView.OnNavigationItemSelectedListener {
             applyTheme(savedDarkMode)
         }
         loadUserData()
+        navigationView.setCheckedItem(R.id.nav_home)
     }
 
     override fun onConfigurationChanged(newConfig: Configuration) {
@@ -202,10 +214,6 @@ class Home : BaseActivity(), NavigationView.OnNavigationItemSelectedListener {
     /**
      * Links the current user to OneSignal, then respects their push preference
      * from the Settings screen.
-     *
-     * Previously this always called optIn() — which silently re-subscribed every
-     * user on every visit to Home, overriding the toggle. Now it reads the same
-     * `push_notifications` preference and applies the matching state.
      */
     private fun syncOneSignalPushSubscription() {
         val userEmail = sharedPreferences.getString(KEY_USER_EMAIL, null)
@@ -296,25 +304,8 @@ class Home : BaseActivity(), NavigationView.OnNavigationItemSelectedListener {
         findViewById<TextView>(R.id.tvViewAllTrades)?.setTextColor(textPrimary)
         findViewById<TextView>(R.id.tvNoSwaps)?.setTextColor(textSecondary)
 
-        navigationView.setBackgroundColor(navDrawerBg)
-
-        val drawerItemTextColor = if (isDark) Color.WHITE else lightTextPrimary
-        val drawerItemIconTint = if (isDark) Color.WHITE else lightTextPrimary
-        navigationView.itemTextColor = ColorStateList.valueOf(drawerItemTextColor)
-        navigationView.itemIconTintList = ColorStateList.valueOf(drawerItemIconTint)
-
-        navigationView.getHeaderView(0)?.let { header ->
-            header.setBackgroundColor(headerBg)
-            header.findViewById<TextView>(R.id.tvNavUserName)?.setTextColor(Color.WHITE)
-            header.findViewById<TextView>(R.id.tvNavUserEmail)?.setTextColor(Color.WHITE)
-            header.findViewById<TextView>(R.id.tvNavUserPoints)?.setTextColor(Color.WHITE)
-            header.findViewById<TextView>(R.id.nav_trades_value)?.setTextColor(Color.WHITE)
-            header.findViewById<TextView>(R.id.nav_rating_value)?.setTextColor(Color.WHITE)
-            header.findViewById<TextView>(R.id.nav_skills_value)?.setTextColor(Color.WHITE)
-            header.findViewById<TextView>(R.id.nav_trades_label)?.setTextColor(Color.WHITE)
-            header.findViewById<TextView>(R.id.nav_rating_label)?.setTextColor(Color.WHITE)
-            header.findViewById<TextView>(R.id.nav_skills_label)?.setTextColor(Color.WHITE)
-        }
+        // -------- Drawer styling: single call replaces the old block --------
+        styleDrawer(isDark, navDrawerBg)
 
         themeInflatedCategoryCards(textPrimary, textSecondary, cardBg, cardStroke, textPrimary)
         themeInflatedSwapCards(textPrimary, textSecondary, cardBg, cardStroke, textSecondary)
@@ -324,6 +315,90 @@ class Home : BaseActivity(), NavigationView.OnNavigationItemSelectedListener {
         forceRedraw(R.id.toolbar)
 
         applyThemeSystemBars(headerBg, screenBg)
+    }
+
+    private fun styleDrawer(isDark: Boolean, navDrawerBg: Int) {
+        val corner = dp(28).toFloat()
+
+        // 1) Drawer panel: rounded on the right edge
+        val panel = MaterialShapeDrawable(
+            ShapeAppearanceModel.builder()
+                .setTopRightCorner(CornerFamily.ROUNDED, corner)
+                .setBottomRightCorner(CornerFamily.ROUNDED, corner)
+                .build()
+        ).apply { fillColor = ColorStateList.valueOf(navDrawerBg) }
+        navigationView.background = panel
+
+        // 2) Menu items: rounded highlight pill on the selected item + ripple on tap
+        val pillColor = if (isDark) {
+            Color.parseColor("#22323D")
+        } else {
+            ColorUtils.setAlphaComponent(Color.parseColor("#1B3C53"), 28)
+        }
+        val inset = intArrayOf(dp(12), dp(3), dp(12), dp(3))
+
+        val checkedPill = InsetDrawable(
+            GradientDrawable().apply {
+                cornerRadius = dp(14).toFloat()
+                setColor(pillColor)
+            },
+            inset[0], inset[1], inset[2], inset[3]
+        )
+        val stateBg = StateListDrawable().apply {
+            addState(intArrayOf(android.R.attr.state_checked), checkedPill)
+            addState(intArrayOf(), ColorDrawable(Color.TRANSPARENT))
+        }
+        val rippleMask = InsetDrawable(
+            GradientDrawable().apply {
+                cornerRadius = dp(14).toFloat()
+                setColor(Color.WHITE)
+            },
+            inset[0], inset[1], inset[2], inset[3]
+        )
+        val rippleColor = ColorUtils.setAlphaComponent(
+            if (isDark) Color.WHITE else Color.parseColor("#1B3C53"), 40
+        )
+        navigationView.itemBackground =
+            RippleDrawable(ColorStateList.valueOf(rippleColor), stateBg, rippleMask)
+
+        // 3) Text + icon colours (selected item is stronger)
+        val unchecked = if (isDark) Color.parseColor("#C9D6E0") else Color.parseColor("#456882")
+        val checked = if (isDark) Color.WHITE else Color.parseColor("#1B3C53")
+        val states = arrayOf(intArrayOf(android.R.attr.state_checked), intArrayOf())
+        val tint = ColorStateList(states, intArrayOf(checked, unchecked))
+        navigationView.itemTextColor = tint
+        navigationView.itemIconTintList = tint
+
+        // 4) Logout in red
+        navigationView.menu.findItem(R.id.nav_logout)?.let { item ->
+            val red = if (isDark) Color.parseColor("#EF5350") else Color.parseColor("#C62828")
+            val label = SpannableString(item.title.toString())
+            label.setSpan(ForegroundColorSpan(red), 0, label.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+            item.title = label
+        }
+
+        // 5) Header: gradient card with rounded bottom
+        navigationView.getHeaderView(0)?.let { header ->
+            val colors = if (isDark) {
+                intArrayOf(Color.parseColor("#0B1620"), Color.parseColor("#1E3A4F"))
+            } else {
+                intArrayOf(Color.parseColor("#1B3C53"), Color.parseColor("#456882"))
+            }
+            header.background = GradientDrawable(GradientDrawable.Orientation.TL_BR, colors).apply {
+                // order: topLeft, topRight, bottomRight, bottomLeft (x,y each)
+                cornerRadii = floatArrayOf(0f, 0f, corner, corner, corner, corner, corner, corner)
+            }
+
+            header.findViewById<TextView>(R.id.tvNavUserName)?.setTextColor(Color.WHITE)
+            header.findViewById<TextView>(R.id.tvNavUserEmail)?.setTextColor(Color.parseColor("#CCFFFFFF"))
+            header.findViewById<TextView>(R.id.tvNavUserPoints)?.setTextColor(Color.WHITE)
+            listOf(R.id.nav_trades_value, R.id.nav_rating_value, R.id.nav_skills_value).forEach {
+                header.findViewById<TextView>(it)?.setTextColor(Color.WHITE)
+            }
+            listOf(R.id.nav_trades_label, R.id.nav_rating_label, R.id.nav_skills_label).forEach {
+                header.findViewById<TextView>(it)?.setTextColor(Color.parseColor("#B3FFFFFF"))
+            }
+        }
     }
 
     private fun themeInflatedCategoryCards(
@@ -624,7 +699,7 @@ class Home : BaseActivity(), NavigationView.OnNavigationItemSelectedListener {
         headerView.findViewById<TextView>(R.id.tvNavUserName)?.text = formatName(userName)
         headerView.findViewById<TextView>(R.id.tvNavUserEmail)?.text = userEmail
         val pointsLabel = getString(R.string.points)
-        headerView.findViewById<TextView>(R.id.tvNavUserPoints)?.text = "$points $pointsLabel"
+        headerView.findViewById<TextView>(R.id.tvNavUserPoints)?.text = "🪙 $points $pointsLabel"
 
         headerView.findViewById<TextView>(R.id.nav_trades_value)?.text = totalTrades.toString()
         headerView.findViewById<TextView>(R.id.nav_rating_value)?.text = String.format("%.1f", rating)
@@ -769,19 +844,57 @@ class Home : BaseActivity(), NavigationView.OnNavigationItemSelectedListener {
     }
 
     override fun onNavigationItemSelected(item: MenuItem): Boolean {
+
         when (item.itemId) {
-            R.id.nav_home -> { }
-            R.id.nav_my_skills -> startActivity(Intent(this, MySkillsActivity::class.java))
-            R.id.nav_my_trades -> startActivity(Intent(this, MyTradesActivity::class.java))
-            R.id.nav_messages -> startActivity(Intent(this, ChatListActivity::class.java))
-            R.id.nav_notifications -> startActivity(Intent(this, NotificationsActivity::class.java))
-            R.id.nav_favorites -> showMessage("Favorites")
-            R.id.nav_history -> showMessage("History")
-            R.id.nav_settings -> startActivity(Intent(this, SettingsActivity::class.java))
-            R.id.nav_help -> startActivity(Intent(this, HelpSupportActivity::class.java))
-            R.id.nav_about -> startActivity(Intent(this, AboutActivity::class.java))
-            R.id.nav_logout -> performLogout()
+
+            R.id.nav_home -> {
+                // Already on Home
+            }
+
+            R.id.nav_my_skills -> {
+                startActivity(Intent(this, MySkillsActivity::class.java))
+            }
+
+            R.id.nav_my_trades -> {
+                startActivity(Intent(this, MyTradesActivity::class.java))
+            }
+
+            R.id.nav_messages -> {
+                startActivity(Intent(this, ChatListActivity::class.java))
+            }
+
+            R.id.nav_favorites -> {
+                // Coming soon - remain on Home
+            }
+
+            R.id.nav_points -> {
+                startActivity(
+                    Intent(this, HistoryActivity::class.java)
+                        .putExtra(HistoryActivity.EXTRA_START_TAB, 1)   // opens the Points tab
+                )
+            }
+
+            R.id.nav_history -> {
+                startActivity(Intent(this, HistoryActivity::class.java))
+            }
+
+            R.id.nav_settings -> {
+                startActivity(Intent(this, SettingsActivity::class.java))
+            }
+
+            R.id.nav_help -> {
+                startActivity(Intent(this, HelpSupportActivity::class.java))
+            }
+
+            R.id.nav_about -> {
+                startActivity(Intent(this, AboutActivity::class.java))
+            }
+
+            R.id.nav_logout -> {
+                performLogout()
+            }
         }
+
         drawerLayout.closeDrawer(GravityCompat.START)
         return true
     }
