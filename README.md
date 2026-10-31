@@ -19,6 +19,7 @@ Users can create profiles, add skills, upload learning resources, discover other
 * ⏰ Meeting Reminders & Notifications (WorkManager)
 * 💬 Real-Time Chat
 * 🛡️ Encrypted Chat with 3-Stage Ban Escalation (24h → 48h → Permanent) & Admin Unban
+* ⚖️ User Appeal System for Banned Users
 * 🎥 Skill Video Sharing
 * 📑 Skill Playlists
 * ⭐ Ratings & Feedback
@@ -28,6 +29,7 @@ Users can create profiles, add skills, upload learning resources, discover other
 * 🌐 Multi-Language Support
 * 🌙 Dark Mode
 * 💳 Credit Purchase System
+
 ---
 
 # 📱 User Features
@@ -249,8 +251,6 @@ chats
 
 ---
 
----
-
 ## 🛟 Chat Recovery (Consent-Based)
 
 Skill Swap includes a chat recovery feature that allows users to request administrative assistance with a specific conversation.
@@ -404,6 +404,63 @@ Optional tests (can be skipped): `ChatCryptoTest.kt`, `ModerationMessagesTest.kt
 
 ---
 
+## ⚖️ Appeal System
+
+Banned users can request reinstatement through the appeal system. Admins review each appeal and either **approve** (unban) or **reject** (ban upheld). Appeals are available from the banned screen and from the ban/warning dialogs (the "Appeal this decision" action).
+
+### Flow
+
+```text
+User banned
+      ↓
+Submit appeal (UserAppealsActivity)
+      ↓
+Appeal stored — status = pending
+      ↓
+Admin reviews (AdminAppealsActivity → AdminAppealDetailActivity)
+      ↓
+Approve → user unbanned, appeal approved, user notified
+Reject  → ban upheld,    appeal rejected,  user notified with note
+```
+
+### User Side — `UserAppealsActivity`
+
+* Submit an appeal with a written reason
+* Only **one open appeal** per user at a time; a new appeal can be filed after the previous one is resolved
+* View status: **Pending**, **Approved**, or **Rejected**
+* Read the admin's decision note once resolved
+* Compose form is hidden if the user is not currently banned
+
+### Admin Side — `AdminAppealsActivity`, `AdminAppealDetailActivity`
+
+* Browse pending appeals (newest first) with the banned user's name and ban reason
+* Open a detail view to read the user's appeal text and the ban context
+* **Approve** → user unbanned, appeal marked approved, user notified
+* **Reject** → ban upheld, appeal marked rejected, user notified with an optional admin note
+* Banned directory (`AdminBannedUsersActivity`) remains the source of truth for who is banned; the appeal screen is the review workflow on top of it
+
+### Data & Integrity
+
+* Appeals stored in Firestore with `userId`, `userName`, `banReason`, `reason`, `status`, `submittedAt`, `reviewedAt`, `reviewedBy`, and `adminNote`
+* Status lifecycle is one-way: `pending → approved` or `pending → rejected` (terminal states)
+* Only admins can set `approved` / `rejected` — enforced in Firestore rules, not just the UI
+* Approving runs in a single transaction: **unban the user and resolve the appeal together**, so ban state and appeal status never disagree
+* Approve / Reject are **idempotent** — a second attempt on an already-resolved appeal is a no-op
+* Notifications: user is notified on approve and on reject (with note); admins are notified when a new pending appeal arrives
+
+### Related Components
+
+```text
+UserAppealsActivity.kt
+AdminAppealsActivity.kt
+AdminAppealDetailActivity.kt
+AdminBannedUsersActivity.kt   (entry point / ban context)
+```
+
+All appeal screens are `exported="false"` — they are internal navigation targets from the profile and admin dashboard.
+
+---
+
 # 🎥 Skill Videos
 
 Users can share videos related to their skills.
@@ -490,6 +547,7 @@ Notifications can be triggered for events such as:
 * 🎓 Playlist Completion
 * ⭐ Feedback / Rating Events
 * ⏰ Meeting Reminders
+* ⚖️ Appeal Submitted / Appeal Resolved
 * 📢 Important Application Notifications
 
 ### Notification Architecture
@@ -534,10 +592,10 @@ Skill Swap supports multiple languages to make the application accessible and ea
 
 ## 🗣️ Available Languages
 
-| Language                    | Code | Status      |
+| Language | Code | Status |
 | --------------------------- | ---- | ----------- |
-| 🇬🇧 **English**            | `en` | ✅ Supported |
-| 🇮🇳 **Hindi (हिन्दी)**     | `hi` | ✅ Supported |
+| 🇬🇧 **English** | `en` | ✅ Supported |
+| 🇮🇳 **Hindi (हिन्दी)** | `hi` | ✅ Supported |
 | 🇮🇳 **Gujarati (ગુજરાતી)** | `gu` | ✅ Supported |
 
 ## ⚙️ Language Selection
@@ -596,6 +654,7 @@ BaseActivity.kt
 `BaseActivity` is used to apply theme preferences consistently across application screens.
 
 ---
+
 ## 💳 Credit Purchase System
 
 SkillSwap includes a simulated credit purchase system that allows users to increase their credit balance by selecting a credit package and completing a demo checkout.
@@ -679,28 +738,30 @@ Access to purchase records must be restricted to authorized administrators.
 
 Integration with a real payment gateway, such as Razorpay, may be considered in a future version. The current simulated checkout remains separate from the existing Razorpay implementation.
 
+---
+
 # 🏗️ Technology Stack
 
-| Technology                     | Purpose                                                |
+| Technology | Purpose |
 | ------------------------------ | ------------------------------------------------------ |
-| **Kotlin**                     | Primary programming language                           |
-| **Android SDK**                | Android application development                        |
-| **AndroidX**                   | Android components                                     |
-| **Material Components**        | UI components                                          |
-| **Firebase Authentication**    | User authentication                                    |
-| **Cloud Firestore**            | Application data & real-time chat                      |
-| **Firebase Realtime Database** | Real-time data                                         |
-| **Firebase Storage**           | File / media storage                                   |
-| **WorkManager**                | Scheduled meeting reminders                            |
-| **OneSignal**                  | Push notifications                                     |
-| **Google Sign-In**             | Google authentication                                  |
-| **Google Places**              | Location functionality                                 |
-| **Supabase**                   | Authentication, PostgreSQL backend & security features |
-| **Supabase Edge Functions**    | `chat-gateway`: chat moderation, bans & encryption     |
-| **Ktor**                       | Networking                                             |
-| **Kotlin Serialization**       | JSON serialization                                     |
-| **Glide**                      | Image loading                                          |
-| **Gradle Kotlin DSL**          | Build configuration                                    |
+| **Kotlin** | Primary programming language |
+| **Android SDK** | Android application development |
+| **AndroidX** | Android components |
+| **Material Components** | UI components |
+| **Firebase Authentication** | User authentication |
+| **Cloud Firestore** | Application data & real-time chat |
+| **Firebase Realtime Database** | Real-time data |
+| **Firebase Storage** | File / media storage |
+| **WorkManager** | Scheduled meeting reminders |
+| **OneSignal** | Push notifications |
+| **Google Sign-In** | Google authentication |
+| **Google Places** | Location functionality |
+| **Supabase** | Authentication, PostgreSQL backend & security features |
+| **Supabase Edge Functions** | `chat-gateway`: chat moderation, bans & encryption |
+| **Ktor** | Networking |
+| **Kotlin Serialization** | JSON serialization |
+| **Glide** | Image loading |
+| **Gradle Kotlin DSL** | Build configuration |
 
 ---
 
@@ -722,7 +783,7 @@ Skill Swap
 │   ├── Authentication
 │   ├── PostgreSQL
 │   ├── Security Functions
-│   ├── Chat Moderation (bans, warnings, audit)
+│   ├── Chat Moderation (bans, warnings, appeals, audit)
 │   ├── Edge Function: chat-gateway
 │   └── Storage
 │
@@ -767,6 +828,7 @@ skill-swap/
 │   │       │   ├── Trades/
 │   │       │   ├── Chat/
 │   │       │   ├── Admin/
+│   │       │   ├── Appeals/
 │   │       │   ├── Videos/
 │   │       │   ├── Feedback/
 │   │       │   ├── Notifications/
@@ -806,6 +868,7 @@ skills
 trades
 chats
 reports
+appeals
 ```
 
 ### Chat Data
@@ -817,7 +880,23 @@ chats
         └── {messageId}
 ```
 
-Moderation data (warnings, stages, bans, audit) lives in Supabase Postgres — see **Chat Moderation** above.
+### Appeal Data
+
+```text
+appeals
+└── {appealId}
+    ├── userId
+    ├── userName
+    ├── banReason
+    ├── reason
+    ├── status        (pending / approved / rejected)
+    ├── submittedAt
+    ├── reviewedAt
+    ├── reviewedBy
+    └── adminNote
+```
+
+Moderation data (warnings, stages, bans, audit) lives in Supabase Postgres — see **Chat Moderation** above. Resolved appeal events are also tracked in `chat_events` (`pending` → `appealed` → `overturned` / `confirmed`).
 
 ---
 
@@ -850,6 +929,17 @@ Accepted / Rejected / Counter-Scheduled
 ```
 
 OneSignal notifications operate independently throughout relevant application events.
+
+**Ban path:**
+
+```text
+Violation → Warnings → Temporary / Permanent Ban
+                                ↓
+                       User submits appeal
+                                ↓
+                       Admin approves → Unban
+                       Admin rejects  → Ban upheld
+```
 
 ---
 
@@ -921,7 +1011,7 @@ Build → Make Project
 Run → Run 'app'
 ```
 
-> ⚠️ **Note:** The trade/resource feature set was added in a large single commit (5,036 additions, 567 deletions) touching many Kotlin files and layouts. Run a full Gradle build and manually test the trade, resource-upload, and reminder flows after pulling these changes.
+> ⚠️ **Note:** The trade/resource feature set was added in a large single commit (5,036 additions, 567 deletions) touching many Kotlin files and layouts. Run a full Gradle build and manually test the trade, resource-upload, reminder, and appeal flows after pulling these changes.
 
 ---
 
@@ -929,17 +1019,18 @@ Run → Run 'app'
 
 ## ✅ Implemented Security Controls
 
-| Requirement                               | Implementation                                                        |
+| Requirement | Implementation |
 | ------------------------------------------ | ---------------------------------------------------------------------- |
-| **No Password Reuse**                     | Enforced during password change                                       |
-| **Password Complexity**                   | Uppercase + lowercase + number + special character                    |
-| **Account Lockout / Throttling**          | 5 failed attempts → 15-minute lock; second lockout → 24-hour lock     |
-| **No Clear-Text Password Storage**        | Supabase Auth stores password hashes rather than plaintext passwords  |
-| **Random Salt**                           | Bcrypt generates a unique salt for stored password hashes             |
-| **Dictionary / Weak Password Protection** | Common and weak password patterns are rejected                        |
-| **Server-Side Chat Ban Enforcement**      | Row-locked, idempotent escalation in Postgres; clients cannot bypass  |
-| **Chat Message Encryption**               | AES-256-GCM via `chat-gateway`; direct Firestore message creation blocked |
-| **Admin Action Validation & Audit**       | `userType` verified server-side; every unban logged in `chat_admin_audit` |
+| **No Password Reuse** | Enforced during password change |
+| **Password Complexity** | Uppercase + lowercase + number + special character |
+| **Account Lockout / Throttling** | 5 failed attempts → 15-minute lock; second lockout → 24-hour lock |
+| **No Clear-Text Password Storage** | Supabase Auth stores password hashes rather than plaintext passwords |
+| **Random Salt** | Bcrypt generates a unique salt for stored password hashes |
+| **Dictionary / Weak Password Protection** | Common and weak password patterns are rejected |
+| **Server-Side Chat Ban Enforcement** | Row-locked, idempotent escalation in Postgres; clients cannot bypass |
+| **Chat Message Encryption** | AES-256-GCM via `chat-gateway`; direct Firestore message creation blocked |
+| **Admin Action Validation & Audit** | `userType` verified server-side; every unban logged in `chat_admin_audit` |
+| **Appeal Resolution Restricted to Admins** | Firestore rules block client writes of `approved` / `rejected`; unban and appeal resolution are transactional |
 
 ### Account Lockout
 
@@ -967,14 +1058,14 @@ supabase/migrations/
 └── 002_chat_bans.sql
 ```
 
-| SQL File                   | Purpose                                   |
+| SQL File | Purpose |
 | --------------------------- | ------------------------------------------ |
-| `login_lockout.sql`        | Account lockout and failed-login tracking |
-| `common_passwords.sql`     | Weak/dictionary password detection        |
-| `password_reset_otps.sql`  | Password-reset OTP functionality          |
-| `verification_queries.sql` | Security verification queries             |
-| `001_chat_moderation.sql`  | Chat warnings, events, review queue       |
-| `002_chat_bans.sql`        | 3-stage ban escalation, ban history, admin unban & audit |
+| `login_lockout.sql` | Account lockout and failed-login tracking |
+| `common_passwords.sql` | Weak/dictionary password detection |
+| `password_reset_otps.sql` | Password-reset OTP functionality |
+| `verification_queries.sql` | Security verification queries |
+| `001_chat_moderation.sql` | Chat warnings, events, review queue |
+| `002_chat_bans.sql` | 3-stage ban escalation, ban history, admin unban & audit |
 
 ---
 
@@ -1059,6 +1150,14 @@ ModerationClient.kt
 ModerationMessages.kt
 ```
 
+## Appeals
+
+```text
+UserAppealsActivity.kt
+AdminAppealsActivity.kt
+AdminAppealDetailActivity.kt
+```
+
 ## Admin
 
 ```text
@@ -1116,35 +1215,24 @@ verification_queries.sql
 002_chat_bans.sql
 ```
 
+---
+
 # 🔮 Future Improvements
 
 ## 🔴 High Priority
 
 1. **Teaching Limit** – Limit each user to teaching a maximum of 10 other users simultaneously.
 
-2. **Payment Module**
+2. **Points Transaction History** – Maintain a complete log of point credits and deductions, including the reason and timestamp, so users can review how their points were earned or spent.
 
-   * **Payment Gateway Integration** – Allow users to make payments directly through the app.
-   * **Multiple Payment Options** – Support multiple payment methods for user convenience.
-   * **Payment Confirmation** – Provide confirmation after successful payments.
-   * **Transaction History** – Allow users to view their previous payment transactions.
-   * **Payment Status** – Display transactions as **Successful, Failed, or Pending**.
-   * **48-Hour Payment/Service Window** – Manage the payment and associated service process within a 48-hour period.
-   * **Admin Payment Section** – Allow administrators to monitor and manage payments, transactions, and payment statuses from the Admin Panel.
-   * **Minimum Offer Amount** – Require all payment offers to start from a minimum of **₹50**.
+3. **Trade/Swap from Demo Video** – Add a **Trade/Swap** option directly to individual demo videos, allowing users to send a trade request along with their preferred schedule.
 
-3. **Points Transaction History** – Maintain a complete log of point credits and deductions, including the reason and timestamp, so users can review how their points were earned or spent.
+4. **Playlist Completion Reward** – After successfully completing **2 entire playlists**, award the user a **500-point reward/discount** that can be used for future learning or trade activities.
 
-4. **Trade/Swap from Demo Video** – Add a **Trade/Swap** option directly to individual demo videos, allowing users to send a trade request along with their preferred schedule.
-
-5. **Playlist Completion Reward** – After successfully completing **2 entire playlists**, award the user a **500-point reward/discount** that can be used for future learning or trade activities.
-
-6. **Notifications**
+5. **Notifications**
 
    * **New Trade Requests** – Notify users when they receive a new trade request.
    * **Meeting Reminders** – Send scheduled trade/meeting reminders to both users before the meeting.
-
-7. **Hamburger Menu Improvements** – Complete the remaining pages accessible through the hamburger menu and remove the **Notifications** section from the hamburger menu.
 
 ## 🟡 Low Priority
 
@@ -1156,11 +1244,15 @@ verification_queries.sql
 
 4. **Certificate System** – Provide users with a certificate after successfully completing a skill, course, or playlist.
 
+5. **Appeal History** – Give users a read-only history of past appeals (status, decision note, timestamps) alongside the current open appeal.
+
+---
+
 # 📸 Screenshots
 
 Add screenshots of the application inside the `screenshots/` directory.
 
-Recommended screenshots: Login, Home, Explore Skills, Skill Details, Add Resource, Create Trade, My Trades (5 tabs), Trade Detail, Chat, Chat Ban Dialog, Admin Banned Users, Profile, Videos, Settings, Language Selection, Dark Mode.
+Recommended screenshots: Login, Home, Explore Skills, Skill Details, Add Resource, Create Trade, My Trades (5 tabs), Trade Detail, Chat, Chat Ban Dialog, Admin Banned Users, User Appeals, Admin Appeals, Profile, Videos, Settings, Language Selection, Dark Mode.
 
 ```markdown
 ## 📸 Screenshots
