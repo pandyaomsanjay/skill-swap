@@ -18,7 +18,6 @@
     <queries>
         <package android:name="com.google.android.gms" />
         <package android:name="com.android.vending" />
-
         <intent>
             <action android:name="com.google.android.gms.auth.service.START" />
         </intent>
@@ -45,6 +44,18 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.SGP">
+
+        <!-- ADD THIS PROVIDER BLOCK -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
+
         <activity
             android:name=".OtpActivity"
             android:windowSoftInputMode="adjustResize" />
@@ -260,6 +271,11 @@
         <activity
             android:name=".HistoryActivity"
             android:exported="false" />
+
+        <activity
+            android:name=".PointsTransactionsActivity"
+            android:exported="false" />
+
     </application>
 
 </manifest>

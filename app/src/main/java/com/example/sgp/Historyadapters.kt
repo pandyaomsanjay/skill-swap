@@ -16,20 +16,12 @@ import java.util.Date
 import java.util.Locale
 
 // ---------------------------------------------------------------------
-// Palette (same colours as Home, plus status colours)
+// 1. Palette (Matches ExploreActivity dark mode exactly)
 // ---------------------------------------------------------------------
 data class HistoryPalette(
-    val screenBg: Int,
-    val cardBg: Int,
-    val cardStroke: Int,
-    val textPrimary: Int,
-    val textSecondary: Int,
-    val headerBg: Int,
-    val accent: Int,
-    val onAccent: Int,
-    val positive: Int,
-    val warning: Int,
-    val negative: Int
+    val screenBg: Int, val cardBg: Int, val cardStroke: Int, val textPrimary: Int,
+    val textSecondary: Int, val headerBg: Int, val accent: Int, val onAccent: Int,
+    val positive: Int, val warning: Int, val negative: Int
 )
 
 fun historyPalette(isDark: Boolean): HistoryPalette =
@@ -64,8 +56,7 @@ fun historyPalette(isDark: Boolean): HistoryPalette =
     }
 
 // ---------------------------------------------------------------------
-// Swap status helper. Adjust the keywords to match the status strings
-// you actually save in Firestore.
+// 2. Swap State Helper
 // ---------------------------------------------------------------------
 enum class SwapState { COMPLETED, PENDING, CANCELLED }
 
@@ -78,18 +69,10 @@ fun Trade.swapState(): SwapState {
     }
 }
 
-private fun softShape(color: Int, shape: Int, radiusPx: Float = 0f) = GradientDrawable().apply {
-    this.shape = shape
-    if (shape == GradientDrawable.RECTANGLE) cornerRadius = radiusPx
-    setColor(ColorUtils.setAlphaComponent(color, 38))
-}
-
 // ---------------------------------------------------------------------
-// Swaps adapter
+// 3. Swaps Adapter
 // ---------------------------------------------------------------------
-class SwapHistoryAdapter(
-    private val onClick: (Trade) -> Unit
-) : RecyclerView.Adapter<SwapHistoryAdapter.VH>() {
+class SwapHistoryAdapter(private val onClick: (Trade) -> Unit) : RecyclerView.Adapter<SwapHistoryAdapter.VH>() {
 
     private var items: List<Trade> = emptyList()
     private var p: HistoryPalette = historyPalette(false)
@@ -97,9 +80,7 @@ class SwapHistoryAdapter(
     private val fmt = SimpleDateFormat("dd MMM yyyy, h:mm a", Locale.getDefault())
 
     fun submit(list: List<Trade>, palette: HistoryPalette, currentUserId: String) {
-        items = list
-        p = palette
-        userId = currentUserId
+        items = list; p = palette; userId = currentUserId
         notifyDataSetChanged()
     }
 
@@ -127,16 +108,13 @@ class SwapHistoryAdapter(
 
         h.card.setCardBackgroundColor(p.cardBg)
         h.card.strokeColor = p.cardStroke
-
         h.icon.imageTintList = ColorStateList.valueOf(p.textSecondary)
-        h.icon.background = softShape(p.textSecondary, GradientDrawable.OVAL)
+        h.icon.background = GradientDrawable().apply { shape = GradientDrawable.OVAL; setColor(ColorUtils.setAlphaComponent(p.textSecondary, 38)) }
 
         h.partner.text = other
         h.partner.setTextColor(p.textPrimary)
-
         h.detail.text = "$mine ↔ $theirs"
         h.detail.setTextColor(p.textSecondary)
-
         h.time.text = if (t.timestamp > 0) fmt.format(Date(t.timestamp)) else ""
         h.time.setTextColor(p.textSecondary)
 
@@ -144,9 +122,7 @@ class SwapHistoryAdapter(
             h.rating.visibility = View.VISIBLE
             h.rating.text = "★ ${String.format(Locale.getDefault(), "%.1f", t.rating.toDouble())}"
             h.rating.setTextColor(p.warning)
-        } else {
-            h.rating.visibility = View.GONE
-        }
+        } else h.rating.visibility = View.GONE
 
         val state = t.swapState()
         val (label, color) = when (state) {
@@ -156,24 +132,25 @@ class SwapHistoryAdapter(
         }
         h.status.text = label
         h.status.setTextColor(color)
-        h.status.background = softShape(color, GradientDrawable.RECTANGLE, 100f)
+        h.status.background = GradientDrawable().apply { cornerRadius = 100f; setColor(ColorUtils.setAlphaComponent(color, 38)) }
 
         h.card.setOnClickListener { onClick(t) }
     }
 }
 
 // ---------------------------------------------------------------------
-// Points adapter
+// 4. Points Adapter
 // ---------------------------------------------------------------------
-class PointsHistoryAdapter : RecyclerView.Adapter<PointsHistoryAdapter.VH>() {
+class PointsHistoryAdapter(
+    private val onClick: (PointTransaction) -> Unit
+) : RecyclerView.Adapter<PointsHistoryAdapter.VH>() {
 
     private var items: List<PointTransaction> = emptyList()
     private var p: HistoryPalette = historyPalette(false)
     private val fmt = SimpleDateFormat("dd MMM yyyy, h:mm a", Locale.getDefault())
 
     fun submit(list: List<PointTransaction>, palette: HistoryPalette) {
-        items = list
-        p = palette
+        items = list; p = palette
         notifyDataSetChanged()
     }
 
@@ -200,7 +177,7 @@ class PointsHistoryAdapter : RecyclerView.Adapter<PointsHistoryAdapter.VH>() {
 
         h.badge.text = if (earned) "↑" else "↓"
         h.badge.setTextColor(color)
-        h.badge.background = softShape(color, GradientDrawable.OVAL)
+        h.badge.background = GradientDrawable().apply { shape = GradientDrawable.OVAL; setColor(ColorUtils.setAlphaComponent(color, 38)) }
 
         h.title.text = t.title.ifBlank { if (earned) "Points earned" else "Points spent" }
         h.title.setTextColor(p.textPrimary)
@@ -210,5 +187,8 @@ class PointsHistoryAdapter : RecyclerView.Adapter<PointsHistoryAdapter.VH>() {
 
         h.amount.text = if (earned) "+${t.amount}" else "${t.amount}"
         h.amount.setTextColor(color)
+
+        // CLICK LISTENER ADDED HERE
+        h.card.setOnClickListener { onClick(t) }
     }
 }

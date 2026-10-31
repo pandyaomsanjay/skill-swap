@@ -304,7 +304,7 @@ class Home : BaseActivity(), NavigationView.OnNavigationItemSelectedListener {
         findViewById<TextView>(R.id.tvViewAllTrades)?.setTextColor(textPrimary)
         findViewById<TextView>(R.id.tvNoSwaps)?.setTextColor(textSecondary)
 
-        // -------- Drawer styling: single call replaces the old block --------
+        // -------- Drawer styling --------
         styleDrawer(isDark, navDrawerBg)
 
         themeInflatedCategoryCards(textPrimary, textSecondary, cardBg, cardStroke, textPrimary)
@@ -385,7 +385,6 @@ class Home : BaseActivity(), NavigationView.OnNavigationItemSelectedListener {
                 intArrayOf(Color.parseColor("#1B3C53"), Color.parseColor("#456882"))
             }
             header.background = GradientDrawable(GradientDrawable.Orientation.TL_BR, colors).apply {
-                // order: topLeft, topRight, bottomRight, bottomLeft (x,y each)
                 cornerRadii = floatArrayOf(0f, 0f, corner, corner, corner, corner, corner, corner)
             }
 
@@ -509,16 +508,13 @@ class Home : BaseActivity(), NavigationView.OnNavigationItemSelectedListener {
         }
 
         // ── Credit Store entry point ──────────────────────────────────────────
-        // Tapping the credits display on the Home card opens the Credit Store.
         val openCreditStore: (View) -> Unit = {
             startActivity(Intent(this, CreditStoreActivity::class.java))
         }
         findViewById<TextView>(R.id.tvPoints)?.setOnClickListener(openCreditStore)
         findViewById<TextView>(R.id.tvPointsLabel)?.setOnClickListener(openCreditStore)
-        // Make the entire right-side column (points + label) clickable
-        // by wrapping in the cardProfilePoints click area
         findViewById<MaterialCardView>(R.id.cardProfilePoints)?.let { card ->
-            card.isClickable = false // don't override; let individual views handle it
+            card.isClickable = false
         }
     }
 
@@ -881,13 +877,12 @@ class Home : BaseActivity(), NavigationView.OnNavigationItemSelectedListener {
             }
 
             R.id.nav_points -> {
-                startActivity(
-                    Intent(this, HistoryActivity::class.java)
-                        .putExtra(HistoryActivity.EXTRA_START_TAB, 1)   // opens the Points tab
-                )
+                // CHANGED: Opens the new dedicated Points & Transactions screen
+                startActivity(Intent(this, PointsTransactionsActivity::class.java))
             }
 
             R.id.nav_history -> {
+                // CHANGED: Opens the Swaps-only History screen
                 startActivity(Intent(this, HistoryActivity::class.java))
             }
 

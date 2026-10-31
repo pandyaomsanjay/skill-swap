@@ -1,14 +1,16 @@
 package com.example.sgp
 
+import android.Manifest
 import android.content.Intent
 import android.content.SharedPreferences
+import android.content.pm.PackageManager
 import android.content.res.ColorStateList
+import android.graphics.Bitmap
 import android.graphics.Color
 import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
 import android.net.Uri
 import android.os.Bundle
-import android.provider.MediaStore
 import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
@@ -20,6 +22,8 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
+import androidx.core.content.ContextCompat
+import androidx.core.content.FileProvider
 import androidx.core.view.WindowCompat
 import androidx.lifecycle.lifecycleScope
 import com.bumptech.glide.Glide
@@ -30,6 +34,8 @@ import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.firestore
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.launch
+import java.io.File
+import java.io.FileOutputStream
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -165,7 +171,6 @@ class Profile : BaseActivity() {
         findViewById<ImageView>(R.id.ivChevronFeedback)?.imageTintList = ColorStateList.valueOf(chevronTint)
         findViewById<View>(R.id.dividerFeedback1)?.setBackgroundColor(divider)
 
-        // Language row — pill on the value
         findViewById<TextView>(R.id.tvChangeLanguage)?.setTextColor(textPrimary)
 
         findViewById<TextView>(R.id.tvProfileLanguage)?.apply {
@@ -245,7 +250,7 @@ class Profile : BaseActivity() {
         findViewById<LinearLayout>(R.id.layoutBookingHistory).setOnClickListener {
             Toast.makeText(this, "Booking History", Toast.LENGTH_SHORT).show()
         }
-        
+
         findViewById<MaterialButton>(R.id.btnAddNewResource).setOnClickListener {
             startActivity(Intent(this, AddResourceActivity::class.java))
         }
@@ -287,7 +292,6 @@ class Profile : BaseActivity() {
         }
 
         // ── Credit Store entry point ──────────────────────────────────────────
-        // Tapping the credits stat in the profile header opens the Credit Store.
         tvCredits.setOnClickListener {
             startActivity(Intent(this, CreditStoreActivity::class.java))
         }
@@ -319,7 +323,6 @@ class Profile : BaseActivity() {
     }
 
     private fun updateUI(user: Users) {
-        // Uses capitalizeName() inherited from BaseActivity
         tvName.text = capitalizeName(user.name)
         tvExchanges.text = user.completedTrades.toString()
         tvRating.text = String.format("%.1f", user.rating)
@@ -483,7 +486,14 @@ class Profile : BaseActivity() {
         }
 
         addOptionRow("🖼️", "Upload from Gallery") { galleryLauncher.launch("image/*") }
-        addOptionRow("📷", "Take Photo") { cameraLauncher.launch(null) }
+        addOptionRow("📷", "Take Photo") {
+            // Check permission before launching camera
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
+                cameraLauncher.launch(null)
+            } else {
+                cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
+            }
+        }
 
         root.addView(dialogDivider())
         root.addView(pillButton("Cancel", currentSecondaryBtnBg(), currentTextPrimary()).apply {
@@ -497,6 +507,7 @@ class Profile : BaseActivity() {
         dialog.show()
     }
 
+    // ─── Image Pickers & Permissions ─────────────────────────────────────
     private val galleryLauncher =
         registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
             uri?.let {
@@ -505,20 +516,41 @@ class Profile : BaseActivity() {
             }
         }
 
+    private val cameraPermissionLauncher =
+        registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
+            if (isGranted) {
+                cameraLauncher.launch(null)
+            } else {
+                Toast.makeText(this, "Camera permission is required to take a photo", Toast.LENGTH_SHORT).show()
+            }
+        }
+
     private val cameraLauncher =
         registerForActivityResult(ActivityResultContracts.TakePicturePreview()) { bitmap ->
             bitmap?.let {
-                val path = MediaStore.Images.Media.insertImage(
-                    contentResolver,
-                    bitmap,
-                    "ProfileImage",
-                    null
-                )
-                val uri = Uri.parse(path)
-                profileImageView.setImageURI(uri)
-                uploadImageToSupabase(uri)
+                val uri = bitmapToUri(it)
+                if (uri != null) {
+                    profileImageView.setImageURI(uri)
+                    uploadImageToSupabase(uri)
+                } else {
+                    Toast.makeText(this, "Failed to process image", Toast.LENGTH_SHORT).show()
+                }
             }
         }
+
+    private fun bitmapToUri(bitmap: Bitmap): Uri? {
+        return try {
+            val file = File(cacheDir, "profile_${System.currentTimeMillis()}.jpg")
+            val outputStream = FileOutputStream(file)
+            bitmap.compress(Bitmap.CompressFormat.JPEG, 90, outputStream)
+            outputStream.flush()
+            outputStream.close()
+            FileProvider.getUriForFile(this, "$packageName.fileprovider", file)
+        } catch (e: Exception) {
+            e.printStackTrace()
+            null
+        }
+    }
 
     private fun uploadImageToSupabase(uri: Uri) {
         lifecycleScope.launch {
