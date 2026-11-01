@@ -12,7 +12,9 @@ import android.widget.Toast
 import androidx.lifecycle.lifecycleScope
 import com.bumptech.glide.Glide
 import com.google.android.material.button.MaterialButton
+import com.google.android.material.button.MaterialButtonToggleGroup
 import com.google.android.material.textfield.TextInputEditText
+import com.google.android.material.textfield.TextInputLayout
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.launch
@@ -26,10 +28,15 @@ import java.util.Locale
  *
  * Flow:
  *   1. Show requested resource summary
- *   2. Let the requester pick which of their own resources to offer
+ *   2. Let the requester pick WHAT they offer:
+ *        • POINTS   — enter a number of points (validated against balance)
+ *        • MATERIAL — pick one of their own existing resources
  *   3. Let the requester pick a preferred date/time
  *   4. Optional message
  *   5. Send -> TradeManager.createTrade()
+ *
+ * Backward compatible: defaults to MATERIAL (the pre-existing behaviour), so
+ * a user who never touches the toggle sees the same flow they always have.
  */
 class TradeRequestActivity : BaseActivity() {
 
@@ -40,10 +47,14 @@ class TradeRequestActivity : BaseActivity() {
     private var receiverId = ""
     private var receiverName = ""
 
-    // ─── Selected offered resource ───
+    // ─── Selected offered resource (material path) ───
     private var selectedOfferedResourceId = ""
     private var selectedOfferedResourceTitle = ""
     private var selectedOfferedResourceType = TradeResourceType.OTHER
+
+    // ─── NEW: exchange method state ───
+    private var selectedExchangeMethod: ExchangeMethod = ExchangeMethod.MATERIAL
+    private var currentBalance: Int = 0
 
     // ─── Selected schedule ───
     private var selectedScheduleMillis = 0L
@@ -54,12 +65,25 @@ class TradeRequestActivity : BaseActivity() {
     private lateinit var tvReceiverName: TextView
     private lateinit var ivRequestedThumb: android.widget.ImageView
 
+    // Exchange-method toggle + sections (NEW)
+    private lateinit var toggleExchangeMethod: MaterialButtonToggleGroup
+    private lateinit var btnOfferPoints: MaterialButton
+    private lateinit var btnOfferMaterial: MaterialButton
+    private lateinit var pointsSection: View
+    private lateinit var materialSection: View
+    private lateinit var tvAvailableBalance: TextView
+    private lateinit var tilOfferPoints: TextInputLayout
+    private lateinit var etOfferPoints: TextInputEditText
+
+    // Material picker (existing views, now inside materialSection)
     private lateinit var btnSelectOffered: MaterialButton
     private lateinit var tvSelectedOffered: TextView
 
+    // Schedule
     private lateinit var tvScheduleValue: TextView
     private lateinit var btnPickSchedule: MaterialButton
 
+    // Message / send
     private lateinit var etMessage: TextInputEditText
     private lateinit var btnSend: MaterialButton
     private lateinit var progressBar: ProgressBar
@@ -105,22 +129,44 @@ class TradeRequestActivity : BaseActivity() {
         bindViews()
         setupToolbar()
         bindRequestedResource()
+
+        // ── NEW: wire the exchange-method toggle BEFORE anything else that
+        //   depends on visibility, so Points/Material sections start in a
+        //   consistent state.
+        setupExchangeMethodToggle()
+        loadUserBalance()
+
+        // ── Material picker, schedule, message + send ──
         setupSchedulePicker()
         setupSendButton(myEmail)
     }
 
     private fun bindViews() {
+        // Requested resource summary
         tvRequestedTitle = findViewById(R.id.tvRequestedTitle)
         tvRequestedType = findViewById(R.id.tvRequestedType)
         tvReceiverName = findViewById(R.id.tvReceiverName)
         ivRequestedThumb = findViewById(R.id.ivRequestedThumb)
 
+        // Exchange-method toggle + sections (NEW)
+        toggleExchangeMethod = findViewById(R.id.toggleExchangeMethod)
+        btnOfferPoints = findViewById(R.id.btnOfferPoints)
+        btnOfferMaterial = findViewById(R.id.btnOfferMaterial)
+        pointsSection = findViewById(R.id.pointsSection)
+        materialSection = findViewById(R.id.materialSection)
+        tvAvailableBalance = findViewById(R.id.tvAvailableBalance)
+        tilOfferPoints = findViewById(R.id.tilOfferPoints)
+        etOfferPoints = findViewById(R.id.etOfferPoints)
+
+        // Material picker
         btnSelectOffered = findViewById(R.id.btnSelectOfferedResource)
         tvSelectedOffered = findViewById(R.id.tvSelectedOfferedResource)
 
+        // Schedule
         tvScheduleValue = findViewById(R.id.tvScheduleValue)
         btnPickSchedule = findViewById(R.id.btnPickSchedule)
 
+        // Message / send
         etMessage = findViewById(R.id.etMessage)
         btnSend = findViewById(R.id.btnSendTradeRequest)
         progressBar = findViewById(R.id.progressBar)
@@ -132,7 +178,7 @@ class TradeRequestActivity : BaseActivity() {
     }
 
     // ═════════════════════════════════════════════════════════════
-    // REQUESTED RESOURCE SUMMARY
+    // REQUESTED RESOURCE SUMMARY  (unchanged behaviour)
     // ═════════════════════════════════════════════════════════════
 
     private fun bindRequestedResource() {
@@ -163,13 +209,70 @@ class TradeRequestActivity : BaseActivity() {
     }
 
     // ═════════════════════════════════════════════════════════════
-    // OFFERED RESOURCE PICKER
+    // EXCHANGE METHOD TOGGLE  (NEW)
     // ═════════════════════════════════════════════════════════════
 
-    private fun openResourceSelector() {
+    private fun setupExchangeMethodToggle() {
+        toggleExchangeMethod.addOnButtonCheckedListener { _, checkedId, isChecked ->
+            if (!isChecked) return@addOnButtonCheckedListener
+            if (checkedId == R.id.btnOfferPoints) {
+                selectedExchangeMethod = ExchangeMethod.POINTS
+                pointsSection.visibility = View.VISIBLE
+                materialSection.visibility = View.GONE
+            } else {
+                selectedExchangeMethod = ExchangeMethod.MATERIAL
+                pointsSection.visibility = View.GONE
+                materialSection.visibility = View.VISIBLE
+            }
+        }
+
+        // Default to MATERIAL, matching the pre-existing flow so nothing
+        // changes for users who don't need points.
+        toggleExchangeMethod.check(R.id.btnOfferMaterial)
+
+        // Clear any stale error when the user edits the points field
+        etOfferPoints.addTextChangedListener(object : android.text.TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
+            override fun afterTextChanged(s: android.text.Editable?) {
+                if (tilOfferPoints.error != null) tilOfferPoints.error = null
+            }
+        })
+    }
+
+    /**
+     * Loads the requester's current points balance so the UI can show it and
+     * do a client-side sanity check before the network call. The authoritative
+     * balance check still happens server-side in TradeManager.createTrade().
+     */
+    private fun loadUserBalance() {
+        val email = FirebaseAuth.getInstance().currentUser?.email ?: return
+        tvAvailableBalance.text = "Available: loading…"
+        db.collection("users").whereEqualTo("email", email).limit(1).get()
+            .addOnSuccessListener { snap ->
+                currentBalance = snap.documents.firstOrNull()
+                    ?.getLong("credits")?.toInt() ?: 0
+                tvAvailableBalance.text = "Available: $currentBalance points"
+            }
+            .addOnFailureListener {
+                tvAvailableBalance.text = "Available: —"
+            }
+    }
+
+    // ═════════════════════════════════════════════════════════════
+    // MATERIAL PICKER + SCHEDULE  (existing behaviour, consolidated)
+    // ═════════════════════════════════════════════════════════════
+
+    private fun setupSchedulePicker() {
+        // Material picker — consolidated from the old openResourceSelector()
+        // (which was dead code) into this single setup method.
         btnSelectOffered.setOnClickListener {
             SelectResourceActivity.start(this, SelectResourceActivity.REQ_SELECT)
         }
+
+        // Schedule picker
+        tvScheduleValue.setOnClickListener { showDatePicker() }
+        btnPickSchedule.setOnClickListener { showDatePicker() }
     }
 
     @Deprecated("Deprecated in Java")
@@ -193,18 +296,6 @@ class TradeRequestActivity : BaseActivity() {
                 tvSelectedOffered.text = "No resource selected"
             }
         }
-    }
-
-    // ═════════════════════════════════════════════════════════════
-    // SCHEDULE PICKER
-    // ═════════════════════════════════════════════════════════════
-
-    private fun setupSchedulePicker() {
-        btnSelectOffered.setOnClickListener {
-            SelectResourceActivity.start(this, SelectResourceActivity.REQ_SELECT)
-        }
-        tvScheduleValue.setOnClickListener { showDatePicker() }
-        btnPickSchedule.setOnClickListener { showDatePicker() }
     }
 
     private fun showDatePicker() {
@@ -254,13 +345,40 @@ class TradeRequestActivity : BaseActivity() {
     }
 
     // ═════════════════════════════════════════════════════════════
-    // SEND
+    // SEND  (extended to support POINTS or MATERIAL)
     // ═════════════════════════════════════════════════════════════
 
     private fun setupSendButton(myEmail: String) {
         btnSend.setOnClickListener {
-            val message = etMessage.text?.toString()?.trim().orEmpty()
+            // ── 1. Exchange-method specific pre-checks (UI feedback) ──
+            val offeredPoints: Int = when (selectedExchangeMethod) {
+                ExchangeMethod.POINTS -> {
+                    val raw = etOfferPoints.text?.toString()?.trim().orEmpty()
+                    val parsed = raw.toIntOrNull() ?: 0
+                    if (parsed <= 0) {
+                        tilOfferPoints.error = "Enter a positive amount"
+                        etOfferPoints.requestFocus()
+                        return@setOnClickListener
+                    }
+                    if (currentBalance > 0 && parsed > currentBalance) {
+                        tilOfferPoints.error = "You only have $currentBalance points"
+                        etOfferPoints.requestFocus()
+                        return@setOnClickListener
+                    }
+                    parsed
+                }
+                ExchangeMethod.MATERIAL -> 0
+            }
 
+            if (selectedExchangeMethod == ExchangeMethod.MATERIAL &&
+                selectedOfferedResourceId.isBlank()
+            ) {
+                Toast.makeText(this, TradeValidator.ERR_NO_RESOURCE, Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+
+            // ── 2. Build the trade payload ──
+            val message = etMessage.text?.toString()?.trim().orEmpty()
             val myName = getSharedPreferences("SkillSwapPrefs", MODE_PRIVATE)
                 .getString("user_name", "").orEmpty()
 
@@ -272,22 +390,30 @@ class TradeRequestActivity : BaseActivity() {
                 requestedResourceId = requestedResourceId,
                 requestedResourceType = requestedResourceType.name,
                 requestedResourceTitle = requestedResourceTitle,
-                offeredResourceId = selectedOfferedResourceId,
-                offeredResourceType = selectedOfferedResourceType.name,
-                offeredResourceTitle = selectedOfferedResourceTitle,
+
+                // NEW: exchange side
+                exchangeMethod = selectedExchangeMethod.value,
+                offeredPoints = offeredPoints,
+                offeredResourceId = if (selectedExchangeMethod == ExchangeMethod.MATERIAL)
+                    selectedOfferedResourceId else "",
+                offeredResourceType = if (selectedExchangeMethod == ExchangeMethod.MATERIAL)
+                    selectedOfferedResourceType.name else TradeResourceType.OTHER.name,
+                offeredResourceTitle = if (selectedExchangeMethod == ExchangeMethod.MATERIAL)
+                    selectedOfferedResourceTitle else "",
+
                 message = message,
                 status = TradeStatus.PENDING.value,
                 proposedSchedule = selectedScheduleMillis
             )
 
-            // ── Client-side pre-flight validation ──
+            // ── 3. Client-side pre-flight validation ──
             val preflightError = TradeValidator.validateNewTrade(trade)
             if (preflightError != null) {
                 Toast.makeText(this, preflightError, Toast.LENGTH_LONG).show()
                 return@setOnClickListener
             }
 
-            // ── Disable UI and dispatch ──
+            // ── 4. Disable UI and dispatch ──
             setLoading(true)
 
             lifecycleScope.launch {
@@ -305,7 +431,7 @@ class TradeRequestActivity : BaseActivity() {
                         finish()
                     },
                     onFailure = { e ->
-                        // ── Never surface raw Firestore errors to the user ──
+                        // Never surface raw Firestore errors to the user.
                         val friendly = TradeValidator.mapException(e)
                         android.util.Log.e(
                             "TradeRequestActivity",
@@ -329,6 +455,8 @@ class TradeRequestActivity : BaseActivity() {
         btnSelectOffered.isEnabled = !loading
         btnPickSchedule.isEnabled = !loading
         etMessage.isEnabled = !loading
+        toggleExchangeMethod.isEnabled = !loading
+        etOfferPoints.isEnabled = !loading
     }
 
     private fun formatSchedule(millis: Long): String =

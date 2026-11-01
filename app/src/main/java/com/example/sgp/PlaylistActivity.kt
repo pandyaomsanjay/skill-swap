@@ -40,10 +40,13 @@ open class PlaylistActivity : BaseActivity() {
     private lateinit var playlist: Skill
     private var currentUserEmail: String? = null
     private var currentUserCredits: Int = 0
-    private var hasAccess = false
+    private var hasAccess = false          // full playlist access (owner/admin/purchased)
     private var isAdmin = false
     private var isOwner = false
     private var uid: String? = null
+
+    // NEW: individual video ownership state
+    private val ownedVideoIds: MutableSet<String> = mutableSetOf()
 
     private var completedVideoIds: Set<String> = emptySet()
 
@@ -89,23 +92,23 @@ open class PlaylistActivity : BaseActivity() {
         }
     }
 
-    // ---- Light palette ----
+    // Light palette
     private val lightScreenBg = Color.parseColor("#EAF1F5")
     private val lightHeaderBg = Color.parseColor("#1B3C53")
     private val lightCardStroke = Color.parseColor("#D2C1B6")
     private val lightTextPrimary = Color.parseColor("#1B3C53")
     private val lightTextSecondary = Color.parseColor("#456882")
-    private val lightNavIconTint = Color.BLACK                // ← BLACK arrow in light mode
+    private val lightNavIconTint = Color.BLACK
 
-    // ---- Dark palette ----
+    // Dark palette
     private val darkScreenBg = Color.parseColor("#0F1B24")
     private val darkHeaderBg = Color.parseColor("#0B1620")
     private val darkCardStroke = Color.parseColor("#2A3B48")
     private val darkTextPrimary = Color.parseColor("#F5F7F8")
     private val darkTextSecondary = Color.parseColor("#8FA6B8")
-    private val darkNavIconTint = Color.WHITE                 // ← WHITE arrow in dark mode
+    private val darkNavIconTint = Color.WHITE
 
-    // ---------- Report ----------
+    // Report
     private val reportReasons = arrayOf(
         "Inappropriate or Offensive Content",
         "Spam or Misleading Information",
@@ -114,7 +117,7 @@ open class PlaylistActivity : BaseActivity() {
         "Copyright or Intellectual Property Violation"
     )
 
-    // ---------- Feedback ----------
+    // Feedback
     private var selectedFeedbackRating = 0
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -143,7 +146,7 @@ open class PlaylistActivity : BaseActivity() {
         if (storedDarkMode != isDarkModeEnabled) {
             applyTheme(storedDarkMode)
         }
-        if (::playlist.isInitialized && hasAccess && !isOwner) {
+        if (::playlist.isInitialized && (hasAccess || ownedVideoIds.isNotEmpty()) && !isOwner) {
             loadProgressForLearner()
         }
     }
@@ -194,9 +197,9 @@ open class PlaylistActivity : BaseActivity() {
         }
     }
 
-    // ---------------------------------------------------------------------
-    // THEME ENGINE
-    // ---------------------------------------------------------------------
+    // ─────────────────────────────────────────────────────────────
+    // THEME
+    // ─────────────────────────────────────────────────────────────
     private fun applyTheme(isDark: Boolean) {
         isDarkModeEnabled = isDark
 
@@ -209,13 +212,9 @@ open class PlaylistActivity : BaseActivity() {
 
         rootLayout.setBackgroundColor(screenBg)
 
-        // Toolbar background + navigation (back arrow) tint
         val toolbar = findViewById<androidx.appcompat.widget.Toolbar>(R.id.toolbar)
         toolbar?.apply {
             setBackgroundColor(headerBg)
-            // Applies the icon color dynamically:
-            //   light mode → BLACK
-            //   dark mode  → WHITE
             navigationIcon?.setTint(navIconTint)
         }
 
@@ -232,25 +231,17 @@ open class PlaylistActivity : BaseActivity() {
         tvEmptyVideosMessage.setTextColor(textSecondary)
         progressIndicatorWatched.trackColor = cardStroke
 
-        // If adapter already exists, push the new theme state
         if (::adapter.isInitialized) {
             adapter.isDarkMode = isDark
         }
     }
 
-    // ─────────────────────────────────────────────────────────────────────
-    // FIX: Re-set the navigation icon AFTER the ActionBar config, otherwise
-    // AppCompat wipes out the XML-declared `navigationIcon`.
-    // ─────────────────────────────────────────────────────────────────────
     private fun setupToolbar() {
         val toolbar: androidx.appcompat.widget.Toolbar = findViewById(R.id.toolbar)
         setSupportActionBar(toolbar)
-
         supportActionBar?.setDisplayShowTitleEnabled(false)
         supportActionBar?.setDisplayHomeAsUpEnabled(false)
         supportActionBar?.title = ""
-
-        // CRITICAL: Re-attach the icon now that ActionBar is done configuring.
         toolbar.setNavigationIcon(R.drawable.outline_arrow_back_24)
         toolbar.setNavigationOnClickListener { finish() }
     }
@@ -316,19 +307,15 @@ open class PlaylistActivity : BaseActivity() {
                 videos = videos,
                 completedVideoIds = completedVideoIds,
                 isOwner = isOwner,
-                onVideoClick = { video ->
-                    if (hasAccess) {
-                        playVideo(video)
-                    } else {
-                        Toast.makeText(this, "Please access the playlist first", Toast.LENGTH_SHORT).show()
-                    }
-                },
+                onVideoClick = { video -> playVideo(video) },
                 onReportClick = { video -> showReportDialogForVideo(video) },
-                onFeedbackClick = { video -> showFeedbackDialogForVideo(video) }
+                onFeedbackClick = { video -> showFeedbackDialogForVideo(video) },
+                onBuyClick = { video -> showPurchaseVideoDialog(video) }
             )
 
-            // Set the current theme state on the freshly created adapter
             adapter.isDarkMode = isDarkModeEnabled
+            adapter.fullPlaylistOwned = hasAccess
+            adapter.ownedVideoIds = ownedVideoIds.toSet()
 
             recyclerView.adapter = adapter
             emptyState.visibility = View.GONE
@@ -339,7 +326,9 @@ open class PlaylistActivity : BaseActivity() {
         }
     }
 
-    // ─────────────────────── Access Control ───────────────────────
+    // ═════════════════════════════════════════════════════════════
+    // ACCESS CONTROL
+    // ═════════════════════════════════════════════════════════════
 
     private fun checkAccess() {
         Log.d("PlaylistActivity", "=== checkAccess START ===")
@@ -383,7 +372,8 @@ open class PlaylistActivity : BaseActivity() {
             btnAccessPlaylist.isEnabled = false
             btnAccessPlaylist.backgroundTintList = ContextCompat.getColorStateList(this, R.color.success)
             showOwnerAccessCount()
-            bindVideosList()
+            // Still fetch individual ownership for consistency (should be empty)
+            loadOwnedVideoIds()
             return
         }
 
@@ -396,6 +386,7 @@ open class PlaylistActivity : BaseActivity() {
                     btnAccessPlaylist.text = "Admin Access"
                     btnAccessPlaylist.isEnabled = false
                     btnAccessPlaylist.backgroundTintList = ContextCompat.getColorStateList(this, R.color.brand_navy)
+                    loadOwnedVideoIds()
                     loadProgressForLearner()
                     return@addOnSuccessListener
                 }
@@ -428,18 +419,43 @@ open class PlaylistActivity : BaseActivity() {
                 btnAccessPlaylist.text = "Access Granted"
                 btnAccessPlaylist.isEnabled = false
                 btnAccessPlaylist.backgroundTintList = ContextCompat.getColorStateList(this, R.color.success)
-                loadProgressForLearner()
+                // Fetch individual ownership, then load progress
+                loadOwnedVideoIds {
+                    loadProgressForLearner()
+                }
             } else {
-                db.collection("users").document(resolvedUid).get()
-                    .addOnSuccessListener { doc ->
-                        currentUserCredits = doc.getLong("credits")?.toInt() ?: 0
-                        updateAccessButton()
+                // Not a full playlist owner — still fetch individual ownership
+                loadOwnedVideoIds {
+                    if (ownedVideoIds.isNotEmpty()) {
+                        loadProgressForLearner()
+                    } else {
+                        // No access at all — check credits so we can show the buy button
+                        db.collection("users").document(resolvedUid).get()
+                            .addOnSuccessListener { doc ->
+                                currentUserCredits = doc.getLong("credits")?.toInt() ?: 0
+                                updateAccessButton()
+                            }
+                            .addOnFailureListener { e ->
+                                Log.e("PlaylistActivity", "Failed to get user credits: ${e.message}", e)
+                                updateAccessButton()
+                            }
                     }
-                    .addOnFailureListener { e ->
-                        Log.e("PlaylistActivity", "Failed to get user credits: ${e.message}", e)
-                        updateAccessButton()
-                    }
+                }
             }
+        }
+    }
+
+    /** Loads the set of individually purchased video IDs for this playlist. */
+    private fun loadOwnedVideoIds(onDone: (() -> Unit)? = null) {
+        val resolvedUid = uid ?: return
+        PlaylistManager.getOwnedVideoIds(resolvedUid, skillId) { ids ->
+            ownedVideoIds.clear()
+            ownedVideoIds.addAll(ids)
+            // Re-bind so adapter picks up the new ownership state
+            if (::playlist.isInitialized) {
+                bindVideosList()
+            }
+            onDone?.invoke()
         }
     }
 
@@ -449,14 +465,17 @@ open class PlaylistActivity : BaseActivity() {
             btnAccessPlaylist.setOnClickListener { showPurchaseConfirmDialog() }
             btnAccessPlaylist.isEnabled = true
         } else {
-            // Insufficient credits — guide user to Credit Store
             btnAccessPlaylist.text = "Not enough credits — Buy Credits"
             btnAccessPlaylist.isEnabled = true
             btnAccessPlaylist.setOnClickListener {
-                startActivity(android.content.Intent(this, CreditStoreActivity::class.java))
+                startActivity(Intent(this, CreditStoreActivity::class.java))
             }
         }
     }
+
+    // ═════════════════════════════════════════════════════════════
+    // FULL PLAYLIST PURCHASE (existing flow preserved)
+    // ═════════════════════════════════════════════════════════════
 
     private fun showPurchaseConfirmDialog() {
         val root = dialogCard()
@@ -504,7 +523,10 @@ open class PlaylistActivity : BaseActivity() {
                 purchaseAccess()
             }
         }
-        buttonRow.addView(btnCancel, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply { marginEnd = dp(8) })
+        buttonRow.addView(
+            btnCancel,
+            LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply { marginEnd = dp(8) }
+        )
         buttonRow.addView(btnPurchase, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
         root.addView(buttonRow)
 
@@ -543,7 +565,6 @@ open class PlaylistActivity : BaseActivity() {
                         hasAccess = true
                         currentUserCredits -= price
 
-                        // Save this purchase to the points history
                         PointsLedger.recordSpent(
                             userId = currentUserEmail ?: FirebaseAuth.getInstance().currentUser?.email ?: "",
                             points = price,
@@ -555,6 +576,9 @@ open class PlaylistActivity : BaseActivity() {
                         btnAccessPlaylist.text = "Access Granted"
                         btnAccessPlaylist.isEnabled = false
                         btnAccessPlaylist.backgroundTintList = ContextCompat.getColorStateList(this, R.color.success)
+
+                        // Re-bind so every video now shows as owned
+                        bindVideosList()
                         loadProgressForLearner()
                     },
                     onFailure = { e ->
@@ -574,11 +598,179 @@ open class PlaylistActivity : BaseActivity() {
             }
     }
 
-    // ─────────────────────── Progress ───────────────────────
+    // ═════════════════════════════════════════════════════════════
+    // INDIVIDUAL VIDEO PURCHASE  (new)
+    // ═════════════════════════════════════════════════════════════
+
+    private fun showPurchaseVideoDialog(video: PlaylistVideo) {
+        val userUid = uid ?: run {
+            Toast.makeText(this, "Please log in first", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        // Free videos — grant access immediately (defensive; adapter should
+        // already treat them as watchable)
+        if (video.credits <= 0) {
+            ownedVideoIds.add(video.id)
+            bindVideosList()
+            Toast.makeText(this, "Video is free to watch", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        if (video.id in ownedVideoIds) {
+            Toast.makeText(this, "You already own this video", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        // Pre-check balance before showing the dialog so we can warn early
+        db.collection("users").document(userUid).get()
+            .addOnSuccessListener { doc ->
+                val balance = doc.getLong("credits")?.toInt() ?: 0
+                if (balance < video.credits) {
+                    Toast.makeText(
+                        this,
+                        "Not enough credits. You have $balance, need ${video.credits}.",
+                        Toast.LENGTH_LONG
+                    ).show()
+                    return@addOnSuccessListener
+                }
+
+                val root = dialogCard()
+
+                root.addView(TextView(this).apply {
+                    text = "🔓"
+                    textSize = 30f
+                    gravity = Gravity.CENTER
+                    layoutParams = LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.MATCH_PARENT,
+                        LinearLayout.LayoutParams.WRAP_CONTENT
+                    ).apply { bottomMargin = dp(8) }
+                })
+                root.addView(TextView(this).apply {
+                    text = "Unlock this video?"
+                    setTextColor(currentTextPrimary())
+                    textSize = 17f
+                    setTypeface(typeface, Typeface.BOLD)
+                    gravity = Gravity.CENTER
+                })
+                root.addView(TextView(this).apply {
+                    text = video.title.ifBlank { "Video" }
+                    setTextColor(currentTextPrimary())
+                    textSize = 14f
+                    gravity = Gravity.CENTER
+                    layoutParams = LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.MATCH_PARENT,
+                        LinearLayout.LayoutParams.WRAP_CONTENT
+                    ).apply { topMargin = dp(4) }
+                })
+                root.addView(TextView(this).apply {
+                    text = "This will use ${video.credits} credits from your account.\n\nYour balance: $balance credits"
+                    setTextColor(currentTextSecondary())
+                    textSize = 13f
+                    gravity = Gravity.CENTER
+                    layoutParams = LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.MATCH_PARENT,
+                        LinearLayout.LayoutParams.WRAP_CONTENT
+                    ).apply {
+                        topMargin = dp(10)
+                        bottomMargin = dp(18)
+                    }
+                })
+
+                val dialog = AlertDialog.Builder(this).setView(root).create()
+                dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
+
+                val buttonRow = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+                val btnCancel = pillButton("Cancel", currentSecondaryBtnBg(), currentSecondaryBtnText()).apply {
+                    setOnClickListener { dialog.dismiss() }
+                }
+                val btnBuy = pillButton("Buy for ${video.credits}", Color.parseColor("#7C3AED"), Color.WHITE).apply {
+                    setOnClickListener {
+                        dialog.dismiss()
+                        performVideoPurchase(video, video.credits)
+                    }
+                }
+                buttonRow.addView(
+                    btnCancel,
+                    LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply { marginEnd = dp(8) }
+                )
+                buttonRow.addView(btnBuy, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
+                root.addView(buttonRow)
+
+                dialog.show()
+            }
+            .addOnFailureListener { e ->
+                Toast.makeText(this, "Failed to check balance: ${e.message}", Toast.LENGTH_SHORT).show()
+            }
+    }
+
+    private fun performVideoPurchase(video: PlaylistVideo, price: Int) {
+        val userUid = uid ?: return
+        val userEmail = currentUserEmail ?: FirebaseAuth.getInstance().currentUser?.email.orEmpty()
+
+        // Disable all buy buttons during the network call by disabling the
+        // adapter temporarily — simplest way to prevent double-clicks.
+        btnAccessPlaylist.isEnabled = false
+
+        PlaylistManager.purchaseVideo(
+            uid = userUid,
+            playlistId = skillId,
+            videoId = video.id,
+            price = price,
+            videoTitle = video.title,
+            onSuccess = {
+                runOnUiThread {
+                    btnAccessPlaylist.isEnabled = true
+
+                    // Update local state
+                    ownedVideoIds.add(video.id)
+                    currentUserCredits -= price
+
+                    // Record in points ledger (matches purchasePlaylist pattern)
+                    PointsLedger.recordSpent(
+                        userId = userEmail,
+                        points = price,
+                        title = "Bought video: ${video.title}",
+                        refId = "${skillId}__${video.id}"
+                    )
+
+                    // Re-bind so the new ownership state is reflected
+                    bindVideosList()
+                    loadProgressForLearner()
+
+                    Toast.makeText(this, "Video unlocked!", Toast.LENGTH_SHORT).show()
+                }
+            },
+            onFailure = { e ->
+                runOnUiThread {
+                    btnAccessPlaylist.isEnabled = true
+                    val message = when {
+                        e.message?.contains("Insufficient", ignoreCase = true) == true ->
+                            "Not enough credits for this video"
+                        e.message?.contains("Already purchased", ignoreCase = true) == true ->
+                            "Already purchased"
+                        else -> "Purchase failed: ${e.message}"
+                    }
+                    Toast.makeText(this, message, Toast.LENGTH_LONG).show()
+                }
+            }
+        )
+    }
+
+    // ═════════════════════════════════════════════════════════════
+    // PROGRESS
+    // ═════════════════════════════════════════════════════════════
 
     private fun loadProgressForLearner() {
         val resolvedUid = uid ?: return
         if (isOwner) return
+
+        // Only show progress if the user has some access
+        if (!hasAccess && ownedVideoIds.isEmpty()) {
+            progressIndicatorWatched.visibility = View.GONE
+            tvProgressLabel.visibility = View.GONE
+            return
+        }
 
         PlaylistManager.getProgress(resolvedUid, skillId) { progress ->
             val completed = progress?.completedVideos?.toSet() ?: emptySet()
@@ -605,7 +797,17 @@ open class PlaylistActivity : BaseActivity() {
         }
     }
 
-    // ─────────────────────── Video Playback ───────────────────────
+    // ═════════════════════════════════════════════════════════════
+    // VIDEO PLAYBACK  (ownership-gated)
+    // ═════════════════════════════════════════════════════════════
+
+    private fun canWatch(video: PlaylistVideo): Boolean {
+        if (isOwner) return true
+        if (hasAccess) return true
+        if (video.id in ownedVideoIds) return true
+        if (video.credits <= 0) return true
+        return false
+    }
 
     private fun playDemoVideo() {
         playlist.demoVideoUrl?.let { url ->
@@ -627,6 +829,14 @@ open class PlaylistActivity : BaseActivity() {
     }
 
     private fun playVideo(video: PlaylistVideo) {
+        // Ownership check — the row/button also gates this, but repeat here
+        // so any direct call can't bypass it.
+        if (!canWatch(video)) {
+            Toast.makeText(this, "Purchase this video to watch it", Toast.LENGTH_SHORT).show()
+            showPurchaseVideoDialog(video)
+            return
+        }
+
         val intent = Intent(this, VideoPlayerActivity::class.java)
         intent.putExtra("videoUrl", video.videoUrl)
         intent.putExtra("skillTitle", playlist.title)
@@ -642,7 +852,9 @@ open class PlaylistActivity : BaseActivity() {
         startActivity(intent)
     }
 
-    // ─────────────────────── Report (playlist-level) ───────────────────────
+    // ═════════════════════════════════════════════════════════════
+    // REPORT / FEEDBACK (existing)
+    // ═════════════════════════════════════════════════════════════
 
     private fun showReportDialog() {
         val reporterEmail = FirebaseAuth.getInstance().currentUser?.email
@@ -715,8 +927,6 @@ open class PlaylistActivity : BaseActivity() {
                 Toast.makeText(this, "Failed to submit report: ${e.message}", Toast.LENGTH_LONG).show()
             }
     }
-
-    // ─────────────────────── Report (per-video) ───────────────────────
 
     private fun showReportDialogForVideo(video: PlaylistVideo) {
         val reporterEmail = FirebaseAuth.getInstance().currentUser?.email
@@ -805,7 +1015,9 @@ open class PlaylistActivity : BaseActivity() {
         }
     }
 
-    // ─────────────────────── Feedback (playlist-level) ───────────────────────
+    // ═════════════════════════════════════════════════════════════
+    // FEEDBACK (existing)
+    // ═════════════════════════════════════════════════════════════
 
     private fun showFeedbackDialog() {
         val reporterEmail = FirebaseAuth.getInstance().currentUser?.email
@@ -952,7 +1164,9 @@ open class PlaylistActivity : BaseActivity() {
             }
     }
 
-    // ---------- Themed-dialog helpers ----------
+    // ─────────────────────────────────────────────────────────────
+    // Themed-dialog helpers
+    // ─────────────────────────────────────────────────────────────
     private fun dp(value: Int): Int = (value * resources.displayMetrics.density).toInt()
 
     private fun currentDialogBg(): Int =

@@ -9,6 +9,13 @@ object PlaylistManager {
     private const val REWARD_POINTS = 500
     private val db = FirebaseFirestore.getInstance()
 
+    private const val COLLECTION_PURCHASED_PLAYLISTS = "purchasedPlaylists"
+    private const val COLLECTION_PURCHASED_VIDEOS    = "purchasedPlaylistVideos"
+
+    /** Composite doc id for an individual video purchase. */
+    private fun videoPurchaseDocId(playlistId: String, videoId: String) =
+        "${playlistId}__${videoId}"
+
     private fun sendNotification(userId: String, title: String, message: String, type: String = "playlist") {
         if (userId.isBlank()) return
         val data = hashMapOf(
@@ -61,6 +68,10 @@ object PlaylistManager {
         )
     }
 
+    // ═════════════════════════════════════════════════════════════
+    // PROGRESS TRACKING (existing — extended for individual videos)
+    // ═════════════════════════════════════════════════════════════
+
     fun updateProgress(
         uid: String,
         playlistId: String,
@@ -84,15 +95,23 @@ object PlaylistManager {
         db.runTransaction { transaction ->
             // ─── ALL READS FIRST ────────────────────────────────────────
 
-            // 1. Check if user has purchased this playlist
-            val purchaseRef = userRef.collection("purchasedPlaylists").document(playlistId)
-            val purchaseSnap = transaction.get(purchaseRef)
-            if (!purchaseSnap.exists()) {
-                android.util.Log.d("PlaylistManager", "Playlist not purchased, skipping")
+            // Check full playlist OR individual video ownership
+            val fullPurchaseSnap = transaction.get(
+                userRef.collection(COLLECTION_PURCHASED_PLAYLISTS).document(playlistId)
+            )
+            val videoPurchaseSnap = transaction.get(
+                userRef.collection(COLLECTION_PURCHASED_VIDEOS)
+                    .document(videoPurchaseDocId(playlistId, videoId))
+            )
+
+            if (!fullPurchaseSnap.exists() && !videoPurchaseSnap.exists()) {
+                android.util.Log.d("PlaylistManager", "No ownership (full or video), skipping progress")
                 return@runTransaction
             }
 
-            // 2. Get current progress
+            val hasFullPlaylistAccess = fullPurchaseSnap.exists()
+
+            // Get current progress
             val progressSnap = transaction.get(progressRef)
             val completedVideos = progressSnap.get("completedVideos") as? List<String> ?: emptyList()
             android.util.Log.d("PlaylistManager", "Current completed videos: $completedVideos")
@@ -102,20 +121,18 @@ object PlaylistManager {
                 return@runTransaction
             }
 
-            // 3. Calculate new state (but don't write yet)
+            // Calculate new state
             val newList = completedVideos.toMutableList().apply { add(videoId) }
-            val willComplete = newList.size >= totalVideos
-            android.util.Log.d("PlaylistManager", "New completed videos: $newList")
+            val willComplete = hasFullPlaylistAccess && newList.size >= totalVideos
+            android.util.Log.d("PlaylistManager", "New completed videos: $newList (willComplete=$willComplete)")
 
-            // 4. READ user document BEFORE any writes (CRITICAL FIX)
+            // Read user doc BEFORE any writes
             val userSnap = transaction.get(userRef)
 
             // ─── ALL WRITES AFTER ALL READS ──────────────────────────
 
-            // 5. Update the completed videos list
             transaction.set(progressRef, mapOf("completedVideos" to newList), SetOptions.merge())
 
-            // 6. If all videos are completed, mark playlist completed and handle reward
             if (willComplete) {
                 android.util.Log.d("PlaylistManager", "🎉 Playlist COMPLETED!")
                 transaction.update(progressRef, "completed", true)
@@ -136,15 +153,12 @@ object PlaylistManager {
         }.addOnSuccessListener {
             android.util.Log.d("PlaylistManager", "✅ Progress updated successfully!")
 
-            // Check if playlist is completed and call callback
             db.collection("skills").document(playlistId).get()
                 .addOnSuccessListener { doc ->
                     val title = doc.getString("title") ?: "Playlist"
                     progressRef.get()
                         .addOnSuccessListener { progressDoc ->
                             val completed = progressDoc.getBoolean("completed") ?: false
-
-                            // 🔥 CALLBACK - NOTIFY UI THAT PLAYLIST IS COMPLETE
                             onComplete?.invoke(completed)
 
                             if (completed) {
@@ -198,31 +212,40 @@ object PlaylistManager {
             .addOnFailureListener { onResult(null) }
     }
 
+    // ═════════════════════════════════════════════════════════════
+    // FULL PLAYLIST PURCHASE (existing — unchanged)
+    // ═════════════════════════════════════════════════════════════
+
     fun hasPurchased(uid: String, playlistId: String, onResult: (Boolean) -> Unit) {
         if (uid.isBlank() || playlistId.isBlank()) {
             onResult(false)
             return
         }
-        val ref = db.collection("users").document(uid)
-            .collection("purchasedPlaylists").document(playlistId)
-        ref.get()
+        db.collection("users").document(uid)
+            .collection(COLLECTION_PURCHASED_PLAYLISTS).document(playlistId)
+            .get()
             .addOnSuccessListener { doc -> onResult(doc.exists()) }
             .addOnFailureListener { onResult(false) }
     }
 
-    fun purchasePlaylist(uid: String, playlistId: String, price: Int, playlistTitle: String = "Playlist",
-                         onSuccess: () -> Unit, onFailure: (Exception) -> Unit) {
+    fun purchasePlaylist(
+        uid: String,
+        playlistId: String,
+        price: Int,
+        playlistTitle: String = "Playlist",
+        onSuccess: () -> Unit,
+        onFailure: (Exception) -> Unit
+    ) {
         if (uid.isBlank() || playlistId.isBlank() || price <= 0) {
             onFailure(IllegalArgumentException("Invalid arguments"))
             return
         }
 
         val userRef = db.collection("users").document(uid)
-        val purchaseRef = userRef.collection("purchasedPlaylists").document(playlistId)
+        val purchaseRef = userRef.collection(COLLECTION_PURCHASED_PLAYLISTS).document(playlistId)
         val skillRef = db.collection("skills").document(playlistId)
 
         db.runTransaction { transaction ->
-            // ─── ALL READS FIRST ────────────────────────────────────────
             val purchaseSnap = transaction.get(purchaseRef)
             if (purchaseSnap.exists()) {
                 throw IllegalStateException("Already purchased")
@@ -234,18 +257,130 @@ object PlaylistManager {
                 throw IllegalStateException("Insufficient credits")
             }
 
-            // ─── ALL WRITES AFTER ALL READS ──────────────────────────
             transaction.update(userRef, "credits", credits - price)
 
             val purchaseData = mapOf(
                 "purchasedAt" to System.currentTimeMillis(),
-                "creditsPaid" to price
+                "creditsPaid" to price,
+                "purchaseType" to "FULL_PLAYLIST",
+                "status" to "active"
             )
             transaction.set(purchaseRef, purchaseData)
 
             transaction.update(skillRef, "accessCount", FieldValue.increment(1))
         }.addOnSuccessListener {
             notifyPlaylistPurchased(uid, playlistTitle)
+            onSuccess()
+        }.addOnFailureListener { e ->
+            onFailure(e)
+        }
+    }
+
+    // ═════════════════════════════════════════════════════════════
+    // INDIVIDUAL VIDEO PURCHASE (new)
+    // ═════════════════════════════════════════════════════════════
+
+    /** Checks whether the user has individually purchased a specific video. */
+    fun hasPurchasedVideo(
+        uid: String,
+        playlistId: String,
+        videoId: String,
+        onResult: (Boolean) -> Unit
+    ) {
+        if (uid.isBlank() || playlistId.isBlank() || videoId.isBlank()) {
+            onResult(false)
+            return
+        }
+        db.collection("users").document(uid)
+            .collection(COLLECTION_PURCHASED_VIDEOS)
+            .document(videoPurchaseDocId(playlistId, videoId))
+            .get()
+            .addOnSuccessListener { doc -> onResult(doc.exists()) }
+            .addOnFailureListener { onResult(false) }
+    }
+
+    /**
+     * Loads the IDs of all videos this user has individually purchased for
+     * this playlist. A single query is cheaper than N per-video lookups.
+     */
+    fun getOwnedVideoIds(
+        uid: String,
+        playlistId: String,
+        onResult: (Set<String>) -> Unit
+    ) {
+        if (uid.isBlank() || playlistId.isBlank()) {
+            onResult(emptySet())
+            return
+        }
+        db.collection("users").document(uid)
+            .collection(COLLECTION_PURCHASED_VIDEOS)
+            .whereEqualTo("playlistId", playlistId)
+            .get()
+            .addOnSuccessListener { snapshot ->
+                val owned = snapshot.documents
+                    .mapNotNull { it.getString("videoId") }
+                    .filter { it.isNotBlank() }
+                    .toSet()
+                onResult(owned)
+            }
+            .addOnFailureListener { onResult(emptySet()) }
+    }
+
+    /**
+     * Atomically deducts credits and records an individual video purchase.
+     * Throws (rolling back the transaction) if:
+     *   • the video is already purchased
+     *   • the user has insufficient credits
+     *
+     * Ledger/transaction-history writes and UI refresh are the caller's
+     * responsibility (matches the existing purchasePlaylist contract).
+     */
+    fun purchaseVideo(
+        uid: String,
+        playlistId: String,
+        videoId: String,
+        price: Int,
+        videoTitle: String,
+        onSuccess: () -> Unit,
+        onFailure: (Exception) -> Unit
+    ) {
+        if (uid.isBlank() || playlistId.isBlank() || videoId.isBlank() || price < 0) {
+            onFailure(IllegalArgumentException("Invalid arguments"))
+            return
+        }
+
+        val userRef = db.collection("users").document(uid)
+        val purchaseRef = userRef.collection(COLLECTION_PURCHASED_VIDEOS)
+            .document(videoPurchaseDocId(playlistId, videoId))
+
+        db.runTransaction { transaction ->
+            // ─── ALL READS FIRST ────────────────────────────────────
+            val purchaseSnap = transaction.get(purchaseRef)
+            if (purchaseSnap.exists()) {
+                throw IllegalStateException("Already purchased")
+            }
+
+            val userSnap = transaction.get(userRef)
+            val credits = userSnap.getLong("credits")?.toInt() ?: 0
+            if (credits < price) {
+                throw IllegalStateException("Insufficient credits")
+            }
+
+            // ─── ALL WRITES AFTER ───────────────────────────────────
+            transaction.update(userRef, "credits", credits - price)
+
+            transaction.set(purchaseRef, mapOf(
+                "playlistId" to playlistId,
+                "videoId" to videoId,
+                "videoTitle" to videoTitle,
+                "purchaseType" to "INDIVIDUAL_VIDEO",
+                "creditsPaid" to price,
+                "purchasedAt" to System.currentTimeMillis(),
+                "status" to "active"
+            ))
+        }.addOnSuccessListener {
+            // No rewardCount / accessCount increments here on purpose —
+            // those track full playlist ownership, not individual videos.
             onSuccess()
         }.addOnFailureListener { e ->
             onFailure(e)

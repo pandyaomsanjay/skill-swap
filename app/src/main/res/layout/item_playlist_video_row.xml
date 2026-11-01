@@ -15,100 +15,132 @@
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:padding="12dp"
-        android:gravity="center_vertical">
+        android:orientation="vertical"
+        android:padding="12dp">
 
-        <TextView
-            android:id="@+id/tvVideoOrder"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="1."
-            android:textColor="#456882"
-            android:textSize="14sp"
-            android:textStyle="bold"
-            android:layout_marginEnd="12dp" />
-
-        <!-- FEATURE 2: checkmark shown in place of tvVideoOrder once this video
-             is in the learner's completedVideoIds set. Same slot, same end margin,
-             so the row layout doesn't shift when toggled. -->
-        <ImageView
-            android:id="@+id/ivVideoCompleted"
-            android:layout_width="20dp"
-            android:layout_height="20dp"
-            android:layout_marginEnd="12dp"
-            android:src="@drawable/baseline_check_circle_24"
-            app:tint="@color/success"
-            android:contentDescription="Completed"
-            android:visibility="gone" />
-
+        <!-- Row 1: existing video info row -->
         <LinearLayout
-            android:layout_width="0dp"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:orientation="vertical">
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
 
             <TextView
-                android:id="@+id/tvVideoTitle"
-                android:layout_width="match_parent"
+                android:id="@+id/tvVideoOrder"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Video Title"
-                android:textColor="#1B3C53"
-                android:textSize="15sp"
-                android:textStyle="bold"
-                android:maxLines="1"
-                android:ellipsize="end" />
-
-            <TextView
-                android:id="@+id/tvVideoDescription"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="Description"
+                android:text="1."
                 android:textColor="#456882"
+                android:textSize="14sp"
+                android:textStyle="bold"
+                android:layout_marginEnd="12dp" />
+
+            <ImageView
+                android:id="@+id/ivVideoCompleted"
+                android:layout_width="20dp"
+                android:layout_height="20dp"
+                android:layout_marginEnd="12dp"
+                android:src="@drawable/baseline_check_circle_24"
+                app:tint="@color/success"
+                android:contentDescription="Completed"
+                android:visibility="gone" />
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/tvVideoTitle"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Video Title"
+                    android:textColor="#1B3C53"
+                    android:textSize="15sp"
+                    android:textStyle="bold"
+                    android:maxLines="1"
+                    android:ellipsize="end" />
+
+                <TextView
+                    android:id="@+id/tvVideoDescription"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Description"
+                    android:textColor="#456882"
+                    android:textSize="12sp"
+                    android:maxLines="2"
+                    android:ellipsize="end" />
+            </LinearLayout>
+
+            <TextView
+                android:id="@+id/tvVideoDuration"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="--"
+                android:textColor="#9AA7B0"
                 android:textSize="12sp"
-                android:maxLines="2"
-                android:ellipsize="end" />
+                android:layout_marginEnd="4dp" />
+
+            <TextView
+                android:id="@+id/btnFeedbackVideo"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:gravity="center"
+                android:text="💬"
+                android:textSize="15sp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="Give feedback on video"
+                android:clickable="true"
+                android:focusable="true" />
+
+            <ImageView
+                android:id="@+id/btnReportVideo"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:padding="6dp"
+                android:src="@drawable/ic_flag"
+                app:tint="#9AA7B0"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="Report video"
+                android:clickable="true"
+                android:focusable="true" />
         </LinearLayout>
 
-        <TextView
-            android:id="@+id/tvVideoDuration"
-            android:layout_width="wrap_content"
+        <!-- Row 2: NEW access status + Buy/Watch button -->
+        <LinearLayout
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="--"
-            android:textColor="#9AA7B0"
-            android:textSize="12sp"
-            android:layout_marginEnd="4dp" />
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginTop="8dp"
+            android:paddingTop="8dp">
 
-        <!-- NEW: Feedback (rating/comment) on this specific video. Same slot
-             style as btnReportVideo, placed before it so Report stays the
-             right-most/most-destructive-feeling action. Uses a text emoji
-             instead of a drawable to avoid depending on an icon resource
-             that may not exist in this project (see ic_flag below, which
-             is only safe because it's already used by btnReportVideo). -->
-        <TextView
-            android:id="@+id/btnFeedbackVideo"
-            android:layout_width="32dp"
-            android:layout_height="32dp"
-            android:gravity="center"
-            android:text="💬"
-            android:textSize="15sp"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:contentDescription="Give feedback on video"
-            android:clickable="true"
-            android:focusable="true" />
+            <TextView
+                android:id="@+id/tvVideoAccessStatus"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="0 credits"
+                android:textColor="#E58A2A"
+                android:textSize="12sp"
+                android:textStyle="bold" />
 
-        <!-- Report this specific video. Hidden for the playlist owner viewing
-             their own upload (set in PlaylistVideoAdapter#onBindViewHolder). -->
-        <ImageView
-            android:id="@+id/btnReportVideo"
-            android:layout_width="32dp"
-            android:layout_height="32dp"
-            android:padding="6dp"
-            android:src="@drawable/ic_flag"
-            app:tint="#9AA7B0"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:contentDescription="Report video"
-            android:clickable="true"
-            android:focusable="true" />
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnBuyWatch"
+                android:layout_width="wrap_content"
+                android:layout_height="38dp"
+                android:text="🔓 Buy"
+                android:textAllCaps="false"
+                android:textColor="@android:color/white"
+                android:textSize="12.5sp"
+                android:textStyle="bold"
+                app:backgroundTint="#7C3AED"
+                app:cornerRadius="12dp"
+                app:rippleColor="#33FFFFFF"
+                android:minWidth="120dp"
+                android:paddingStart="16dp"
+                android:paddingEnd="16dp" />
+        </LinearLayout>
     </LinearLayout>
 </com.google.android.material.card.MaterialCardView>

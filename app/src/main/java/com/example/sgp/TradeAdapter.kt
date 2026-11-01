@@ -21,12 +21,13 @@ class TradeAdapter(
 
     private val fmt = SimpleDateFormat("d MMM, h:mm a", Locale.getDefault())
 
-    // Theme Colors
+    // Light palette
     private val lightCardBg = Color.parseColor("#FFFFFF")
     private val lightCardStroke = Color.parseColor("#D2C1B6")
     private val lightTextPrimary = Color.parseColor("#1B3C53")
     private val lightTextSecondary = Color.parseColor("#456882")
 
+    // Dark palette
     private val darkCardBg = Color.parseColor("#16232E")
     private val darkCardStroke = Color.parseColor("#2A3B48")
     private val darkTextPrimary = Color.parseColor("#F5F7F8")
@@ -48,8 +49,7 @@ class TradeAdapter(
         val partner = if (iAmRequester) t.receiverName.ifBlank { t.receiverId }
         else t.requesterName.ifBlank { t.requesterId }
 
-        // Apply Theme to Item Background (Assuming root of item_trade is a MaterialCardView)
-        // If the root is a LinearLayout, use holder.itemView.setBackgroundColor(...)
+        // Apply theme to root (MaterialCardView or fall back to a drawable)
         if (holder.itemView is com.google.android.material.card.MaterialCardView) {
             val card = holder.itemView as com.google.android.material.card.MaterialCardView
             card.setCardBackgroundColor(if (isDarkMode) darkCardBg else lightCardBg)
@@ -65,15 +65,30 @@ class TradeAdapter(
             }
         }
 
-        // Apply Theme to Text Colors
         val textPrimary = if (isDarkMode) darkTextPrimary else lightTextPrimary
         val textSecondary = if (isDarkMode) darkTextSecondary else lightTextSecondary
 
-        holder.tvPartner.text = "With: $partner"
+        // Partner + exchange-method badge appended inline.
+        // Example: "With: Alex Johnson  · 💰 30 pts"
+        //          "With: Alex Johnson  · 🎁 Material"
+        val methodBadge = when {
+            t.isPointsExchange -> "  · 💰 ${t.offeredPoints} pts"
+            t.exchangeMethod.isNotBlank() -> "  · 🎁 Material"
+            else -> "" // very old records with no exchangeMethod — no badge
+        }
+        holder.tvPartner.text = "With: $partner$methodBadge"
         holder.tvPartner.setTextColor(textPrimary)
 
-        holder.tvSkills.text =
-            "${t.offeredResourceTypeEnum.emoji} ${t.offeredResourceTitle}  ⇄  ${t.requestedResourceTypeEnum.emoji} ${t.requestedResourceTitle}"
+        // Skills line — for points trades show the exchange direction clearly.
+        holder.tvSkills.text = buildString {
+            if (t.isPointsExchange) {
+                append("💰 ${t.offeredPoints} pts")
+            } else {
+                append("${t.offeredResourceTypeEnum.emoji} ${t.offeredResourceTitle}")
+            }
+            append("  ⇄  ")
+            append("${t.requestedResourceTypeEnum.emoji} ${t.requestedResourceTitle}")
+        }
         holder.tvSkills.setTextColor(textPrimary)
 
         holder.tvStatus.text = t.statusEnum.name.replace('_', ' ')

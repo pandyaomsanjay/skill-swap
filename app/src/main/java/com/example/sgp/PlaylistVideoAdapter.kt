@@ -8,6 +8,7 @@ import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
+import com.google.android.material.button.MaterialButton
 import com.google.android.material.card.MaterialCardView
 
 class PlaylistVideoAdapter(
@@ -16,31 +17,49 @@ class PlaylistVideoAdapter(
     private val isOwner: Boolean = false,
     private val onVideoClick: (PlaylistVideo) -> Unit,
     private val onReportClick: (PlaylistVideo) -> Unit = {},
-    private val onFeedbackClick: (PlaylistVideo) -> Unit = {}
+    private val onFeedbackClick: (PlaylistVideo) -> Unit = {},
+    private val onBuyClick: (PlaylistVideo) -> Unit = {}
 ) : RecyclerView.Adapter<PlaylistVideoAdapter.ViewHolder>() {
 
-    // ---------------------------------------------------------------------
-    // Theme state — set from PlaylistActivity.applyTheme() and read on bind.
-    // ---------------------------------------------------------------------
     var isDarkMode: Boolean = false
         set(value) {
             field = value
             notifyDataSetChanged()
         }
 
-    // ---- Light palette ----
+    /** True when the user is the owner, admin, or has bought the full playlist. */
+    var fullPlaylistOwned: Boolean = false
+        set(value) {
+            field = value
+            notifyDataSetChanged()
+        }
+
+    /** IDs of individually purchased videos in this playlist. */
+    var ownedVideoIds: Set<String> = emptySet()
+        set(value) {
+            field = value
+            notifyDataSetChanged()
+        }
+
+    // Light palette
     private val lightTextPrimary   = Color.parseColor("#1B3C53")
     private val lightTextSecondary = Color.parseColor("#456882")
     private val lightCardBg        = Color.parseColor("#FFFFFF")
     private val lightCardStroke    = Color.parseColor("#D2C1B6")
     private val lightCheck         = Color.parseColor("#2E9E63")
+    private val lightBuyBg         = Color.parseColor("#7C3AED")
+    private val lightWatchBg       = Color.parseColor("#2E9E63")
+    private val lightPriceAccent   = Color.parseColor("#E58A2A")
 
-    // ---- Dark palette ----
+    // Dark palette
     private val darkTextPrimary    = Color.parseColor("#F5F7F8")
     private val darkTextSecondary  = Color.parseColor("#8FA6B8")
     private val darkCardBg         = Color.parseColor("#16232E")
     private val darkCardStroke     = Color.parseColor("#2A3B48")
     private val darkCheck          = Color.parseColor("#4FD8BB")
+    private val darkBuyBg          = Color.parseColor("#8B5CF6")
+    private val darkWatchBg        = Color.parseColor("#3EA17A")
+    private val darkPriceAccent    = Color.parseColor("#E8C468")
 
     class ViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         val tvOrder: TextView = itemView.findViewById(R.id.tvVideoOrder)
@@ -50,6 +69,8 @@ class PlaylistVideoAdapter(
         val ivCompleted: ImageView = itemView.findViewById(R.id.ivVideoCompleted)
         val btnReport: View = itemView.findViewById(R.id.btnReportVideo)
         val btnFeedback: View = itemView.findViewById(R.id.btnFeedbackVideo)
+        val tvAccessStatus: TextView = itemView.findViewById(R.id.tvVideoAccessStatus)
+        val btnBuyWatch: MaterialButton = itemView.findViewById(R.id.btnBuyWatch)
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
@@ -58,24 +79,35 @@ class PlaylistVideoAdapter(
         return ViewHolder(view)
     }
 
+    /** Combines every ownership rule into one check used for display + clicks. */
+    private fun canWatch(video: PlaylistVideo): Boolean {
+        if (isOwner) return true
+        if (fullPlaylistOwned) return true
+        if (video.id in ownedVideoIds) return true
+        if (video.credits <= 0) return true
+        return false
+    }
+
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
         val video = videos[position]
         val isCompleted = completedVideoIds.contains(video.id)
 
-        // Pick the right palette for the current theme
         val textPrimary   = if (isDarkMode) darkTextPrimary   else lightTextPrimary
         val textSecondary = if (isDarkMode) darkTextSecondary else lightTextSecondary
         val cardBg        = if (isDarkMode) darkCardBg        else lightCardBg
         val cardStroke    = if (isDarkMode) darkCardStroke    else lightCardStroke
         val checkColor    = if (isDarkMode) darkCheck         else lightCheck
+        val buyBg         = if (isDarkMode) darkBuyBg         else lightBuyBg
+        val watchBg       = if (isDarkMode) darkWatchBg       else lightWatchBg
+        val priceAccent   = if (isDarkMode) darkPriceAccent   else lightPriceAccent
 
-        // 1. Recolor the Card Background & Border (FIX for white cards)
+        // Card background / stroke
         (holder.itemView as? MaterialCardView)?.apply {
             setCardBackgroundColor(cardBg)
             strokeColor = cardStroke
         }
 
-        // 2. Recolor the Text
+        // Core info
         holder.tvTitle.text = video.title
         holder.tvTitle.setTextColor(textPrimary)
 
@@ -85,7 +117,7 @@ class PlaylistVideoAdapter(
         holder.tvDuration.text = video.duration.ifBlank { "--" }
         holder.tvDuration.setTextColor(textSecondary)
 
-        // 3. Handle the completed checkmark and order number
+        // Order number / checkmark
         if (isCompleted) {
             holder.tvOrder.visibility = View.GONE
             holder.ivCompleted.visibility = View.VISIBLE
@@ -97,7 +129,7 @@ class PlaylistVideoAdapter(
             holder.ivCompleted.visibility = View.GONE
         }
 
-        // 4. Report + Feedback buttons
+        // Report / feedback hidden for owner
         if (isOwner) {
             holder.btnReport.visibility = View.GONE
             holder.btnFeedback.visibility = View.GONE
@@ -108,7 +140,46 @@ class PlaylistVideoAdapter(
             holder.btnFeedback.setOnClickListener { onFeedbackClick(video) }
         }
 
-        holder.itemView.setOnClickListener { onVideoClick(video) }
+        // ── Access row: status + Buy/Watch button ──
+        val watchable = canWatch(video)
+
+        when {
+            isOwner -> {
+                holder.tvAccessStatus.text = "✓ Your upload"
+                holder.tvAccessStatus.setTextColor(checkColor)
+            }
+            fullPlaylistOwned -> {
+                holder.tvAccessStatus.text = "✓ Owned (Playlist)"
+                holder.tvAccessStatus.setTextColor(checkColor)
+            }
+            video.id in ownedVideoIds -> {
+                holder.tvAccessStatus.text = "✓ Owned (Video)"
+                holder.tvAccessStatus.setTextColor(checkColor)
+            }
+            video.credits <= 0 -> {
+                holder.tvAccessStatus.text = "Free"
+                holder.tvAccessStatus.setTextColor(checkColor)
+            }
+            else -> {
+                holder.tvAccessStatus.text = "${video.credits} credits"
+                holder.tvAccessStatus.setTextColor(priceAccent)
+            }
+        }
+
+        if (watchable) {
+            holder.btnBuyWatch.text = "▶ Watch"
+            holder.btnBuyWatch.backgroundTintList = ColorStateList.valueOf(watchBg)
+            holder.btnBuyWatch.setOnClickListener { onVideoClick(video) }
+        } else {
+            holder.btnBuyWatch.text = "🔓 Buy for ${video.credits}"
+            holder.btnBuyWatch.backgroundTintList = ColorStateList.valueOf(buyBg)
+            holder.btnBuyWatch.setOnClickListener { onBuyClick(video) }
+        }
+
+        // Row click mirrors the button action so any part of the row works.
+        holder.itemView.setOnClickListener {
+            if (watchable) onVideoClick(video) else onBuyClick(video)
+        }
     }
 
     override fun getItemCount(): Int = videos.size

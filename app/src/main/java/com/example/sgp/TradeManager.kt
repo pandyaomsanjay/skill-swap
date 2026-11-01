@@ -1,8 +1,8 @@
 package com.example.sgp
 
-import android.content.Context
 import android.util.Log
 import com.google.firebase.Timestamp
+import com.google.firebase.firestore.DocumentReference
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ListenerRegistration
@@ -13,6 +13,17 @@ import kotlinx.coroutines.tasks.await
  * state transitions, notifications, and meeting-reminder scheduling.
  *
  * All writes that must be atomic are wrapped in Firestore transactions.
+ *
+ * Points / Material upgrade:
+ *   • createTrade validates the exchange method and (softly) pre-checks balance
+ *   • acceptTrade / acceptCounterSchedule set finalExchangeMethod + finalPoints
+ *   • counterTrade replaces counterSchedule (schedule-only) with a full
+ *     points-or-material counter
+ *   • updateStatus transfers points atomically inside the completion transaction
+ *   • updateStatus also cancels meeting reminders on completion (bug fix)
+ *
+ * Backward compat: legacy trades with no exchangeMethod field decode to
+ * MATERIAL and skip the point-transfer path entirely.
  */
 object TradeManager {
 
@@ -31,6 +42,7 @@ object TradeManager {
      *   • schedules in the past
      *   • schedules the requester already has a conflict with
      *   • duplicate active requests between the same pair for the same resource
+     *   • POINTS offers that exceed the requester's current balance
      */
     suspend fun createTrade(trade: Trade): Result<String> = runCatching {
         require(trade.requesterId.isNotBlank()) { "Missing requester" }
@@ -39,13 +51,30 @@ object TradeManager {
             "You cannot trade with your own resource"
         }
         require(trade.requestedResourceId.isNotBlank()) { "Missing requested resource" }
-        require(trade.offeredResourceId.isNotBlank()) { "Missing offered resource" }
         require(trade.proposedSchedule > 0L) { "Please pick a date and time" }
         require(trade.proposedSchedule > System.currentTimeMillis()) {
             "Scheduled time must be in the future"
         }
         require(isUserAvailable(trade.requesterId, trade.proposedSchedule)) {
             "You already have another trade at that time"
+        }
+
+        // Validate the exchange side (POINTS vs MATERIAL)
+        TradeValidator.validateExchangeMethod(trade)?.let { throw IllegalStateException(it) }
+
+        // Soft balance pre-check for POINTS offers. The authoritative check
+        // still happens at completion time inside the transaction.
+        if (trade.exchangeMethod == ExchangeMethod.POINTS.value && trade.offeredPoints > 0) {
+            val requesterSnap = db.collection("users")
+                .whereEqualTo("email", trade.requesterId)
+                .limit(1)
+                .get()
+                .await()
+            val credits = requesterSnap.documents.firstOrNull()
+                ?.getLong("credits")?.toInt() ?: 0
+            require(credits >= trade.offeredPoints) {
+                "You don't have enough points for this offer (you have $credits)"
+            }
         }
 
         // ── Duplicate active-request guard ──
@@ -75,16 +104,20 @@ object TradeManager {
         val docRef = db.collection("trades").document()
         val now = System.currentTimeMillis()
 
+        // Legacy mirrors: keep admin screens and old adapters working.
+        val legacyOfferedText =
+            if (trade.exchangeMethod == ExchangeMethod.POINTS.value)
+                "${trade.offeredPoints} points"
+            else trade.offeredResourceTitle
+
         val payload = trade.copy(
             id = docRef.id,
             status = TradeStatus.PENDING.value,
             createdAt = java.util.Date(now),
             updatedAt = java.util.Date(now),
-
-            // Legacy mirrors so existing admin screens & adapters still work
-            requesterSkill = trade.offeredResourceTitle,
+            requesterSkill = legacyOfferedText,
             receiverSkill = trade.requestedResourceTitle,
-            skillOffered = trade.offeredResourceTitle,
+            skillOffered = legacyOfferedText,
             skillRequested = trade.requestedResourceTitle,
             timestamp = now,
             isActive = true
@@ -104,11 +137,12 @@ object TradeManager {
     }
 
     // ═════════════════════════════════════════════════════════════
-    // ACCEPT (finalizes the proposed schedule)
+    // ACCEPT (finalizes the ORIGINAL offer's exchange method)
     // ═════════════════════════════════════════════════════════════
 
     /**
-     * Receiver accepts the trade. Finalizes the proposed schedule.
+     * Receiver accepts the trade. Finalizes the schedule AND the exchange
+     * method/points based on the requester's original offer.
      * Notifies the requester.
      *
      * Caller should follow with scheduleRemindersAfterFinalize(context, tradeId).
@@ -116,11 +150,17 @@ object TradeManager {
     suspend fun acceptTrade(tradeId: String, currentUserEmail: String): Result<Unit> = runCatching {
         val snap = db.collection("trades").document(tradeId).get().await()
         require(snap.exists()) { "Trade not found" }
-        val preTrade = snap.toObject(Trade::class.java) ?: throw IllegalStateException("Invalid trade")
-        val schedule = if (preTrade.counterSchedule > 0L) preTrade.counterSchedule else preTrade.proposedSchedule
+        val preTrade = snap.toObject(Trade::class.java)
+            ?: throw IllegalStateException("Invalid trade")
+        val schedule = if (preTrade.counterSchedule > 0L)
+            preTrade.counterSchedule else preTrade.proposedSchedule
         require(schedule > System.currentTimeMillis()) { "Scheduled time has already passed" }
-        require(isUserAvailable(preTrade.requesterId, schedule)) { "The requester has a conflict at that time" }
-        require(isUserAvailable(preTrade.receiverId, schedule)) { "You already have a trade at that time" }
+        require(isUserAvailable(preTrade.requesterId, schedule)) {
+            "The requester has a conflict at that time"
+        }
+        require(isUserAvailable(preTrade.receiverId, schedule)) {
+            "You already have a trade at that time"
+        }
 
         var requesterEmail = ""
         var receiverName = ""
@@ -143,12 +183,21 @@ object TradeManager {
             requesterEmail = trade.requesterId
             receiverName = trade.receiverName
 
+            // NEW: finalize the exchange based on the ORIGINAL offer
+            val finalMethod = when {
+                trade.isPointsExchange -> ExchangeMethod.POINTS.value
+                else -> ExchangeMethod.MATERIAL.value
+            }
+            val finalPts = if (trade.isPointsExchange) trade.offeredPoints else 0
+
             val now = System.currentTimeMillis()
             tx.update(
                 ref,
                 mapOf(
                     "status" to TradeStatus.SCHEDULE_FINALIZED.value,
                     "finalizedSchedule" to schedule,
+                    "finalExchangeMethod" to finalMethod,
+                    "finalPoints" to finalPts,
                     "respondedAt" to now,
                     "updatedAt" to Timestamp(now / 1000, 0)
                 )
@@ -165,23 +214,46 @@ object TradeManager {
     }
 
     // ═════════════════════════════════════════════════════════════
-    // COUNTER SCHEDULE
+    // COUNTER (points OR material, plus optional schedule)
     // ═════════════════════════════════════════════════════════════
 
     /**
-     * Receiver proposes ONE counter-schedule. Fails if a counter already exists.
+     * Receiver proposes a counter-offer. Can change:
+     *   • the exchange method (POINTS or MATERIAL)
+     *   • the points (if POINTS)
+     *   • the resources on either side (if MATERIAL)
+     *   • the schedule (if `newSchedule > 0`)
+     *   • an optional message
+     *
+     * Exactly ONE counter is allowed per trade.
      */
-    suspend fun counterSchedule(
+    suspend fun counterTrade(
         tradeId: String,
+        currentUserEmail: String,
         newSchedule: Long,
-        optionalMessage: String,
-        currentUserEmail: String
+        counterExchangeMethod: String,
+        counterPoints: Int = 0,
+        counterRequestedResourceId: String = "",
+        counterRequestedResourceType: String = "",
+        counterRequestedResourceTitle: String = "",
+        counterOfferedResourceId: String = "",
+        counterOfferedResourceType: String = "",
+        counterOfferedResourceTitle: String = "",
+        message: String = ""
     ): Result<Unit> = runCatching {
-        require(newSchedule > System.currentTimeMillis()) {
-            "Please choose a future time"
-        }
-        require(isUserAvailable(currentUserEmail, newSchedule)) {
-            "You already have a trade at that time"
+        // Pre-validate the counter payload
+        TradeValidator.validateCounterOffer(
+            counterExchangeMethod, counterPoints,
+            counterRequestedResourceId, counterOfferedResourceId
+        )?.let { throw IllegalArgumentException(it) }
+
+        if (newSchedule > 0) {
+            require(newSchedule > System.currentTimeMillis()) {
+                "Counter schedule must be in the future"
+            }
+            require(isUserAvailable(currentUserEmail, newSchedule)) {
+                "You already have a trade at that time"
+            }
         }
 
         var requesterEmail = ""
@@ -201,37 +273,84 @@ object TradeManager {
             require(trade.statusEnum == TradeStatus.PENDING) {
                 "Counter is only allowed while the trade is pending"
             }
-            require(trade.counterSchedule == 0L) {
-                "A counter-schedule has already been sent"
+            require(trade.counterSchedule == 0L && trade.counterExchangeMethod.isBlank()) {
+                "A counter-offer has already been sent"
             }
 
             requesterEmail = trade.requesterId
             receiverName = trade.receiverName
 
             val now = System.currentTimeMillis()
-            tx.update(
-                ref,
-                mapOf(
-                    "status" to TradeStatus.COUNTER_PROPOSED.value,
-                    "counterSchedule" to newSchedule,
-                    "counterMessage" to optionalMessage,
-                    "respondedAt" to now,
-                    "updatedAt" to Timestamp(now / 1000, 0)
-                )
+            val updates = mutableMapOf<String, Any>(
+                "status" to TradeStatus.COUNTER_PROPOSED.value,
+                "respondedAt" to now,
+                "updatedAt" to Timestamp(now / 1000, 0),
+                "counterExchangeMethod" to counterExchangeMethod
             )
+            if (newSchedule > 0) updates["counterSchedule"] = newSchedule
+            if (message.isNotBlank()) updates["counterMessage"] = message
+
+            if (counterExchangeMethod == ExchangeMethod.POINTS.value) {
+                updates["counterOfferedPoints"] = counterPoints
+            } else {
+                updates["counterRequestedResourceId"] = counterRequestedResourceId
+                updates["counterRequestedResourceType"] = counterRequestedResourceType
+                updates["counterRequestedResourceTitle"] = counterRequestedResourceTitle
+                updates["counterOfferedResourceId"] = counterOfferedResourceId
+                updates["counterOfferedResourceType"] = counterOfferedResourceType
+                updates["counterOfferedResourceTitle"] = counterOfferedResourceTitle
+            }
+
+            tx.update(ref, updates)
         }.await()
 
         sendTradeNotification(
             userId = requesterEmail,
-            title = "Counter Schedule Received",
-            message = "${receiverName.ifBlank { "The receiver" }} proposed a different meeting time.",
+            title = "Counter Offer Received",
+            message = "${receiverName.ifBlank { "The receiver" }} proposed a counter offer.",
             type = "trade_counter",
             tradeId = tradeId
         )
     }
 
     /**
-     * Requester accepts the receiver's counter-schedule.
+     * @deprecated Kept for backward compat with any external caller.
+     * Use [counterTrade] which supports points/material in addition to
+     * schedule changes. This wrapper delegates to it with the original
+     * offer's exchange method so the counter is still a valid round-trip.
+     */
+    @Deprecated("Use counterTrade()")
+    suspend fun counterSchedule(
+        tradeId: String,
+        newSchedule: Long,
+        optionalMessage: String,
+        currentUserEmail: String
+    ): Result<Unit> = runCatching {
+        val trade = db.collection("trades").document(tradeId).get().await()
+            .toObject(Trade::class.java) ?: throw IllegalStateException("Trade not found")
+        counterTrade(
+            tradeId = tradeId,
+            currentUserEmail = currentUserEmail,
+            newSchedule = newSchedule,
+            counterExchangeMethod = trade.exchangeMethod,
+            counterPoints = trade.offeredPoints,
+            counterRequestedResourceId = trade.requestedResourceId,
+            counterRequestedResourceType = trade.requestedResourceType,
+            counterRequestedResourceTitle = trade.requestedResourceTitle,
+            counterOfferedResourceId = trade.offeredResourceId,
+            counterOfferedResourceType = trade.offeredResourceType,
+            counterOfferedResourceTitle = trade.offeredResourceTitle,
+            message = optionalMessage
+        )
+    }
+
+    // ═════════════════════════════════════════════════════════════
+    // ACCEPT COUNTER (finalizes the COUNTER's exchange method)
+    // ═════════════════════════════════════════════════════════════
+
+    /**
+     * Requester accepts the receiver's counter-offer. Finalizes the schedule
+     * AND the exchange method/points based on the COUNTER.
      * Caller should follow with scheduleRemindersAfterFinalize(context, tradeId).
      */
     suspend fun acceptCounterSchedule(
@@ -240,10 +359,17 @@ object TradeManager {
     ): Result<Unit> = runCatching {
         val snap = db.collection("trades").document(tradeId).get().await()
         require(snap.exists()) { "Trade not found" }
-        val preTrade = snap.toObject(Trade::class.java) ?: throw IllegalStateException("Invalid trade")
-        require(preTrade.counterSchedule > System.currentTimeMillis()) { "Counter time has already passed" }
-        require(isUserAvailable(preTrade.requesterId, preTrade.counterSchedule)) { "You have a conflict at that time" }
-        require(isUserAvailable(preTrade.receiverId, preTrade.counterSchedule)) { "The receiver has a conflict at that time" }
+        val preTrade = snap.toObject(Trade::class.java)
+            ?: throw IllegalStateException("Invalid trade")
+        val schedule = if (preTrade.counterSchedule > 0L)
+            preTrade.counterSchedule else preTrade.proposedSchedule
+        require(schedule > System.currentTimeMillis()) { "Counter time has already passed" }
+        require(isUserAvailable(preTrade.requesterId, schedule)) {
+            "You have a conflict at that time"
+        }
+        require(isUserAvailable(preTrade.receiverId, schedule)) {
+            "The receiver has a conflict at that time"
+        }
 
         var receiverEmail = ""
 
@@ -264,12 +390,19 @@ object TradeManager {
 
             receiverEmail = trade.receiverId
 
+            // NEW: finalize based on the COUNTER's exchange method
+            val finalMethod = if (trade.isCounterPoints)
+                ExchangeMethod.POINTS.value else ExchangeMethod.MATERIAL.value
+            val finalPts = if (trade.isCounterPoints) trade.counterOfferedPoints else 0
+
             val now = System.currentTimeMillis()
             tx.update(
                 ref,
                 mapOf(
                     "status" to TradeStatus.SCHEDULE_FINALIZED.value,
-                    "finalizedSchedule" to trade.counterSchedule,
+                    "finalizedSchedule" to schedule,
+                    "finalExchangeMethod" to finalMethod,
+                    "finalPoints" to finalPts,
                     "respondedAt" to now,
                     "updatedAt" to Timestamp(now / 1000, 0)
                 )
@@ -279,7 +412,7 @@ object TradeManager {
         sendTradeNotification(
             userId = receiverEmail,
             title = "Trade Scheduled",
-            message = "Your skill trade is confirmed. The schedule has been finalized.",
+            message = "Your skill trade is confirmed. The counter-offer was accepted.",
             type = "trade_finalized",
             tradeId = tradeId
         )
@@ -333,6 +466,12 @@ object TradeManager {
         isCompletion = true
     )
 
+    /**
+     * Atomic state transition. On COMPLETED with agreedPoints > 0, transfers
+     * the points in the SAME transaction as the status update — insufficient
+     * balance aborts the whole thing (the trade stays SCHEDULE_FINALIZED).
+     * Cancels the WorkManager meeting reminders on completion.
+     */
     private suspend fun updateStatus(
         tradeId: String,
         currentUserEmail: String,
@@ -342,8 +481,32 @@ object TradeManager {
         notifyCounterpart: Boolean,
         isCompletion: Boolean = false
     ): Result<Unit> = runCatching {
+
+        // ── Pre-resolve user refs when we might transfer points ──
+        var requesterRef: DocumentReference? = null
+        var receiverRef: DocumentReference? = null
+        if (isCompletion) {
+            val pre = db.collection("trades").document(tradeId).get().await()
+                .toObject(Trade::class.java)
+            if (pre != null && pre.agreedPoints > 0) {
+                requesterRef = db.collection("users")
+                    .whereEqualTo("email", pre.requesterId).limit(1).get().await()
+                    .documents.firstOrNull()?.reference
+                receiverRef = db.collection("users")
+                    .whereEqualTo("email", pre.receiverId).limit(1).get().await()
+                    .documents.firstOrNull()?.reference
+                if (requesterRef == null || receiverRef == null) {
+                    throw IllegalStateException(
+                        "Unable to resolve user references for point transfer"
+                    )
+                }
+            }
+        }
+
         var counterpartEmail = ""
         var actorName = ""
+        var transferApplied = false
+        var transferPoints = 0
 
         db.runTransaction { tx ->
             val ref = db.collection("trades").document(tradeId)
@@ -370,6 +533,28 @@ object TradeManager {
                 "updatedAt" to Timestamp(now / 1000, 0)
             )
 
+            // ── Atomic point transfer (only on completion) ──
+            if (newStatus == TradeStatus.COMPLETED && trade.agreedPoints > 0) {
+                val rr = requesterRef ?: throw IllegalStateException("Requester ref missing")
+                val rc = receiverRef ?: throw IllegalStateException("Receiver ref missing")
+
+                // All reads BEFORE any writes
+                val requesterCredits = tx.get(rr).getLong("credits")?.toInt() ?: 0
+                if (requesterCredits < trade.agreedPoints) {
+                    throw IllegalStateException(
+                        "Requester has insufficient credits for this trade"
+                    )
+                }
+                val receiverCredits = tx.get(rc).getLong("credits")?.toInt() ?: 0
+
+                // Writes
+                tx.update(rr, "credits", requesterCredits - trade.agreedPoints)
+                tx.update(rc, "credits", receiverCredits + trade.agreedPoints)
+
+                transferApplied = true
+                transferPoints = trade.agreedPoints
+            }
+
             when (newStatus) {
                 TradeStatus.COMPLETED -> {
                     update["completedAt"] = now
@@ -386,11 +571,57 @@ object TradeManager {
                     update["cancellationReason"] = reason
                     update["isActive"] = false
                 }
-                else -> { /* PENDING / COUNTER / etc — no extra fields */ }
+                else -> { /* no extra fields */ }
             }
 
             tx.update(ref, update)
         }.await()
+
+        // ── Post-transaction side-effects (best-effort) ──
+
+        if (transferApplied) {
+            try {
+                val trade = db.collection("trades").document(tradeId).get().await()
+                    .toObject(Trade::class.java)
+                if (trade != null) {
+                    PointsLedger.recordSpent(
+                        userId = trade.requesterId,
+                        points = transferPoints,
+                        title = "Paid ${transferPoints} pts for: ${trade.requestedResourceTitle}",
+                        refId = tradeId
+                    )
+                    PointsLedger.recordEarned(
+                        userId = trade.receiverId,
+                        points = transferPoints,
+                        title = "Received ${transferPoints} pts for: ${trade.requestedResourceTitle}",
+                        refId = tradeId
+                    )
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Ledger write failed for trade $tradeId", e)
+            }
+        }
+
+        if (isCompletion) {
+            // Bump counters (unchanged existing behaviour)
+            try {
+                val trade = db.collection("trades").document(tradeId).get().await()
+                    .toObject(Trade::class.java)
+                if (trade != null) {
+                    listOf(trade.requesterId, trade.receiverId).forEach { email ->
+                        db.collection("users")
+                            .whereEqualTo("email", email).limit(1).get().await()
+                            .documents.firstOrNull()?.reference
+                            ?.update("completedTrades", FieldValue.increment(1))
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to bump completedTrades for $tradeId", e)
+            }
+
+            // NEW: cancel meeting reminders on completion (fixes existing bug)
+            cancelRemindersForTrade(tradeId)
+        }
 
         if (notifyCounterpart) {
             val title = when (newStatus) {
@@ -403,7 +634,8 @@ object TradeManager {
                 TradeStatus.COMPLETED ->
                     "Your skill exchange with ${actorName.ifBlank { "your partner" }} has been successfully completed."
                 TradeStatus.CANCELLED ->
-                    "The skill trade has been cancelled." + if (reason.isNotBlank()) " Reason: $reason" else ""
+                    "The skill trade has been cancelled." +
+                            if (reason.isNotBlank()) " Reason: $reason" else ""
                 TradeStatus.REJECTED ->
                     "The skill trade has been cancelled."
                 else -> "Trade status updated."
@@ -415,51 +647,6 @@ object TradeManager {
                 type = "trade_${newStatus.value}",
                 tradeId = tradeId
             )
-        }
-
-        // ── On completion, bump both users' completedTrades counters AND record Points Ledger ──
-        if (isCompletion) {
-            try {
-                val trade = db.collection("trades").document(tradeId).get().await()
-                    .toObject(Trade::class.java)
-                if (trade != null) {
-
-                    // 1. Increment completed trades
-                    listOf(trade.requesterId, trade.receiverId).forEach { email ->
-                        db.collection("users")
-                            .whereEqualTo("email", email)
-                            .limit(1)
-                            .get()
-                            .await()
-                            .documents
-                            .firstOrNull()
-                            ?.reference
-                            ?.update("completedTrades", FieldValue.increment(1))
-                    }
-
-                    // 2. Record Points to Ledger (New Feature)
-                    try {
-                        // The receiver taught the requested resource
-                        PointsLedger.record(
-                            trade.receiverId,
-                            +50,
-                            "Taught ${trade.requestedResourceTitle.ifBlank { "a skill" }} to ${trade.requesterName}",
-                            trade.id
-                        )
-                        // The requester learned the requested resource
-                        PointsLedger.record(
-                            trade.requesterId,
-                            -50,
-                            "Learned ${trade.requestedResourceTitle.ifBlank { "a skill" }} from ${trade.receiverName}",
-                            trade.id
-                        )
-                    } catch (e: Exception) {
-                        Log.e(TAG, "Failed to record points ledger", e)
-                    }
-                }
-            } catch (e: Exception) {
-                Log.e(TAG, "Failed to process completion side-effects", e)
-            }
         }
     }
 
@@ -487,14 +674,11 @@ object TradeManager {
             val asRequester = db.collection("trades")
                 .whereEqualTo("requesterId", userId)
                 .whereIn("status", activeStatuses)
-                .get()
-                .await()
-
+                .get().await()
             val asReceiver = db.collection("trades")
                 .whereEqualTo("receiverId", userId)
                 .whereIn("status", activeStatuses)
-                .get()
-                .await()
+                .get().await()
 
             val all = (asRequester.documents + asReceiver.documents).mapNotNull {
                 it.toObject(Trade::class.java)
@@ -506,7 +690,7 @@ object TradeManager {
             }
         } catch (e: Exception) {
             Log.e(TAG, "isUserAvailable failed — defaulting to available", e)
-            true // fail-open so a transient Firestore issue doesn't block trades
+            true // fail-open
         }
     }
 
@@ -536,7 +720,7 @@ object TradeManager {
      * Schedules the 24h and 1h WorkManager reminders for a trade
      * whose schedule has just been finalized.
      */
-    suspend fun scheduleRemindersAfterFinalize(context: Context, tradeId: String) {
+    suspend fun scheduleRemindersAfterFinalize(context: android.content.Context, tradeId: String) {
         try {
             val doc = db.collection("trades").document(tradeId).get().await()
             val trade = doc.toObject(Trade::class.java)?.copy(id = tradeId)
@@ -552,11 +736,31 @@ object TradeManager {
     }
 
     /** Cancels pending reminders (call on cancel/reject). */
-    fun cancelReminders(context: Context, tradeId: String) {
+    fun cancelReminders(context: android.content.Context, tradeId: String) {
         try {
             MeetingReminderScheduler.cancelForTrade(context.applicationContext, tradeId)
         } catch (e: Exception) {
             Log.e(TAG, "Failed to cancel reminders for $tradeId", e)
+        }
+    }
+
+    /**
+     * Context-free reminder cancellation for internal use (e.g. on completion).
+     * Uses the AppContext singleton; if it wasn't initialized, this is a no-op
+     * (the reminder worker checks trade status and skips non-finalized trades
+     * anyway, so no notification is ever shown).
+     */
+    private fun cancelRemindersForTrade(tradeId: String) {
+        try {
+            val ctx = MyApp.getInstance()?.applicationContext
+            if (ctx != null) {
+                MeetingReminderScheduler.cancelForTrade(ctx, tradeId)
+                Log.d(TAG, "Reminders cancelled for trade $tradeId")
+            } else {
+                Log.w(TAG, "MyApp instance not initialized — skipping reminder cancel for $tradeId")
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "cancelRemindersForTrade failed for $tradeId", e)
         }
     }
 

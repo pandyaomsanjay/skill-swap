@@ -108,7 +108,7 @@
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
-            <!-- ══════════════ Offered resource selection ══════════════ -->
+            <!-- ══════════════ Exchange method ══════════════ -->
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
@@ -118,43 +118,127 @@
                 android:textStyle="bold"
                 android:layout_marginBottom="8dp" />
 
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnSelectOfferedResource"
-                android:layout_width="match_parent"
-                android:layout_height="54dp"
-                android:text="Select Resource to Offer"
-                android:textAllCaps="false"
-                android:textColor="@android:color/white"
-                android:textSize="14sp"
-                android:textStyle="bold"
-                app:backgroundTint="@color/brand_navy"
-                app:cornerRadius="14dp"
-                app:icon="@drawable/outline_psychology_24"
-                app:iconTint="@android:color/white"
-                app:iconGravity="textStart" />
-
-            <TextView
-                android:id="@+id/tvSelectedOfferedResource"
+            <com.google.android.material.button.MaterialButtonToggleGroup
+                android:id="@+id/toggleExchangeMethod"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="10dp"
-                android:layout_marginBottom="20dp"
-                android:padding="12dp"
-                android:text="No resource selected"
-                android:textColor="@color/brand_steel"
-                android:textSize="13sp"
-                android:background="@drawable/bg_offered_placeholder" />
+                android:layout_marginBottom="14dp"
+                app:singleSelection="true"
+                app:selectionRequired="true"
+                app:checkedButton="@id/btnOfferMaterial">
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnOfferPoints"
+                    style="@style/Widget.Material3.Button.OutlinedButton"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Points"
+                    android:textAllCaps="false"
+                    android:textColor="@color/brand_navy"
+                    android:textStyle="bold"
+                    app:strokeColor="@color/brand_steel" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnOfferMaterial"
+                    style="@style/Widget.Material3.Button.OutlinedButton"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Material"
+                    android:textAllCaps="false"
+                    android:textColor="@color/brand_navy"
+                    android:textStyle="bold"
+                    app:strokeColor="@color/brand_steel" />
+            </com.google.android.material.button.MaterialButtonToggleGroup>
+
+            <!-- ══════════════ POINTS section (hidden by default) ══════════════ -->
+            <LinearLayout
+                android:id="@+id/pointsSection"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:visibility="gone"
+                android:layout_marginBottom="20dp">
+
+                <TextView
+                    android:id="@+id/tvAvailableBalance"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="8dp"
+                    android:text="Available: 0 points"
+                    android:textColor="@color/brand_steel"
+                    android:textSize="12sp" />
+
+                <com.google.android.material.textfield.TextInputLayout
+                    android:id="@+id/tilOfferPoints"
+                    style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:hint="Points to offer"
+                    app:boxCornerRadiusTopStart="14dp"
+                    app:boxCornerRadiusTopEnd="14dp"
+                    app:boxCornerRadiusBottomStart="14dp"
+                    app:boxCornerRadiusBottomEnd="14dp"
+                    app:boxStrokeColor="@color/brand_steel"
+                    app:hintTextColor="@color/brand_steel">
+
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/etOfferPoints"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:inputType="number"
+                        android:maxLines="1"
+                        android:textColor="@color/brand_navy" />
+                </com.google.android.material.textfield.TextInputLayout>
+            </LinearLayout>
+
+            <!-- ══════════════ MATERIAL section (visible by default) ══════════════ -->
+            <LinearLayout
+                android:id="@+id/materialSection"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:visibility="visible"
+                android:layout_marginBottom="20dp">
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnSelectOfferedResource"
+                    android:layout_width="match_parent"
+                    android:layout_height="54dp"
+                    android:text="Select Resource to Offer"
+                    android:textAllCaps="false"
+                    android:textColor="@android:color/white"
+                    android:textSize="14sp"
+                    android:textStyle="bold"
+                    app:backgroundTint="@color/brand_navy"
+                    app:cornerRadius="14dp"
+                    app:icon="@drawable/outline_psychology_24"
+                    app:iconTint="@android:color/white"
+                    app:iconGravity="textStart" />
+
+                <TextView
+                    android:id="@+id/tvSelectedOfferedResource"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:padding="12dp"
+                    android:text="No resource selected"
+                    android:textColor="@color/brand_steel"
+                    android:textSize="13sp"
+                    android:background="@drawable/bg_offered_placeholder" />
+            </LinearLayout>
 
             <!-- ══════════════ Schedule ══════════════ -->
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="4dp"
+                android:layout_marginBottom="8dp"
                 android:text="Preferred date &amp; time"
                 android:textColor="@color/brand_navy"
                 android:textSize="15sp"
-                android:textStyle="bold"
-                android:layout_marginBottom="8dp" />
+                android:textStyle="bold" />
 
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
@@ -250,7 +334,7 @@
                 android:indeterminateTint="@color/brand_navy"
                 android:visibility="gone" />
 
-            <!-- Helper text -->
+            <!-- ══════════════ Helper text ══════════════ -->
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"

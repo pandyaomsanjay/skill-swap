@@ -13,6 +13,13 @@ import com.onesignal.notifications.INotificationWillDisplayEvent
 
 class MyApp : Application() {
 
+    companion object {
+        @Volatile
+        private var instance: MyApp? = null
+
+        fun getInstance(): MyApp? = instance
+    }
+
     override fun attachBaseContext(base: Context) {
         val langCode = LocaleHelper.getLanguageCode(base)
         val contextWithLocale = LocaleHelper.setLocale(base, langCode)
@@ -21,6 +28,7 @@ class MyApp : Application() {
 
     override fun onCreate() {
         super.onCreate()
+        instance = this
         val prefs = getSharedPreferences(SettingsActivity.PREFS_NAME, MODE_PRIVATE)
         val isDarkMode = prefs.getBoolean(SettingsActivity.KEY_DARK_MODE, false)
         AppCompatDelegate.setDefaultNightMode(

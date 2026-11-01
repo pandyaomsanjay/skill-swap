@@ -8,7 +8,7 @@
     android:background="#EAF1F5"
     android:fitsSystemWindows="true">
 
-    <!-- ===================== Header (matches Explore / CreateTrade / MyTrades) ===================== -->
+    <!-- ══════════════ Header ══════════════ -->
     <LinearLayout
         android:id="@+id/headerBar"
         android:layout_width="match_parent"
@@ -88,7 +88,7 @@
                     android:textStyle="bold" />
             </com.google.android.material.card.MaterialCardView>
 
-            <!-- ═══════════ Participants card ═══════════ -->
+            <!-- ══════════════ Participants ══════════════ -->
             <com.google.android.material.card.MaterialCardView
                 android:id="@+id/cardParticipants"
                 android:layout_width="match_parent"
@@ -107,7 +107,6 @@
                     android:padding="14dp"
                     android:gravity="center_vertical">
 
-                    <!-- Requester -->
                     <LinearLayout
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
@@ -152,7 +151,6 @@
                         android:textSize="22sp"
                         android:textStyle="bold" />
 
-                    <!-- Receiver -->
                     <LinearLayout
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
@@ -190,7 +188,7 @@
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
-            <!-- ═══════════ Resources card ═══════════ -->
+            <!-- ══════════════ Resources ══════════════ -->
             <com.google.android.material.card.MaterialCardView
                 android:id="@+id/cardResources"
                 android:layout_width="match_parent"
@@ -270,7 +268,134 @@
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
-            <!-- ═══════════ Schedule card ═══════════ -->
+            <!-- ══════════════ Original Offer ══════════════ -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/cardOriginalOffer"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                app:cardCornerRadius="16dp"
+                app:cardElevation="0dp"
+                app:strokeWidth="1dp"
+                app:strokeColor="#D2C1B6"
+                app:cardBackgroundColor="#FFFFFF">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="16dp">
+
+                    <TextView
+                        android:id="@+id/tvOriginalOfferLabel"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Points Offered"
+                        android:textColor="#456882"
+                        android:textSize="11sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/tvOriginalOfferValue"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp"
+                        android:text="—"
+                        android:textColor="#1B3C53"
+                        android:textSize="15sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- ══════════════ Counter Offer (hidden until counter exists) ══════════════ -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/cardCounterOffer"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:visibility="gone"
+                app:cardCornerRadius="16dp"
+                app:cardElevation="0dp"
+                app:strokeWidth="2dp"
+                app:strokeColor="#7C3AED"
+                app:cardBackgroundColor="#F9F3EF">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="16dp">
+
+                    <TextView
+                        android:id="@+id/tvCounterOfferTitle"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Counter Offer"
+                        android:textColor="#7C3AED"
+                        android:textSize="11sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/tvCounterOfferValue"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp"
+                        android:text="—"
+                        android:textColor="#1B3C53"
+                        android:textSize="15sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/tvCounterOfferMessage"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="6dp"
+                        android:text="—"
+                        android:textColor="#456882"
+                        android:textSize="12.5sp" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- ══════════════ Final Agreement (hidden until finalized) ══════════════ -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/cardFinalAgreement"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:visibility="gone"
+                app:cardCornerRadius="16dp"
+                app:cardElevation="0dp"
+                app:strokeWidth="2dp"
+                app:strokeColor="#34C77B"
+                app:cardBackgroundColor="#E4F1E9">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="16dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="✅ Final Agreement"
+                        android:textColor="#2E9E63"
+                        android:textSize="11sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/tvFinalAgreementValue"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp"
+                        android:text="—"
+                        android:textColor="#1B3C53"
+                        android:textSize="15sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- ══════════════ Schedule ══════════════ -->
             <com.google.android.material.card.MaterialCardView
                 android:id="@+id/cardSchedule"
                 android:layout_width="match_parent"
@@ -470,7 +595,7 @@
                     android:id="@+id/btnCounterSchedule"
                     android:layout_width="match_parent"
                     android:layout_height="52dp"
-                    android:text="Counter Schedule"
+                    android:text="Counter Offer"
                     android:visibility="gone"
                     android:textAllCaps="false"
                     android:textColor="@android:color/white"
@@ -482,7 +607,7 @@
                     android:id="@+id/btnAcceptCounterSchedule"
                     android:layout_width="match_parent"
                     android:layout_height="52dp"
-                    android:text="Accept Counter Schedule"
+                    android:text="Accept Counter Offer"
                     android:visibility="gone"
                     android:textAllCaps="false"
                     android:textColor="@android:color/white"
