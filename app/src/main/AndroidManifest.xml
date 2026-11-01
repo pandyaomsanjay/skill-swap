@@ -103,6 +103,13 @@
             android:name=".AdminDashboardActivity"
             android:exported="false"
             android:theme="@style/Theme.SGP.Admin" />
+
+        <!-- NEW: Added for Credit Management -->
+        <activity
+            android:name=".AdminCreditsActivity"
+            android:exported="false"
+            android:theme="@style/Theme.SGP.Admin" />
+
         <activity
             android:name=".AdminBannedUsersActivity"
             android:exported="false"

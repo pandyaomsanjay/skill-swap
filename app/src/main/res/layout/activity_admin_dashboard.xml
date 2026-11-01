@@ -111,7 +111,6 @@
                             android:textSize="18sp"/>
                     </com.google.android.material.card.MaterialCardView>
 
-                    <!-- NEW: entry point to the Banned Users admin screen. -->
                     <com.google.android.material.card.MaterialCardView
                         android:id="@+id/btnBannedUsers"
                         android:layout_width="44dp"
@@ -135,6 +134,30 @@
                             android:textSize="18sp"/>
                     </com.google.android.material.card.MaterialCardView>
 
+                    <!-- Top Right: Credit Management Button -->
+                    <com.google.android.material.card.MaterialCardView
+                        android:id="@+id/btnCredits"
+                        android:layout_width="44dp"
+                        android:layout_height="44dp"
+                        android:layout_marginStart="10dp"
+                        app:cardCornerRadius="14dp"
+                        app:cardElevation="0dp"
+                        app:strokeWidth="1dp"
+                        app:strokeColor="#456882"
+                        app:cardBackgroundColor="#456882"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:foreground="?attr/selectableItemBackground">
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:gravity="center"
+                            android:text="🪙"
+                            android:textColor="#F9F3EF"
+                            android:textSize="18sp"/>
+                    </com.google.android.material.card.MaterialCardView>
+
                 </LinearLayout>
 
             </LinearLayout>
@@ -147,6 +170,100 @@
                 android:paddingEnd="20dp"
                 android:paddingTop="20dp"
                 android:paddingBottom="24dp">
+
+                <!-- ===================== Credit Summary ===================== -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:layout_marginBottom="14dp">
+
+                    <View
+                        android:layout_width="4dp"
+                        android:layout_height="16dp"
+                        android:background="#B8860B"
+                        android:layout_marginEnd="8dp"/>
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="🪙 Credit Summary"
+                        android:textColor="#1B3C53"
+                        android:textSize="16.5sp"
+                        android:fontFamily="sans-serif-medium"
+                        android:textStyle="bold"/>
+
+                    <com.google.android.material.card.MaterialCardView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        app:cardCornerRadius="12dp"
+                        app:cardElevation="0dp"
+                        app:cardBackgroundColor="#FFF3E0">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:paddingStart="10dp"
+                            android:paddingEnd="10dp"
+                            android:paddingTop="6dp"
+                            android:paddingBottom="6dp"
+                            android:text="DEMO"
+                            android:textColor="#B8860B"
+                            android:textSize="11sp"
+                            android:textStyle="bold"/>
+                    </com.google.android.material.card.MaterialCardView>
+                </LinearLayout>
+
+                <com.google.android.material.card.MaterialCardView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="32dp"
+                    app:cardCornerRadius="22dp"
+                    app:cardElevation="0dp"
+                    app:strokeWidth="1dp"
+                    app:strokeColor="#D2C1B6"
+                    app:cardBackgroundColor="#FFFFFF">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:padding="20dp">
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="Demo transactions only — no real money involved."
+                            android:textColor="#B8860B"
+                            android:textSize="11.5sp"
+                            android:textStyle="bold"
+                            android:layout_marginBottom="12dp"/>
+
+                        <!-- stat rows: label left, value right -->
+                        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:paddingTop="6dp" android:paddingBottom="6dp">
+                            <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="Total purchases" android:textColor="#456882" android:textSize="13sp"/>
+                            <TextView android:id="@+id/tvCrTotal" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="0" android:textColor="#1B3C53" android:textSize="15sp" android:textStyle="bold"/>
+                        </LinearLayout>
+                        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:paddingTop="6dp" android:paddingBottom="6dp">
+                            <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="Successful transactions" android:textColor="#456882" android:textSize="13sp"/>
+                            <TextView android:id="@+id/tvCrSuccess" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="0" android:textColor="#2E9E63" android:textSize="15sp" android:textStyle="bold"/>
+                        </LinearLayout>
+                        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:paddingTop="6dp" android:paddingBottom="6dp">
+                            <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="Failed transactions" android:textColor="#456882" android:textSize="13sp"/>
+                            <TextView android:id="@+id/tvCrFailed" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="0" android:textColor="#DC2626" android:textSize="15sp" android:textStyle="bold"/>
+                        </LinearLayout>
+                        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:paddingTop="6dp" android:paddingBottom="6dp">
+                            <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="🪙 Credits purchased" android:textColor="#456882" android:textSize="13sp"/>
+                            <TextView android:id="@+id/tvCrCredits" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="0" android:textColor="#1B3C53" android:textSize="15sp" android:textStyle="bold"/>
+                        </LinearLayout>
+                        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:paddingTop="6dp" android:paddingBottom="6dp">
+                            <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="Simulated purchase amount" android:textColor="#456882" android:textSize="13sp"/>
+                            <TextView android:id="@+id/tvCrAmount" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="₹0" android:textColor="#1B3C53" android:textSize="15sp" android:textStyle="bold"/>
+                        </LinearLayout>
+                    </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
 
                 <!-- ===================== Overview header ===================== -->
                 <LinearLayout

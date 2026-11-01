@@ -93,6 +93,7 @@ class AdminDashboardActivity : BaseActivity() {
     private var skillsListener: ListenerRegistration? = null
     private var reportsListener: ListenerRegistration? = null
     private var swapsChartListener: ListenerRegistration? = null
+    private var creditTxnHandle: CreditListenerHandle? = null
 
     // Theme palette
     private val navyDark = Color.parseColor("#1B3C53")
@@ -138,6 +139,7 @@ class AdminDashboardActivity : BaseActivity() {
 
         applyOverviewRange(DashboardRange.TODAY)
         applySwapsRange(DashboardRange.WEEK)
+        setupCreditSection()
     }
 
     override fun onDestroy() {
@@ -147,6 +149,7 @@ class AdminDashboardActivity : BaseActivity() {
         skillsListener?.remove()
         reportsListener?.remove()
         swapsChartListener?.remove()
+        creditTxnHandle?.remove()
     }
 
     private fun bindViews() {
@@ -199,13 +202,19 @@ class AdminDashboardActivity : BaseActivity() {
             overridePendingTransition(R.anim.nav_enter, R.anim.nav_exit)
         }
 
-        // NEW: open the Banned Users admin screen.
         findViewById<View>(R.id.btnBannedUsers).setOnClickListener {
             startActivity(Intent(this, AdminBannedUsersActivity::class.java))
             overridePendingTransition(R.anim.nav_enter, R.anim.nav_exit)
         }
 
-
+        // Top Right Coin button opens the full management screen
+        findViewById<View>(R.id.btnCredits).setOnClickListener {
+            startActivity(
+                Intent(this, AdminCreditsActivity::class.java)
+                    .putExtra(AdminCreditsActivity.EXTRA_TAB, AdminCreditsActivity.TAB_HISTORY)
+            )
+            overridePendingTransition(R.anim.nav_enter, R.anim.nav_exit)
+        }
     }
 
     private fun setupNavigation() {
@@ -243,6 +252,20 @@ class AdminDashboardActivity : BaseActivity() {
         } catch (e: Exception) {
             Toast.makeText(this, "Feedback screen coming soon", Toast.LENGTH_SHORT).show()
         }
+    }
+
+    // Setup Credit Stats Summary
+    private fun setupCreditSection() {
+        creditTxnHandle = CreditRepo.listenTransactions(db,
+            onUpdate = { list ->
+                val s = CreditStats.summarize(list)
+                findViewById<TextView>(R.id.tvCrTotal)?.text = s.total.toString()
+                findViewById<TextView>(R.id.tvCrSuccess)?.text = s.successful.toString()
+                findViewById<TextView>(R.id.tvCrFailed)?.text = s.failed.toString()
+                findViewById<TextView>(R.id.tvCrCredits)?.text = s.creditsPurchased.toString()
+                findViewById<TextView>(R.id.tvCrAmount)?.text = CreditFmt.money(s.amount)
+            },
+            onError = { Log.e(TAG, "credit stats failed: $it") })
     }
 
     private fun setupOverviewChips() {
