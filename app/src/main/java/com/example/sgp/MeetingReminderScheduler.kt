@@ -15,6 +15,11 @@ import java.util.concurrent.TimeUnit
  * Uses WorkManager so reminders survive app close.
  * Work is deduped by unique name — re-scheduling the same trade
  * replaces the previous work, so no duplicate reminders.
+ *
+ * POINTS trades fix: for trades where the requester offered points
+ * instead of a resource, `offeredResourceTitle` is empty — the reminder
+ * body used to read "...Requested: X • Offered: " with a trailing blank.
+ * We now substitute "{N} points" in that case.
  */
 object MeetingReminderScheduler {
 
@@ -31,7 +36,7 @@ object MeetingReminderScheduler {
         val for1h = meetingAt - ONE_HOUR_MS
 
         if (for24h > now) enqueue(context, trade, delayMs = for24h - now, window = "24h")
-        if (for1h  > now) enqueue(context, trade, delayMs = for1h  - now, window = "1h")
+        if (for1h > now) enqueue(context, trade, delayMs = for1h - now, window = "1h")
     }
 
     fun cancelForTrade(context: Context, tradeId: String) {
@@ -41,6 +46,13 @@ object MeetingReminderScheduler {
     }
 
     private fun enqueue(context: Context, trade: Trade, delayMs: Long, window: String) {
+        // FIX: for POINTS trades, offeredResourceTitle is empty. Substitute
+        // the point count so the reminder reads "Offered: 30 points" instead
+        // of "Offered: ".
+        val offeredDisplay =
+            if (trade.isPointsExchange) "${trade.offeredPoints} points"
+            else trade.offeredResourceTitle
+
         val input = Data.Builder()
             .putString(MeetingReminderWorker.KEY_TRADE_ID, trade.id)
             .putString(MeetingReminderWorker.KEY_REQUESTER_ID, trade.requesterId)
@@ -48,7 +60,7 @@ object MeetingReminderScheduler {
             .putString(MeetingReminderWorker.KEY_RECEIVER_ID, trade.receiverId)
             .putString(MeetingReminderWorker.KEY_RECEIVER_NAME, trade.receiverName)
             .putString(MeetingReminderWorker.KEY_REQUESTED_TITLE, trade.requestedResourceTitle)
-            .putString(MeetingReminderWorker.KEY_OFFERED_TITLE, trade.offeredResourceTitle)
+            .putString(MeetingReminderWorker.KEY_OFFERED_TITLE, offeredDisplay)
             .putLong(MeetingReminderWorker.KEY_SCHEDULE, trade.finalizedSchedule)
             .putString(MeetingReminderWorker.KEY_WINDOW, window)
             .build()

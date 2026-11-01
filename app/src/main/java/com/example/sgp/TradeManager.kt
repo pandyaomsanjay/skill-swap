@@ -24,6 +24,11 @@ import kotlinx.coroutines.tasks.await
  *
  * Backward compat: legacy trades with no exchangeMethod field decode to
  * MATERIAL and skip the point-transfer path entirely.
+ *
+ * FIX (this version):
+ *   completeTrade() now rejects receiver-initiated completion of POINTS trades
+ *   with a clear user-facing message, instead of letting Firestore reject the
+ *   two-way credit transfer with an opaque PERMISSION_DENIED.
  */
 object TradeManager {
 
@@ -183,7 +188,7 @@ object TradeManager {
             requesterEmail = trade.requesterId
             receiverName = trade.receiverName
 
-            // NEW: finalize the exchange based on the ORIGINAL offer
+            // Finalize the exchange based on the ORIGINAL offer
             val finalMethod = when {
                 trade.isPointsExchange -> ExchangeMethod.POINTS.value
                 else -> ExchangeMethod.MATERIAL.value
@@ -390,7 +395,7 @@ object TradeManager {
 
             receiverEmail = trade.receiverId
 
-            // NEW: finalize based on the COUNTER's exchange method
+            // Finalize based on the COUNTER's exchange method
             val finalMethod = if (trade.isCounterPoints)
                 ExchangeMethod.POINTS.value else ExchangeMethod.MATERIAL.value
             val finalPts = if (trade.isCounterPoints) trade.counterOfferedPoints else 0
@@ -453,18 +458,38 @@ object TradeManager {
         notifyCounterpart = true
     )
 
+    /**
+     * Completes a trade. For POINTS trades, only the requester (the payer)
+     * may complete — the transaction writes to both user docs, and the
+     * Firestore rules prevent the receiver from decreasing another user's
+     * credits. Rejecting receiver-initiated completion here gives a clear
+     * error message instead of an opaque PERMISSION_DENIED.
+     */
     suspend fun completeTrade(
         tradeId: String,
         currentUserEmail: String
-    ): Result<Unit> = updateStatus(
-        tradeId = tradeId,
-        currentUserEmail = currentUserEmail,
-        newStatus = TradeStatus.COMPLETED,
-        reason = "",
-        allowFrom = listOf(TradeStatus.SCHEDULE_FINALIZED, TradeStatus.ACCEPTED),
-        notifyCounterpart = true,
-        isCompletion = true
-    )
+    ): Result<Unit> = runCatching {
+        // Points trades: only the requester can complete.
+        val pre = db.collection("trades").document(tradeId).get().await()
+            .toObject(Trade::class.java)
+            ?: throw IllegalStateException("Trade not found")
+        if (pre.agreedPoints > 0 &&
+            !pre.requesterId.equals(currentUserEmail, ignoreCase = true)
+        ) {
+            throw IllegalStateException(
+                "Only the requester can complete a points trade"
+            )
+        }
+        updateStatus(
+            tradeId = tradeId,
+            currentUserEmail = currentUserEmail,
+            newStatus = TradeStatus.COMPLETED,
+            reason = "",
+            allowFrom = listOf(TradeStatus.SCHEDULE_FINALIZED, TradeStatus.ACCEPTED),
+            notifyCounterpart = true,
+            isCompletion = true
+        ).getOrThrow()
+    }
 
     /**
      * Atomic state transition. On COMPLETED with agreedPoints > 0, transfers
@@ -619,7 +644,7 @@ object TradeManager {
                 Log.e(TAG, "Failed to bump completedTrades for $tradeId", e)
             }
 
-            // NEW: cancel meeting reminders on completion (fixes existing bug)
+            // Cancel meeting reminders on completion (fixes existing bug)
             cancelRemindersForTrade(tradeId)
         }
 
@@ -752,12 +777,12 @@ object TradeManager {
      */
     private fun cancelRemindersForTrade(tradeId: String) {
         try {
-            val ctx = MyApp.getInstance()?.applicationContext
+            val ctx = AppContext.get()
             if (ctx != null) {
-                MeetingReminderScheduler.cancelForTrade(ctx, tradeId)
+                MeetingReminderScheduler.cancelForTrade(ctx.applicationContext, tradeId)
                 Log.d(TAG, "Reminders cancelled for trade $tradeId")
             } else {
-                Log.w(TAG, "MyApp instance not initialized — skipping reminder cancel for $tradeId")
+                Log.w(TAG, "AppContext not initialized — skipping reminder cancel for $tradeId")
             }
         } catch (e: Exception) {
             Log.e(TAG, "cancelRemindersForTrade failed for $tradeId", e)

@@ -51,22 +51,18 @@ import java.util.Locale
  *   • Counter dialog supports either points or material (plus optional
  *     schedule change), all via TradeManager.counterTrade()
  *
- * FIX (this version):
- *   The material picker used inside the counter dialog is now a proper
- *   class-level ActivityResultLauncher, registered during activity
- *   construction. Previously it was registered inside a click handler,
- *   which throws IllegalStateException at runtime. A nullable callback
- *   field carries the result back into the dialog that launched it.
+ * FIXES (this version):
+ *   • Material picker is a class-level ActivityResultLauncher (registered
+ *     during construction), not registered inside a click handler.
+ *   • "Complete" button is hidden for the receiver on POINTS trades — only
+ *     the requester can complete a points trade (the transaction moves
+ *     credits and Firestore rules forbid the receiver from doing that).
  */
 class TradeDetailActivity : BaseActivity() {
 
     // ─────────────────────────────────────────────────────────────
     // CLASS-LEVEL LAUNCHERS
     // ─────────────────────────────────────────────────────────────
-    /**
-     * Material picker for the counter dialog. The callback is only
-     * invoked if a dialog is currently waiting for the result.
-     */
     private var pendingCounterMaterialCallback: ((id: String, type: String, title: String) -> Unit)? = null
 
     private val counterMaterialPickerLauncher = registerForActivityResult(
@@ -257,9 +253,6 @@ class TradeDetailActivity : BaseActivity() {
         applyTheme(isDarkModeEnabled)
     }
 
-    // ─────────────────────────────────────────────────────────────
-    // BIND VIEWS
-    // ─────────────────────────────────────────────────────────────
     private fun bindViews() {
         rootLayout = findViewById(R.id.rootLayout)
         headerBar = findViewById(R.id.headerBar)
@@ -515,6 +508,12 @@ class TradeDetailActivity : BaseActivity() {
         applyActionVisibility(trade)
     }
 
+    /**
+     * FIX: on POINTS trades, only the requester (the payer) can complete.
+     * The receiver's button is hidden because the underlying transaction
+     * writes to both user docs and Firestore rules forbid the receiver
+     * from decreasing another user's credits.
+     */
     private fun applyActionVisibility(trade: Trade) {
         resetActions()
         val s = trade.statusEnum
@@ -536,7 +535,10 @@ class TradeDetailActivity : BaseActivity() {
                 btnCancel.visibility = View.VISIBLE
             }
             s == TradeStatus.SCHEDULE_FINALIZED || s == TradeStatus.ACCEPTED -> {
-                btnComplete.visibility = View.VISIBLE
+                val isPointsTrade = trade.agreedPoints > 0
+                if (!isPointsTrade || isRequester) {
+                    btnComplete.visibility = View.VISIBLE
+                }
                 btnCancel.visibility = View.VISIBLE
             }
             else -> { /* terminal — all buttons hidden */ }

@@ -11,9 +11,7 @@ import android.os.Bundle
 import android.util.Log
 import android.util.TypedValue
 import android.view.Gravity
-import android.view.LayoutInflater
 import android.view.View
-import android.view.ViewGroup
 import android.widget.Button
 import android.widget.EditText
 import android.widget.ImageView
@@ -45,8 +43,15 @@ open class PlaylistActivity : BaseActivity() {
     private var isOwner = false
     private var uid: String? = null
 
-    // NEW: individual video ownership state
+    // Individual video ownership state
     private val ownedVideoIds: MutableSet<String> = mutableSetOf()
+
+    // NEW: prevents a second purchase (full-playlist OR video) from firing
+    // while one is already in flight. Without this, rapid taps on different
+    // Buy buttons during the network round-trip could queue multiple
+    // purchase dialogs (each would fail with "Already purchased", but the
+    // UX would be confusing).
+    private var purchaseInProgress: Boolean = false
 
     private var completedVideoIds: Set<String> = emptySet()
 
@@ -372,7 +377,6 @@ open class PlaylistActivity : BaseActivity() {
             btnAccessPlaylist.isEnabled = false
             btnAccessPlaylist.backgroundTintList = ContextCompat.getColorStateList(this, R.color.success)
             showOwnerAccessCount()
-            // Still fetch individual ownership for consistency (should be empty)
             loadOwnedVideoIds()
             return
         }
@@ -419,7 +423,6 @@ open class PlaylistActivity : BaseActivity() {
                 btnAccessPlaylist.text = "Access Granted"
                 btnAccessPlaylist.isEnabled = false
                 btnAccessPlaylist.backgroundTintList = ContextCompat.getColorStateList(this, R.color.success)
-                // Fetch individual ownership, then load progress
                 loadOwnedVideoIds {
                     loadProgressForLearner()
                 }
@@ -429,7 +432,6 @@ open class PlaylistActivity : BaseActivity() {
                     if (ownedVideoIds.isNotEmpty()) {
                         loadProgressForLearner()
                     } else {
-                        // No access at all — check credits so we can show the buy button
                         db.collection("users").document(resolvedUid).get()
                             .addOnSuccessListener { doc ->
                                 currentUserCredits = doc.getLong("credits")?.toInt() ?: 0
@@ -451,7 +453,6 @@ open class PlaylistActivity : BaseActivity() {
         PlaylistManager.getOwnedVideoIds(resolvedUid, skillId) { ids ->
             ownedVideoIds.clear()
             ownedVideoIds.addAll(ids)
-            // Re-bind so adapter picks up the new ownership state
             if (::playlist.isInitialized) {
                 bindVideosList()
             }
@@ -474,10 +475,15 @@ open class PlaylistActivity : BaseActivity() {
     }
 
     // ═════════════════════════════════════════════════════════════
-    // FULL PLAYLIST PURCHASE (existing flow preserved)
+    // FULL PLAYLIST PURCHASE
     // ═════════════════════════════════════════════════════════════
 
     private fun showPurchaseConfirmDialog() {
+        if (purchaseInProgress) {
+            Toast.makeText(this, "A purchase is already in progress", Toast.LENGTH_SHORT).show()
+            return
+        }
+
         val root = dialogCard()
 
         root.addView(TextView(this).apply {
@@ -538,6 +544,10 @@ open class PlaylistActivity : BaseActivity() {
             hasAccess = true
             return
         }
+        if (purchaseInProgress) {
+            Toast.makeText(this, "A purchase is already in progress", Toast.LENGTH_SHORT).show()
+            return
+        }
 
         val userUid = uid ?: run {
             Toast.makeText(this, "Please log in first", Toast.LENGTH_SHORT).show()
@@ -553,6 +563,7 @@ open class PlaylistActivity : BaseActivity() {
                     return@addOnSuccessListener
                 }
 
+                purchaseInProgress = true
                 btnAccessPlaylist.isEnabled = false
                 btnAccessPlaylist.text = "Processing..."
 
@@ -562,34 +573,39 @@ open class PlaylistActivity : BaseActivity() {
                     price = price,
                     playlistTitle = playlist.title,
                     onSuccess = {
-                        hasAccess = true
-                        currentUserCredits -= price
+                        runOnUiThread {
+                            purchaseInProgress = false
+                            hasAccess = true
+                            currentUserCredits -= price
 
-                        PointsLedger.recordSpent(
-                            userId = currentUserEmail ?: FirebaseAuth.getInstance().currentUser?.email ?: "",
-                            points = price,
-                            title = "Bought playlist: ${playlist.title}",
-                            refId = playlist.id
-                        )
+                            PointsLedger.recordSpent(
+                                userId = currentUserEmail ?: FirebaseAuth.getInstance().currentUser?.email ?: "",
+                                points = price,
+                                title = "Bought playlist: ${playlist.title}",
+                                refId = playlist.id
+                            )
 
-                        Toast.makeText(this, "Playlist unlocked!", Toast.LENGTH_SHORT).show()
-                        btnAccessPlaylist.text = "Access Granted"
-                        btnAccessPlaylist.isEnabled = false
-                        btnAccessPlaylist.backgroundTintList = ContextCompat.getColorStateList(this, R.color.success)
+                            Toast.makeText(this, "Playlist unlocked!", Toast.LENGTH_SHORT).show()
+                            btnAccessPlaylist.text = "Access Granted"
+                            btnAccessPlaylist.isEnabled = false
+                            btnAccessPlaylist.backgroundTintList = ContextCompat.getColorStateList(this, R.color.success)
 
-                        // Re-bind so every video now shows as owned
-                        bindVideosList()
-                        loadProgressForLearner()
+                            bindVideosList()
+                            loadProgressForLearner()
+                        }
                     },
                     onFailure = { e ->
-                        btnAccessPlaylist.isEnabled = true
-                        val message = when {
-                            e.message?.contains("Insufficient credits") == true -> "Insufficient credits"
-                            e.message?.contains("Already purchased") == true -> "Already unlocked"
-                            else -> "Purchase failed: ${e.message}"
+                        runOnUiThread {
+                            purchaseInProgress = false
+                            btnAccessPlaylist.isEnabled = true
+                            val message = when {
+                                e.message?.contains("Insufficient credits") == true -> "Insufficient credits"
+                                e.message?.contains("Already purchased") == true -> "Already unlocked"
+                                else -> "Purchase failed: ${e.message}"
+                            }
+                            Toast.makeText(this, message, Toast.LENGTH_LONG).show()
+                            updateAccessButton()
                         }
-                        Toast.makeText(this, message, Toast.LENGTH_LONG).show()
-                        updateAccessButton()
                     }
                 )
             }
@@ -599,17 +615,25 @@ open class PlaylistActivity : BaseActivity() {
     }
 
     // ═════════════════════════════════════════════════════════════
-    // INDIVIDUAL VIDEO PURCHASE  (new)
+    // INDIVIDUAL VIDEO PURCHASE
     // ═════════════════════════════════════════════════════════════
 
     private fun showPurchaseVideoDialog(video: PlaylistVideo) {
+        // FIX: reject the dialog entirely if another purchase is in flight.
+        // Before this guard, dismissing one dialog mid-purchase and tapping
+        // a different Buy button could queue a second dialog whose server
+        // call would fail with "Already purchased" — confusing UX.
+        if (purchaseInProgress) {
+            Toast.makeText(this, "A purchase is already in progress", Toast.LENGTH_SHORT).show()
+            return
+        }
+
         val userUid = uid ?: run {
             Toast.makeText(this, "Please log in first", Toast.LENGTH_SHORT).show()
             return
         }
 
-        // Free videos — grant access immediately (defensive; adapter should
-        // already treat them as watchable)
+        // Free videos — grant access immediately
         if (video.credits <= 0) {
             ownedVideoIds.add(video.id)
             bindVideosList()
@@ -705,11 +729,18 @@ open class PlaylistActivity : BaseActivity() {
     }
 
     private fun performVideoPurchase(video: PlaylistVideo, price: Int) {
+        if (purchaseInProgress) {
+            Toast.makeText(this, "A purchase is already in progress", Toast.LENGTH_SHORT).show()
+            return
+        }
+
         val userUid = uid ?: return
         val userEmail = currentUserEmail ?: FirebaseAuth.getInstance().currentUser?.email.orEmpty()
 
-        // Disable all buy buttons during the network call by disabling the
-        // adapter temporarily — simplest way to prevent double-clicks.
+        // FIX: set the in-flight flag so any concurrent tap on another Buy
+        // button (playlist OR video) is rejected before showing another
+        // dialog. Reset in both callbacks.
+        purchaseInProgress = true
         btnAccessPlaylist.isEnabled = false
 
         PlaylistManager.purchaseVideo(
@@ -720,6 +751,7 @@ open class PlaylistActivity : BaseActivity() {
             videoTitle = video.title,
             onSuccess = {
                 runOnUiThread {
+                    purchaseInProgress = false
                     btnAccessPlaylist.isEnabled = true
 
                     // Update local state
@@ -743,6 +775,7 @@ open class PlaylistActivity : BaseActivity() {
             },
             onFailure = { e ->
                 runOnUiThread {
+                    purchaseInProgress = false
                     btnAccessPlaylist.isEnabled = true
                     val message = when {
                         e.message?.contains("Insufficient", ignoreCase = true) == true ->
@@ -798,7 +831,7 @@ open class PlaylistActivity : BaseActivity() {
     }
 
     // ═════════════════════════════════════════════════════════════
-    // VIDEO PLAYBACK  (ownership-gated)
+    // VIDEO PLAYBACK (ownership-gated)
     // ═════════════════════════════════════════════════════════════
 
     private fun canWatch(video: PlaylistVideo): Boolean {
@@ -853,7 +886,7 @@ open class PlaylistActivity : BaseActivity() {
     }
 
     // ═════════════════════════════════════════════════════════════
-    // REPORT / FEEDBACK (existing)
+    // REPORT
     // ═════════════════════════════════════════════════════════════
 
     private fun showReportDialog() {
@@ -1016,7 +1049,7 @@ open class PlaylistActivity : BaseActivity() {
     }
 
     // ═════════════════════════════════════════════════════════════
-    // FEEDBACK (existing)
+    // FEEDBACK
     // ═════════════════════════════════════════════════════════════
 
     private fun showFeedbackDialog() {
