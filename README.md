@@ -4,7 +4,7 @@
 
 Skill Swap is a peer-to-peer Android application designed to connect people who want to **teach their skills, learn new skills, and exchange knowledge with others**.
 
-Users can create profiles, add skills, upload learning resources, discover other users, exchange skills through a full trade-request workflow, communicate through real-time chat, share skill videos and live sessions, create playlists, provide ratings and feedback, and receive push notifications and scheduled reminders.
+Users can create profiles, add skills, upload learning resources, discover other users, exchange skills through a full trade-request workflow, communicate through real-time chat, share skill videos and live sessions, create playlists, buy credits, provide ratings and feedback, and receive push notifications and scheduled reminders. Admins manage users, trades, reports, bans, appeals and the credit economy from a dedicated admin panel.
 
 ---
 
@@ -28,7 +28,9 @@ Users can create profiles, add skills, upload learning resources, discover other
 * 🔎 Skill Discovery
 * 🌐 Multi-Language Support
 * 🌙 Dark Mode
-* 💳 Credit Purchase System
+* 💳 Credit Purchase System (simulated)
+* 🪙 **Admin Credit Management** (history, status, per-user add/deduct, packages, PDF reports)
+* 🔔 **Push notification to the user on every admin credit bonus / deduction**
 
 ---
 
@@ -548,6 +550,7 @@ Notifications can be triggered for events such as:
 * ⭐ Feedback / Rating Events
 * ⏰ Meeting Reminders
 * ⚖️ Appeal Submitted / Appeal Resolved
+* 🪙 **Admin Credit Bonus / Deduction**
 * 📢 Important Application Notifications
 
 ### Notification Architecture
@@ -565,6 +568,8 @@ User
 ```
 
 OneSignal provides the notification management and delivery layer. Android push delivery uses Firebase Cloud Messaging (FCM) credentials configured through OneSignal.
+
+Server-triggered pushes (e.g. credit adjustments) are sent from Supabase Edge Functions through the OneSignal REST API, targeting the user's **external ID** (their email, lower-cased — the same value the app passes to `OneSignal.login(...)`).
 
 Firebase Cloud Functions are **not required** for the notification architecture.
 
@@ -721,9 +726,9 @@ The actual fields depend on the current backend implementation.
 
 ### Admin Purchase History
 
-The Admin Panel can provide a centralized view of simulated credit purchases, helping administrators identify who purchased a package, which package was selected, how many credits were awarded, and when the transaction occurred.
+The Admin Panel provides a centralized view of simulated credit purchases (see **Admin Credit Management** below), helping administrators identify who purchased a package, which package was selected, how many credits were awarded, and when the transaction occurred.
 
-Access to purchase records must be restricted to authorized administrators.
+Access to purchase records is restricted to authorized administrators.
 
 ### Security and Data Integrity
 
@@ -731,12 +736,143 @@ Access to purchase records must be restricted to authorized administrators.
 - The backend uses the authenticated user's identity rather than trusting a user ID supplied by the client.
 - Existing credit balances are updated instead of creating a separate balance for purchased credits.
 - Transaction IDs support idempotent processing to prevent duplicate credit awards.
-- Simulated payment processing is controlled by a server-side configuration flag.
+- Simulated payment processing is controlled by a server-side configuration flag (`DEMO_MODE_ENABLED`).
 - The demo payment gateway is intended for development and demonstration, not real financial transactions.
 
 ### Future Enhancement
 
 Integration with a real payment gateway, such as Razorpay, may be considered in a future version. The current simulated checkout remains separate from the existing Razorpay implementation.
+
+---
+
+# 🪙 Admin Credit Management
+
+A dedicated admin screen (`AdminCreditsActivity`) to monitor purchases and manage every user's credit balance. All writes go through the `admin-credits` Supabase Edge Function — the app never changes balances directly.
+
+### Entry Points
+
+* **Header 🪙 button** on the Admin Dashboard (next to ⚙️ settings, 🎬 videos, 🚫 banned users). Opens the History tab.
+* **Credit Management card** on the dashboard with live totals and shortcut rows (Purchase History, Manage User Credits, Manage Credit Packages, Transaction Status, Download PDF Reports).
+
+### Screen Tabs
+
+| Tab | What it does |
+|---|---|
+| **History** | All credit transactions, newest first; search by email or transaction ID; filter All / Successful / Failed / Pending; tap a row for read-only details |
+| **Status** | Counts for Successful / Failed / Pending; tap a card to open History pre-filtered |
+| **User Credits** | Find a user by email, see current balance, **Add bonus** or **Deduct** with a required reason |
+| **Packages** | Add / edit packages (name, price, credits) and toggle Active / Inactive |
+| **PDF Reports** | Export **Purchase History PDF** and **Payment Summary PDF** to Downloads |
+
+### Add Bonus / Deduct Flow
+
+```text
+Admin: Find user → enter credits + reason (min 5 chars) → Add bonus / Deduct → confirm
+        ↓
+App → POST /adjust-credits (Firebase ID token)
+        ↓
+Edge function: verify token → verify admin (users/{uid}.userType) → Firestore transaction
+        ↓
+Balance updated · audit rows written · user gets a push notification
+        ↓
+App shows "Done. Previous X → new Y"
+```
+
+### Credit Adjustment Rules
+
+* Amount must be a whole number from 1 to 100,000; reason 5–200 characters
+* A deduction can never push a balance below 0
+* Runs in a Firestore transaction; `requestId` (UUID) is the idempotency key — a retry never double-applies and never sends a second notification
+* Each adjustment writes: `creditAdjustments/{requestId}` (audit), `adminActivityLogs` (activity log), and a `demoTransactions` row (`type: bonus | deduction`, `packageId: admin-adjustment`) so the user sees it in their history
+
+### 🔔 User Notification on Adjustment
+
+After the Firestore commit succeeds, the function sends a OneSignal push to the user:
+
+| Action | Title | Message |
+|---|---|---|
+| Add bonus | 🪙 Bonus credits added | You received N bonus credits. Reason: … New balance: X. |
+| Deduct | 🪙 Credits deducted | N credits were deducted. Reason: … New balance: X. |
+
+* Target: OneSignal external ID = user's email, lower-cased (same as `OneSignal.login(...)` in the app)
+* Sent only after a successful commit; a failed push never rolls back the credit change
+
+### Edge Function — `admin-credits`
+
+Base URL: `https://<project>.supabase.co/functions/v1/admin-credits`
+
+| Route | Body from app | Purpose |
+|---|---|---|
+| `POST /adjust-credits` | `targetUid`, `direction` (`add` / `deduct`), `amount` (> 0), `reason`, `requestId` | Add or deduct credits |
+| `POST /upsert-package` | `id?`, `name`, `price`, `credits`, `active` | Create or edit a package (id defaults to the name slug) |
+| `POST /set-package-active` | `id`, `active` | Activate / deactivate a package |
+
+**How it works:** verifies the Firebase ID token (`auth.ts`, `jose` + Google JWKS) → checks `userType == "admin"` → talks to Firestore through the **Firestore REST API** with a service-account OAuth token (`firestore.ts`).
+
+> **Why REST and not `firebase-admin`?** The Admin SDK's Firestore client uses gRPC, which can hang inside Supabase's Deno runtime and caused app-side `timeout` errors. The REST version has 8–10 s timeouts and fails fast.
+
+### Function Files (`supabase/functions/admin-credits/`)
+
+| File | Purpose |
+|---|---|
+| `index.ts` | Router, validation, credit transaction, OneSignal call |
+| `auth.ts` | Firebase ID-token verification, `HttpError` |
+| `firestore.ts` | Service-account token, Firestore REST helpers (get, query, transaction, commit) |
+| `onesignal.ts` | `pushToUser()` — OneSignal REST push by external ID |
+
+### Secrets Used
+
+| Secret | Used for |
+|---|---|
+| `FIREBASE_PROJECT_ID` | Token verification + Firestore project |
+| `FIREBASE_SERVICE_ACCOUNT` | Service-account JSON for Firestore REST |
+| `ONESIGNAL_APP_ID` | OneSignal app |
+| `admin_payment` | OneSignal REST API key for this function (read in `onesignal.ts`) |
+
+### Setup
+
+1. Add the 4 function files above to `supabase/functions/admin-credits/`.
+2. Check the secrets table (**Edge Functions → Secrets**). For `admin_payment`, create a REST API key in OneSignal (**Settings → Keys & IDs → Create API Key**, leave **IP allowlist** off) and paste it as the secret value.
+3. Deploy (Verify JWT stays **OFF** — the function verifies the Firebase token itself):
+
+   ```bash
+   supabase functions deploy admin-credits --no-verify-jwt
+   ```
+
+4. In `AdminCreditApi.kt`, set `FUNCTION_URL` to the base URL (routes are appended).
+5. Register the activity in `AndroidManifest.xml`:
+
+   ```xml
+   <activity android:name=".AdminCreditsActivity" android:exported="false" />
+   ```
+
+### Android Files
+
+| Type | Files |
+|---|---|
+| Kotlin (`app/src/main/java/com/example/sgp/`) | `CreditModels.kt`, `AdminCreditApi.kt`, `CreditPdfExporter.kt`, `AdminCreditsActivity.kt` |
+| Layouts (`res/layout/`) | `activity_admin_credits.xml`, `item_admin_credit_transaction.xml`, `item_admin_credit_package.xml` |
+| Updated | `AdminDashboardActivity.kt` (🪙 button + credit card wiring + live stats), `activity_admin_dashboard.xml` (🪙 button + credit card), `AndroidManifest.xml` |
+
+### Firestore Collections & Rules
+
+| Collection | Client access | Written by |
+|---|---|---|
+| `demoTransactions` | Read: owner or admin · Write: never | Purchase function, `admin-credits` |
+| `creditPackages` | Read: signed-in · Write: never | `admin-credits` |
+| `creditAdjustments` | Read: admin · Write: never | `admin-credits` |
+| `adminActivityLogs` | Read: admin · Write: never | `admin-credits` |
+
+The edge function uses a service account, which bypasses security rules, so the existing rules need no change.
+
+### Test Checklist
+
+1. Dashboard 🪙 button and Credit Management card open the credit screen; totals match History.
+2. Search by email / transaction ID; filter chips; open a row → read-only details.
+3. User Credits: **Add 10** with a reason → balance changes, user sees a BONUS row and a push notification.
+4. **Deduct** more than the balance → blocked.
+5. Packages: edit a price → Credit Store reflects it; toggle inactive.
+6. Both PDFs land in Downloads (also with zero transactions).
 
 ---
 
@@ -753,11 +889,13 @@ Integration with a real payment gateway, such as Razorpay, may be considered in 
 | **Firebase Realtime Database** | Real-time data |
 | **Firebase Storage** | File / media storage |
 | **WorkManager** | Scheduled meeting reminders |
-| **OneSignal** | Push notifications |
+| **OneSignal** | Push notifications (app SDK + server REST API) |
 | **Google Sign-In** | Google authentication |
 | **Google Places** | Location functionality |
 | **Supabase** | Authentication, PostgreSQL backend & security features |
-| **Supabase Edge Functions** | `chat-gateway`: chat moderation, bans & encryption |
+| **Supabase Edge Functions** | `chat-gateway` (moderation, bans, encryption) and `admin-credits` (credit management) |
+| **Firestore REST API** | Used by `admin-credits` (service-account auth) |
+| **jose** | Firebase ID-token verification in edge functions |
 | **Ktor** | Networking |
 | **Kotlin Serialization** | JSON serialization |
 | **Glide** | Image loading |
@@ -785,6 +923,7 @@ Skill Swap
 │   ├── Security Functions
 │   ├── Chat Moderation (bans, warnings, appeals, audit)
 │   ├── Edge Function: chat-gateway
+│   ├── Edge Function: admin-credits   (credits, packages, notifications)
 │   └── Storage
 │
 └── OneSignal
@@ -797,17 +936,18 @@ Firebase is used for Authentication, Cloud Firestore, Realtime Database, Firebas
 
 ## 🟢 Supabase
 
-Supabase Auth handles email/password authentication, while PostgreSQL hosts custom security functions and chat moderation state. The `chat-gateway` edge function is the only path for sending chat messages.
+Supabase Auth handles email/password authentication, while PostgreSQL hosts custom security functions and chat moderation state. The `chat-gateway` edge function is the only path for sending chat messages. The `admin-credits` edge function is the only path for admin credit and package changes.
 
 ```text
 SupabaseClient.kt
 SupabaseImageUploader.kt
 ModerationClient.kt
+AdminCreditApi.kt
 ```
 
 ## 🔔 OneSignal
 
-OneSignal manages push notifications, notification targeting, user identification, notification data, and notification management.
+OneSignal manages push notifications, notification targeting, user identification, notification data, and notification management. Edge functions call its REST API with a key stored in Supabase secrets.
 
 ---
 
@@ -827,7 +967,7 @@ skill-swap/
 │   │       │   ├── Resources/
 │   │       │   ├── Trades/
 │   │       │   ├── Chat/
-│   │       │   ├── Admin/
+│   │       │   ├── Admin/            (dashboard, banned users, credits)
 │   │       │   ├── Appeals/
 │   │       │   ├── Videos/
 │   │       │   ├── Feedback/
@@ -846,7 +986,12 @@ skill-swap/
 │   │   ├── 001_chat_moderation.sql
 │   │   └── 002_chat_bans.sql
 │   └── functions/
-│       └── chat-gateway/
+│       ├── chat-gateway/
+│       └── admin-credits/
+│           ├── index.ts
+│           ├── auth.ts
+│           ├── firestore.ts
+│           └── onesignal.ts
 │
 ├── gradle/
 ├── build.gradle.kts
@@ -869,6 +1014,10 @@ trades
 chats
 reports
 appeals
+demoTransactions
+creditPackages
+creditAdjustments
+adminActivityLogs
 ```
 
 ### Chat Data
@@ -894,6 +1043,18 @@ appeals
     ├── reviewedAt
     ├── reviewedBy
     └── adminNote
+```
+
+### Credit Data
+
+```text
+creditPackages/{packageId}      name, price, credits, active, sortOrder, updatedAt, updatedBy
+demoTransactions/{txId}         userId, userEmail, packageId, packageName, credits, price,
+                                paymentMethod, status, type?, reason?, timestamp
+creditAdjustments/{requestId}   adminId, adminEmail, userId, userEmail, amount, reason,
+                                previousBalance, newBalance, timestamp
+adminActivityLogs/{logId}       adminId, adminEmail, action, targetUserId, amount, reason, timestamp
+users/{uid}.credits             current balance
 ```
 
 Moderation data (warnings, stages, bans, audit) lives in Supabase Postgres — see **Chat Moderation** above. Resolved appeal events are also tracked in `chat_events` (`pending` → `appealed` → `overturned` / `confirmed`).
@@ -939,6 +1100,13 @@ Violation → Warnings → Temporary / Permanent Ban
                                 ↓
                        Admin approves → Unban
                        Admin rejects  → Ban upheld
+```
+
+**Credit path:**
+
+```text
+User buys package (simulated) → credits added → demoTransactions row
+Admin adds bonus / deducts    → admin-credits → balance updated → push to user
 ```
 
 ---
@@ -990,11 +1158,11 @@ Configure Google Sign-In through Firebase Authentication and ensure the required
 
 ## 5. Configure Supabase
 
-Create a Supabase project and configure Supabase Auth, email/password authentication, PostgreSQL security functions, and required storage. Run the SQL scripts from the `sql/` directory in the **Supabase SQL Editor**. For chat moderation, also run `supabase/migrations/001_chat_moderation.sql` and `002_chat_bans.sql`, then deploy `chat-gateway` (see **Setup Summary** under Chat Moderation).
+Create a Supabase project and configure Supabase Auth, email/password authentication, PostgreSQL security functions, and required storage. Run the SQL scripts from the `sql/` directory in the **Supabase SQL Editor**. For chat moderation, also run `supabase/migrations/001_chat_moderation.sql` and `002_chat_bans.sql`, then deploy `chat-gateway` (see **Setup Summary** under Chat Moderation) and `admin-credits` (see **Admin Credit Management → Setup**).
 
 ## 6. Configure OneSignal
 
-Create a OneSignal application, configure Android push notifications, connect FCM credentials through OneSignal, and add the OneSignal App ID to the app.
+Create a OneSignal application, configure Android push notifications, connect FCM credentials through OneSignal, and add the OneSignal App ID to the app. For server pushes, create a REST API key (leave the IP allowlist off) and store it as a Supabase secret.
 
 Documentation: https://documentation.onesignal.com/docs/en/android-sdk-setup
 
@@ -1015,6 +1183,23 @@ Run → Run 'app'
 
 ---
 
+# 🔑 Supabase Secrets Reference
+
+Set in **Supabase → Edge Functions → Secrets**.
+
+| Secret | Used by | Purpose |
+|---|---|---|
+| `FIREBASE_PROJECT_ID` | `chat-gateway`, `admin-credits` | Firebase project / token audience |
+| `FIREBASE_SERVICE_ACCOUNT` | `chat-gateway`, `admin-credits` | Service-account JSON for Firestore access |
+| `CHAT_MASTER_KEY` | `chat-gateway` | AES-256-GCM chat encryption key (back it up) |
+| `ONESIGNAL_APP_ID` | `admin-credits` | OneSignal app ID |
+| `admin_payment` | `admin-credits` | OneSignal REST API key (server pushes) |
+| `DEMO_MODE_ENABLED` | purchase function | Enables the simulated payment flow |
+
+Edge functions that verify Firebase tokens themselves must be deployed with **Verify JWT OFF** (`--no-verify-jwt`).
+
+---
+
 # 🔐 Security
 
 ## ✅ Implemented Security Controls
@@ -1031,6 +1216,9 @@ Run → Run 'app'
 | **Chat Message Encryption** | AES-256-GCM via `chat-gateway`; direct Firestore message creation blocked |
 | **Admin Action Validation & Audit** | `userType` verified server-side; every unban logged in `chat_admin_audit` |
 | **Appeal Resolution Restricted to Admins** | Firestore rules block client writes of `approved` / `rejected`; unban and appeal resolution are transactional |
+| **Server-Side Credit Changes** | Balances change only via `admin-credits`: Firebase token verified, admin checked server-side, amounts and reasons validated, no negative balances |
+| **Credit Audit Trail** | Every adjustment stored in `creditAdjustments` + `adminActivityLogs`; clients cannot write to either |
+| **Idempotent Credit Operations** | `requestId` prevents double-applied adjustments and duplicate notifications |
 
 ### Account Lockout
 
@@ -1081,9 +1269,24 @@ supabase/migrations/
 
 ---
 
+# 🧰 Troubleshooting
+
+| Problem | Cause / Fix |
+|---|---|
+| `Failed: timeout` on Add bonus / Deduct | Edge function hung. Use the REST-based `firestore.ts` (not `firebase-admin`); check **Edge Functions → admin-credits → Logs**. Check the user's balance before retrying — the request may have applied late |
+| Deduct added credits / package edits failed | App/server field mismatch. App sends `targetUid` + `direction` and package `id`; the function accepts these |
+| `Invalid JWT` / `401` from the function | Turn **Verify JWT OFF** (`--no-verify-jwt`); the function checks the Firebase token itself |
+| `403 Admins only` | `users/{uid}.userType` must equal `"admin"` |
+| Push not received | Logs show `onesignal: failed 401/403` → wrong REST key in `admin_payment`; "no subscribed users" → the user must call `OneSignal.login(email.lowercase())` and allow notifications |
+| `google_auth` / Firestore `403` | Give the service account the **Cloud Datastore User** role and check `FIREBASE_SERVICE_ACCOUNT` / `FIREBASE_PROJECT_ID` |
+| Admin adjustments count in purchase totals | Adjustments are stored in `demoTransactions` so the user sees them in history. Move them to the `transactions` collection if you want them excluded |
+| Credit screen crashes after removing the dashboard credit card | Also remove `setupCreditSection()`, the `creditTxnHandle` field and its `remove()` call, or the code reads missing views |
+
+---
+
 # 🧪 Testing
 
-The project includes Android testing configuration using JUnit, AndroidX JUnit, and Espresso, run through Android Studio's built-in unit and instrumentation testing tools. See **Test Recipe** under Chat Moderation for the ban-escalation walkthrough.
+The project includes Android testing configuration using JUnit, AndroidX JUnit, and Espresso, run through Android Studio's built-in unit and instrumentation testing tools. See **Test Recipe** under Chat Moderation for the ban-escalation walkthrough and **Test Checklist** under Admin Credit Management for the credit flows.
 
 ---
 
@@ -1167,6 +1370,18 @@ activity_admin_banned_users.xml
 item_banned_user.xml
 ```
 
+## Admin Credits
+
+```text
+AdminCreditsActivity.kt
+AdminCreditApi.kt
+CreditModels.kt
+CreditPdfExporter.kt
+activity_admin_credits.xml
+item_admin_credit_transaction.xml
+item_admin_credit_package.xml
+```
+
 ## Videos & Playlists
 
 ```text
@@ -1201,7 +1416,8 @@ SettingsActivity.kt
 ```text
 SupabaseClient.kt
 SupabaseImageUploader.kt
-supabase/functions/chat-gateway/ (index.ts, auth.ts, crypto.ts, firestore.ts, moderation.ts, policy.ts)
+supabase/functions/chat-gateway/   (index.ts, auth.ts, crypto.ts, firestore.ts, moderation.ts, policy.ts)
+supabase/functions/admin-credits/  (index.ts, auth.ts, firestore.ts, onesignal.ts)
 ```
 
 ## SQL
@@ -1223,7 +1439,7 @@ verification_queries.sql
 
 1. **Teaching Limit** – Limit each user to teaching a maximum of 10 other users simultaneously.
 
-2. **Points Transaction History** – Maintain a complete log of point credits and deductions, including the reason and timestamp, so users can review how their points were earned or spent.
+2. **Points Transaction History** – Maintain a complete log of point credits and deductions, including the reason and timestamp, so users can review how their points were earned or spent. *(Admin adjustments already appear as BONUS / DEDUCTION rows.)*
 
 3. **Trade/Swap from Demo Video** – Add a **Trade/Swap** option directly to individual demo videos, allowing users to send a trade request along with their preferred schedule.
 
@@ -1233,6 +1449,8 @@ verification_queries.sql
 
    * **New Trade Requests** – Notify users when they receive a new trade request.
    * **Meeting Reminders** – Send scheduled trade/meeting reminders to both users before the meeting.
+
+6. **Tighten Firestore Rules** – `users` is currently readable by anyone (`allow read: if true`) and any signed-in user can raise another user's `credits`. Restrict reads and move peer credit transfers to a server function.
 
 ## 🟡 Low Priority
 
@@ -1246,13 +1464,17 @@ verification_queries.sql
 
 5. **Appeal History** – Give users a read-only history of past appeals (status, decision note, timestamps) alongside the current open appeal.
 
+6. **Credit Adjustment Separation** – Store admin adjustments outside `demoTransactions` so they don't count in purchase totals.
+
+7. **Real Payment Gateway** – Replace the simulated checkout with Razorpay or similar.
+
 ---
 
 # 📸 Screenshots
 
 Add screenshots of the application inside the `screenshots/` directory.
 
-Recommended screenshots: Login, Home, Explore Skills, Skill Details, Add Resource, Create Trade, My Trades (5 tabs), Trade Detail, Chat, Chat Ban Dialog, Admin Banned Users, User Appeals, Admin Appeals, Profile, Videos, Settings, Language Selection, Dark Mode.
+Recommended screenshots: Login, Home, Explore Skills, Skill Details, Add Resource, Create Trade, My Trades (5 tabs), Trade Detail, Chat, Chat Ban Dialog, Admin Banned Users, User Appeals, Admin Appeals, Admin Credit Management (User Credits tab), Profile, Videos, Settings, Language Selection, Dark Mode.
 
 ```markdown
 ## 📸 Screenshots
@@ -1272,6 +1494,10 @@ Recommended screenshots: Login, Home, Explore Skills, Skill Details, Add Resourc
 | Settings | Language Selection |
 |---|---|
 | ![Settings](screenshots/settings.png) | ![Language](screenshots/language.png) |
+
+| Admin Dashboard | Admin Credits |
+|---|---|
+| ![Admin](screenshots/admin_dashboard.png) | ![Credits](screenshots/admin_credits.png) |
 ```
 
 ---
